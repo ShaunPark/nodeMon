@@ -31,20 +31,38 @@ class K8sMonitor {
 
     private async monitor( k8sApi :k8s.CoreV1Api) {
         try {    
-                if( k8sApi ) {
-                const {body} = await k8sApi.listNode()
+            if( k8sApi ) {
+                {
+                    const {body} = await k8sApi.listNode()
 
-                body.items.map( item => {
-                    const conditions = item?.status?.conditions;
-                    
-                    if(conditions) {
-                        conditions.map( condition => console.log(condition))
+                    body.items.map( item => {
+                        if ( item?.status) {
+                            const {conditions} = item?.status;
+                        
+                        if(conditions) {
+                            conditions.map( condition => console.log(condition))
+                        }
+                        // const nodeName = item.metadata?.name
+                        // if( nodeName ) {
+                        //     k8sApi.readNodeStatus(nodeName);
+                        // }}
+                        }
+                    })
+                }
+                {
+                    const {body} = await k8sApi.listEventForAllNamespaces(undefined, undefined, "kind=Node")
+
+                    if( body.items.length > 0) {
+                        body.items.map( ({message, eventTime }) => {
+                            console.log(`Message : ${message} @ ${eventTime?.toISOString()}`)
+                        })
+                    } else {
+                        console.log("No Events");
                     }
-                    // const nodeName = item.metadata?.name
-                    // if( nodeName ) {
-                    //     k8sApi.readNodeStatus(nodeName);
-                    // }
-                })
+                }
+            
+
+                
             }
         } catch(err) {
             console.error(err)
