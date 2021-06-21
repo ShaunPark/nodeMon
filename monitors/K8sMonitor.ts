@@ -18,14 +18,14 @@ class K8sMonitor {
         const kc = new k8s.KubeConfig();
         kc.loadFromDefault();
 
-        this._k8sApi = kc.makeApiClient(k8s.CoreV1Api);
+        const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
-        setInterval( this.monitor, this.interval)
+        setInterval( () => this.monitor(k8sApi), this.interval)
     }
 
-    private async monitor() {
-        if( this._k8sApi ) {
-            const {body} = await this._k8sApi?.listNode()
+    private async monitor( k8sApi :k8s.CoreV1Api) {
+        if( k8sApi ) {
+            const {body} = await k8sApi.listNode()
 
             body.items.map( item => {
                 const conditions = item?.status?.conditions;
