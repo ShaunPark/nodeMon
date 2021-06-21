@@ -30,6 +30,7 @@ class K8sMonitor {
     }
 
     private async monitor( k8sApi :k8s.CoreV1Api) {
+        console.log("----Node Conditons------------------------------------------")
         try {    
             if( k8sApi ) {
                 {
@@ -40,7 +41,7 @@ class K8sMonitor {
                             const {conditions} = item?.status;
                         
                         if(conditions) {
-                            conditions.map( condition => console.log(condition))
+                            conditions.map( ({reason, lastTransitionTime, type}) => console.log(`${reason} : ${lastTransitionTime} - ${type}`))
                         }
                         // const nodeName = item.metadata?.name
                         // if( nodeName ) {
@@ -49,6 +50,8 @@ class K8sMonitor {
                         }
                     })
                 }
+                console.log("----Node Events   ------------------------------------------")
+
                 {
                     const {body} = await k8sApi.listEventForAllNamespaces(undefined, undefined, "kind=Node")
 
