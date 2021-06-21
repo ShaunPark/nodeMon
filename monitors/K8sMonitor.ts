@@ -11,16 +11,16 @@ class K8sMonitor {
 
     public async run() {
 
-        setInterval(()=>{
-            const dateTimeStr = new Date().toISOString();
-            console.log(`k8s monitor ${dateTimeStr}`);
-        }, this.interval)
-        // const kc = new k8s.KubeConfig();
-        // kc.loadFromDefault();
+        // setInterval(()=>{
+        //     const dateTimeStr = new Date().toISOString();
+        //     console.log(`k8s monitor ${dateTimeStr}`);
+        // }, this.interval)
+        const kc = new k8s.KubeConfig();
+        kc.loadFromDefault();
 
-        // this._k8sApi = kc.makeApiClient(k8s.CoreV1Api);
+        this._k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
-        // setInterval( this.monitor, this.interval)
+        setInterval( this.monitor, this.interval)
     }
 
     private async monitor() {
