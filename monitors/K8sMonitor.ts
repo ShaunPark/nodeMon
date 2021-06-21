@@ -1,4 +1,4 @@
-import k8s, {V1NodeList, V1NodeStatus, V1NodeCondition} from "@kubernetes/client-node"
+import * as k8s from "@kubernetes/client-node"
 
 const { workerData } = require('worker_threads');
  
@@ -9,7 +9,7 @@ class K8sMonitor {
 
     private _k8sApi?:k8s.CoreV1Api;
 
-    public async run() {
+    public run() {
 
         // setInterval(()=>{
         //     const dateTimeStr = new Date().toISOString();
