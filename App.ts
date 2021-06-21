@@ -36,7 +36,7 @@ nodeMon.run(configManager.config);
 const worker = new Worker('./build/monitors/K8sMonitor.js', {
     workerData: {
       aliasModule: path.resolve(__dirname, 'monitors/K8sMonitor.ts'), // worker.js uses this
-      interval: 3000,
+      interval: 10000,
       label: "label"
     },
   })

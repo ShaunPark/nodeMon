@@ -20,7 +20,7 @@ class K8sMonitor {
             kc.loadFromDefault();
     
             const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
-    
+            console.log(`Start K8Smonitor with interval : ${this.interval}`)
             setInterval( () => this.monitor(k8sApi), this.interval)
     
         } catch(err) {
