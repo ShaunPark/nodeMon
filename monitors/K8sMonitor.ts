@@ -15,29 +15,38 @@ class K8sMonitor {
         //     const dateTimeStr = new Date().toISOString();
         //     console.log(`k8s monitor ${dateTimeStr}`);
         // }, this.interval)
-        const kc = new k8s.KubeConfig();
-        kc.loadFromDefault();
-
-        const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
-
-        setInterval( () => this.monitor(k8sApi), this.interval)
+        try {
+            const kc = new k8s.KubeConfig();
+            kc.loadFromDefault();
+    
+            const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
+    
+            setInterval( () => this.monitor(k8sApi), this.interval)
+    
+        } catch(err) {
+            console.error(err)
+        }
     }
 
     private async monitor( k8sApi :k8s.CoreV1Api) {
-        if( k8sApi ) {
-            const {body} = await k8sApi.listNode()
+        try {    
+                if( k8sApi ) {
+                const {body} = await k8sApi.listNode()
 
-            body.items.map( item => {
-                const conditions = item?.status?.conditions;
-                
-                if(conditions) {
-                    conditions.map( condition => console.log(condition))
-                }
-                // const nodeName = item.metadata?.name
-                // if( nodeName ) {
-                //     k8sApi.readNodeStatus(nodeName);
-                // }
-            })
+                body.items.map( item => {
+                    const conditions = item?.status?.conditions;
+                    
+                    if(conditions) {
+                        conditions.map( condition => console.log(condition))
+                    }
+                    // const nodeName = item.metadata?.name
+                    // if( nodeName ) {
+                    //     k8sApi.readNodeStatus(nodeName);
+                    // }
+                })
+            }
+        } catch(err) {
+            console.error(err)
         }
     }
 }
