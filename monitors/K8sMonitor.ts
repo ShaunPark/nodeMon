@@ -49,30 +49,37 @@ class K8sMonitor {
                         // }}
                         }
                     })
+
+                    body.items.map( item => {
+                        if( item.metadata){ this.getNodeEvent(k8sApi, item.metadata.name)}
+                           
+                    })
                 }
-                console.log("----Node Events   ------------------------------------------")
-
-                {
-                    const {body} = await k8sApi.listEventForAllNamespaces(undefined, undefined, "kind=Node")
-
-                    if( body.items.length > 0) {
-                        body.items.map( ({message, eventTime }) => {
-                            console.log(`Message : ${message} @ ${eventTime?.toISOString()}`)
-                        })
-                    } else {
-                        console.log("No Events");
-                    }
-                }
-            
-
-                
             }
         } catch(err) {
             console.error(err)
             throw err;
         }
     }
+
+    private async getNodeEvent(k8sApi :k8s.CoreV1Api, nodeName?:string) {
+        console.log(`----Node Events of ${nodeName}  ------------------------------------------`)
+
+        {
+            const {body} = await k8sApi.listEventForAllNamespaces(undefined, undefined, `involvedObject.kind=Node,involvedObject.name=${nodeName}`)
+
+            if( body.items.length > 0) {
+                body.items.map( ({message, eventTime }) => {
+                    console.log(`Message : ${message} @ ${eventTime?.toISOString()}`)
+                })
+            } else {
+                console.log("No Events");
+            }
+        }
+    }
 }
+
+
 
 const k8sMon = new K8sMonitor(workerData.interval, workerData.label)
 k8sMon.run();
