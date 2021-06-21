@@ -25,6 +25,7 @@ class K8sMonitor {
     
         } catch(err) {
             console.error(err)
+            throw err;
         }
     }
 
@@ -47,6 +48,7 @@ class K8sMonitor {
             }
         } catch(err) {
             console.error(err)
+            throw err;
         }
     }
 }
