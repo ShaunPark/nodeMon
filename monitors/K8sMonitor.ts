@@ -1,5 +1,4 @@
 import * as k8s from "@kubernetes/client-node"
-
 const { workerData } = require('worker_threads');
  
 class K8sMonitor {

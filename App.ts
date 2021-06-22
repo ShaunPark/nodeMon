@@ -1,51 +1,62 @@
 import ConfigManager from "./config/ConfigManager";
 import { parse } from "ts-command-line-args"
-import { IConfig } from "./config/Config"
-import { Worker } from "worker_threads"
+import { Worker, MessageChannel } from "worker_threads"
 import path from 'path'
-
-interface IArguments {
-    configFile: string;
-}
+import { IArguments, IConfig} from "./types/Type"
 
 class NodeMon {
+    private _config:IConfig;
+    private _esLogger!:Worker;
     
     constructor() {
+        const args = parse<IArguments>({
+            configFile: {type: String, alias: 'f'}
+        })
+        
+        const configManager = new ConfigManager(args.configFile);
+        this._config = configManager.config;
     }
 
-    public run(config:IConfig) {
-        console.log(config)
+    public run = () => {
+        console.log(this._config)
+        this.createLoggerThread()
+
         setInterval(() => {
             const dateStr = new Date();
-            console.log(`run ${dateStr.toDateString()}`)
-        }, config.loopInterval)
+            const msg = `run ${dateStr.toDateString()}`;
+            console.log(msg)
+            this._esLogger.postMessage({message: msg});
+        }, this._config.loopInterval)
+    }
+
+    private createLoggerThread() {
+        // const { port1, port2 } = new MessageChannel();
+  
+        this._esLogger = new Worker('./build/exporters/ESExporter.js', {
+            workerData: {
+                aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
+                interval: 10000,
+                host: 'localhost',
+                port: 5000            }
+        })
+        
+        this._esLogger.on("message", (val) => {
+            console.log(`Message from sub thread : ${val}`)
+        })
+    }
+
+    private createMonitorThread() {
+        // Start sub thread for K8S Monitor
+        const worker = new Worker('./build/monitors/K8sMonitor.js', {
+            workerData: {
+            aliasModule: path.resolve(__dirname, 'monitors/K8sMonitor.ts'), // worker.js uses this
+            interval: 10000,
+            label: "label"
+            },
+        })
     }
 }
 
-const args = parse<IArguments>({
-    configFile: {type: String, alias: 'f'}
-})
-
-const configManager = new ConfigManager(args.configFile);
-
-
-let nodeMon = new NodeMon()
-nodeMon.run(configManager.config);
-
-
-const worker = new Worker('./build/monitors/K8sMonitor.js', {
-    workerData: {
-      aliasModule: path.resolve(__dirname, 'monitors/K8sMonitor.ts'), // worker.js uses this
-      interval: 10000,
-      label: "label"
-    },
-  })
-  
-
-// const worker = new Worker('./build/monitors/K8sMonitor.js', {
-//     workerData: {
-//         path: './monitors/K8sMonitor.ts',
-//         interval: 3000,
-//         label: "label"
-//     }
-// });
+// Start Nod Mon Main process
+const nodeMon = new NodeMon()
+nodeMon.run();
