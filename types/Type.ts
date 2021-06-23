@@ -12,3 +12,8 @@ export interface Ik8s {
     label?: string;
     labelExpr?: string;
 }
+
+export interface IEvent {
+    type: string;
+    message: string;
+}

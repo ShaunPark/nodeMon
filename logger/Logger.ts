@@ -1,15 +1,19 @@
-import { MessageChannel } from "worker_threads";
-
+import { MessagePort } from "worker_threads";
 export class Logger {
     private static port:MessagePort;
-
-    constructor(private port:MessagePort){
-        if( !Logger.port ){
-            Logger.port = port;
-        }
+    public static initLogger(port:MessagePort) {
+        Logger.port = port;
     }
 
     public static log(message:string) {
-        Logger.port.postMessage("message");
+        const dateStr = Date.now().toString();
+        console.log(message)
+        Logger.port.postMessage(`${dateStr}:${message}`);
+    }
+
+    public static event(ev:string) {
+        const dateStr = Date.now().toString();
+        console.log(ev)
+        Logger.port.postMessage({type:'event', message:ev});
     }
 }

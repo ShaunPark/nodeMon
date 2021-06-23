@@ -1,8 +1,9 @@
 import ConfigManager from "./config/ConfigManager";
 import { parse } from "ts-command-line-args"
-import { Worker, MessageChannel } from "worker_threads"
+import { Worker, MessageChannel, MessagePort } from "worker_threads"
 import path from 'path'
 import { IArguments, IConfig} from "./types/Type"
+import { Logger } from "./logger/Logger";
 
 class NodeMon {
     private _config:IConfig;
@@ -24,14 +25,19 @@ class NodeMon {
         setInterval(() => {
             const dateStr = new Date();
             const msg = `run ${dateStr.toDateString()}`;
-            console.log(msg)
-            this._esLogger.postMessage({message: msg});
+            const milliseconds = dateStr.getMilliseconds();
+
+            if( (milliseconds % 3) == 0 ) {
+                Logger.event(msg);
+            } else {
+                Logger.log(msg);
+            }
+
         }, this._config.loopInterval)
     }
 
-    private createLoggerThread() {
-        // const { port1, port2 } = new MessageChannel();
-  
+    private createLoggerThread() {  
+   
         this._esLogger = new Worker('./build/exporters/ESExporter.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
@@ -40,20 +46,29 @@ class NodeMon {
                 port: 5000            }
         })
         
-        this._esLogger.on("message", (val) => {
-            console.log(`Message from sub thread : ${val}`)
-        })
+
+        // Create Log Channel and init Logger class
+        const { port1, port2 } = new MessageChannel();
+        Logger.initLogger(port1);
+
+        try {
+            this._esLogger.postMessage({port: port2}, [port2]);
+
+        } catch(err) {
+            console.error(err)
+            throw err;
+        }
     }
 
     private createMonitorThread() {
-        // Start sub thread for K8S Monitor
-        const worker = new Worker('./build/monitors/K8sMonitor.js', {
-            workerData: {
-            aliasModule: path.resolve(__dirname, 'monitors/K8sMonitor.ts'), // worker.js uses this
-            interval: 10000,
-            label: "label"
-            },
-        })
+        // // Start sub thread for K8S Monitor
+        // const worker = new Worker('./build/monitors/K8sMonitor.js', {
+        //     workerData: {
+        //     aliasModule: path.resolve(__dirname, 'monitors/K8sMonitor.ts'), // worker.js uses this
+        //     interval: 10000,
+        //     label: "label"
+        //     },
+        // })
     }
 }
 
