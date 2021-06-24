@@ -8,7 +8,7 @@ interface NodeEvent  {
     event?: K8SEvent,
 }
 
-type K8SEvent = {
+interface K8SEvent {
     uid: string,
     message: string,
     namespace: string,
@@ -19,14 +19,24 @@ type K8SEvent = {
     lastTimestamp: string
 }
 
-type InvolvedObject = {
+interface InvolvedObject {
     kind: string,
     name: string,
     uid: string
 }
+
+
+interface NodeCondition {
+    lastHeartbeatTime?: Date;
+    lastTransitionTime?: Date;
+    message?: string;
+    reason?: string;
+    status: string;
+    type: string;
+}
 class Node {
-    public conditions?:Array<k8s.V1NodeCondition>;
-    public events?:k8s.CoreV1EventList;
+    public conditions:Array<NodeCondition> = [];
+    public events:Array<NodeEvent> = [];
 }
 class K8sMonitor {
     constructor(private label?:string ) {
@@ -57,24 +67,30 @@ class K8sMonitor {
                         if ( name ) {
 
                             if ( item?.status) {
-                                if(item?.status?.conditions) {
-                                    temoNode.conditions = item?.status?.conditions;
-                                    logger.info(`Node condition count : ${temoNode.conditions.length}`)
-                                } else {
-                                    logger.info(`Node condition is not found`)
-                                }
+                                const {conditions} = item.status;
+
+                                conditions?.map( condition => {
+                                    temoNode.conditions.push(condition as NodeCondition);
+                                })
+                                // if(item?.status?.conditions) {
+                                //     temoNode.conditions = item?.status?.conditions;
+                                //     logger.info(`Node condition count : ${temoNode.conditions.length}`)
+                                // } else {
+                                //     logger.info(`Node condition is not found`)
+                                // }
                             }
 
                             this.getNodeEventAsync(k8sApi, name).then( list => {
-                                if(list) {
-                                    logger.info(`Node event count : ${list.items.length}`)
-                                } else {
-                                    logger.info(`Node event is not found`)
-                                }
-                                temoNode.events = list;
+                                logger.log(`returned value ${list}`)
+                                // if(list) {
+                                //     logger.info(`Node event count : ${list.items.length}`)
+                                // } else {
+                                //     logger.info(`Node event is not found`)
+                                // }
+                                // temoNode.events = list;
                             })
     
-                            logger.info(`node info ${temoNode.conditions?.length} ${temoNode.events?.items.length}`)
+                            logger.info(`node info ${temoNode.conditions.length} ${temoNode.events.length}`)
                             nodes.set(name, temoNode)
                         }
                     }
@@ -89,7 +105,7 @@ class K8sMonitor {
         
                     logger.info(`----Events aaa-----------`)
         
-                    value.events?.items.forEach( item => {
+                    value.events?.forEach( item => {
                         logger.log(item)
                     })
                 })
@@ -103,26 +119,29 @@ class K8sMonitor {
         }
     }
 
-    private sendToNodeManager(nodes:Map<string, Node>) {
-        nodes.forEach((value, key) => {
-            logger.info(`----Conditions -----------`)
+    // private sendToNodeManager(nodes:Map<string, Node>) {
+    //     nodes.forEach((value, key) => {
+    //         logger.info(`----Conditions -----------`)
 
-            value.conditions?.forEach( condition => {
-                logger.log(condition)
-            })
+    //         value.conditions?.forEach( condition => {
+    //             logger.log(condition)
+    //         })
 
-            logger.info(`----Events -----------`)
+    //         logger.info(`----Events -----------`)
 
-            value.events?.items.forEach( item => {
-                logger.log(item)
-            })
-        })
-    }
+    //         value.events?.items.forEach( item => {
+    //             logger.log(item)
+    //         })
+    //     })
+    // }
 
     private async getNodeEventAsync(k8sApi :k8s.CoreV1Api, nodeName?:string):Promise<k8s.CoreV1EventList>{
         logger.info(`----Node Events of ${nodeName}  ------------------------------------------`)
 
         const { body } = await k8sApi.listEventForAllNamespaces(undefined, undefined, `involvedObject.kind=Node,involvedObject.name=${nodeName}`)
+
+        logger.info(`return value ${body}`)
+
         return Promise.resolve(body)
         // return new Promise((resolve, reject) => {
         //     if( body.items.length > 0) {
