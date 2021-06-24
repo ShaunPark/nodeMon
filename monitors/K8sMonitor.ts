@@ -76,9 +76,19 @@ class K8sMonitor {
         }
     }
 
-    private sendToNodeManager(nodes:Map<string, any>) {
+    private sendToNodeManager(nodes:Map<string, Node>) {
         nodes.forEach((value, key) => {
-            logger.info(value)
+            logger.info(`----Conditions -----------`)
+
+            value.conditions?.forEach( condition => {
+                logger.log(condition)
+            })
+
+            logger.info(`----Events -----------`)
+
+            value.events?.items.forEach( item => {
+                logger.log(item)
+            })
         })
     }
 
