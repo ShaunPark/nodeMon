@@ -43,7 +43,7 @@ class K8sMonitor {
             const k8sApi = this._k8sApi;
             if( k8sApi ) {
                 const {body} = await k8sApi.listNode()
-                const nodes = new Map<string, Node>()
+                let nodes = new Map<string, Node>()
 
                 logger.info(`${body.items.length} nodes found`)
 
