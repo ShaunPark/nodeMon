@@ -58,17 +58,20 @@ export class NodeMonMain {
 
     private mainLoop = () => {
         logger.info('NodeMon main Loop started')
-        this.monitorK8S()
-        this.monitorPrometheus()
-    }
-
-    private monitorK8S = () => {
+        // this.monitorK8S()
         if ( this._k8sMonitor ) {
+            logger.info('K8S monitor main Loop started')
+
             this._k8sMonitor.run().then( () => {
                 console.log("monitor k8s ended.")
             });
         }
+
+        this.monitorPrometheus()
     }
+
+    // private monitorK8S = () => {
+    // }
 
     private monitorPrometheus = () => {}
 

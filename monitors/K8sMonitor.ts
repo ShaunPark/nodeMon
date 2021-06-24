@@ -1,6 +1,7 @@
 import * as k8s from "@kubernetes/client-node"
-import { Logger } from "../logger/Logger";
+
 const { workerData } = require('worker_threads');
+const logger= require('npmlog')
 
 interface NodeEvent  {
     timestamp: Date,
@@ -37,7 +38,7 @@ class K8sMonitor {
     private _k8sApi?:k8s.CoreV1Api;
 
     public async run() {
-        console.log("----Node Conditons------------------------------------------")
+        logger.info("----Node Conditons------------------------------------------")
         try {    
             const k8sApi = this._k8sApi;
             if( k8sApi ) {
@@ -77,12 +78,12 @@ class K8sMonitor {
 
     private sendToNodeManager(nodes:Map<string, any>) {
         nodes.forEach((value, key) => {
-            Logger.log(value)
+            logger.info(value)
         })
     }
 
     private async getNodeEventAsync(k8sApi :k8s.CoreV1Api, nodeName?:string):Promise<k8s.CoreV1EventList>{
-        Logger.log(`----Node Events of ${nodeName}  ------------------------------------------`)
+        logger.info(`----Node Events of ${nodeName}  ------------------------------------------`)
 
         const { body } = await k8sApi.listEventForAllNamespaces(undefined, undefined, `involvedObject.kind=Node,involvedObject.name=${nodeName}`)
         return Promise.resolve(body)
