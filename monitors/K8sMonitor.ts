@@ -45,16 +45,16 @@ class K8sMonitor {
                 const {body} = await k8sApi.listNode()
                 const nodes = new Map<string, Node>()
 
-                logger.info(`${nodes.size} nodes found`)
+                logger.info(`${body.items.length} nodes found`)
 
                 body.items.map( item => {
                     if( item.metadata ) {
                         const {name} = item.metadata;
 
                         logger.info(`Node name : ${name}`)
+                        const node = new Node()
 
                         if ( name ) {
-                            const node = new Node()
 
                             if ( item?.status) {
                                 if(item?.status?.conditions) {
@@ -74,6 +74,7 @@ class K8sMonitor {
                                 node.events = list;
                             })
     
+                            logger.info(`node info ${node.conditions?.length} ${node.events?.items.length}`)
                             nodes.set(name, node)
                         }
                     }
