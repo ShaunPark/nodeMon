@@ -20,7 +20,7 @@ type KubernetesConfig = {
 export class NodeMonMain {
 
     private _isAWS:boolean = false;
-    private _config:IConfig = {interval:10000};
+    public _config:IConfig = {interval:10000};
     private _k8sMonitor?:K8sMonitor = undefined;
     constructor() {
         this._isAWS = this.isAWS()
@@ -50,16 +50,14 @@ export class NodeMonMain {
         }
     }
 
-    public run(): void {
+    public run = (): void => {
         logger.info(`NodeMon started`)
         this.initEventPublishier();
         this.startESExporter();
         this.startNodeManager()
 
         if( this._config.kubernetes ) {
-            const { interval, label } = this._config.kubernetes;
-            
-            this._k8sMonitor = new K8sMonitor(interval, label);
+            this._k8sMonitor = new K8sMonitor(this._config.kubernetes?.label);
         }
 
         setInterval(this.mainLoop, this._config.interval)
