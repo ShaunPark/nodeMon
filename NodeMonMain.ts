@@ -31,13 +31,14 @@ export class NodeMonMain {
                 configFile: {type: String, alias: 'f'}
             })
             this._config = this.initConfigManager(args.configFile);
+            logger.info(this._config)
         }  catch (err) {
             logger.err(err)
             process.exit(1);
         }
     }
 
-    public run():void {
+    public run(): void {
         logger.info(`NodeMon started`)
         this.initEventPublishier();
         this.startESExporter();
