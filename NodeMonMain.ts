@@ -31,10 +31,13 @@ export class NodeMonMain {
                 configFile: {type: String, alias: 'f'}
             })
             this._config = this.initConfigManager(args.configFile);
+            logger.info(`load config from ${args.configFile}`)
             logger.info(this._config.interval)
             if( this._config.kubernetes) {
                 const {interval, label} = this._config.kubernetes;
                 logger.info(` interval ${interval} : ${label}`)
+            } else {
+                logger.info('no kubernetes info')
             }
         }  catch (err) {
             logger.err(err)
