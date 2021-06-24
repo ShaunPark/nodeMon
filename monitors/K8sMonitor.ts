@@ -46,19 +46,32 @@ class K8sMonitor {
                     const {body} = await k8sApi.listNode()
                     const nodes = new Map<string, Node>()
 
+                    logger.info(`${nodes.size} nodes found`)
+
                     body.items.map( item => {
                         if( item.metadata ) {
                             const {name} = item.metadata;
+
+                            logger.info(`Node name : ${name}`)
+
                             if ( name ) {
                                 const node = new Node()
 
                                 if ( item?.status) {
                                     if(item?.status?.conditions) {
                                         node.conditions = item?.status?.conditions;
+                                        logger.info(`Node condition count : ${node.conditions.length}`)
+                                    } else {
+                                        logger.info(`Node condition is not found`)
                                     }
                                 }
 
                                 this.getNodeEventAsync(k8sApi, name).then( list => {
+                                    if(list) {
+                                        logger.info(`Node event count : ${list.items.length}`)
+                                    } else {
+                                        logger.info(`Node event is not found`)
+                                    }
                                     node.events = list;
                                 })
         
