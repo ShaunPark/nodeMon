@@ -29,7 +29,7 @@ class Node {
     public events?:k8s.CoreV1EventList;
 }
 class K8sMonitor {
-    constructor(private interval: number, private label?:string ) {
+    constructor(private label?:string ) {
         const kc = new k8s.KubeConfig();
         kc.loadFromDefault();
         this._k8sApi = kc.makeApiClient(k8s.CoreV1Api);
