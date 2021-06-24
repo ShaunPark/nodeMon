@@ -52,7 +52,7 @@ class K8sMonitor {
                         const {name} = item.metadata;
 
                         logger.info(`Node name : ${name}`)
-                        const temoNode = new Node()
+                        let temoNode = new Node()
 
                         if ( name ) {
 
