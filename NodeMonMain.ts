@@ -56,14 +56,18 @@ export class NodeMonMain {
     private startESExporter = () => {}
     private initConfigManager = (configFile:string):Config =>{ return {interval:10000}}
 
-    private mainLoop():void {
+    private mainLoop(): void {
         logger.info('NodeMon main Loop started')
         this.monitorK8S()
         this.monitorPrometheus()
     }
 
-    private async monitorK8S()  {
-        await this._k8sMonitor?.run();
+    private monitorK8S()  {
+        if ( this._k8sMonitor ) {
+            this._k8sMonitor.run().then( () => {
+                console.log("monitor k8s ended.")
+            });
+        }
     }
 
     private monitorPrometheus = () => {}
