@@ -3,8 +3,8 @@ export interface IArguments {
 }
 
 export interface IConfig {
-    loopInterval: number;
-    kubernetes: Ik8s;
+    interval?: number;
+    kubernetes?: Ik8s;
 }
 
 export interface Ik8s {

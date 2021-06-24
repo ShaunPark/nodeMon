@@ -33,7 +33,7 @@ class NodeMon {
                 Logger.log(msg);
             }
 
-        }, this._config.loopInterval)
+        }, this._config.interval)
     }
 
     private createLoggerThread() {  

@@ -1,8 +1,9 @@
 import { exit } from "process";
 import { checkServerIdentity } from "tls";
 import { parse } from "ts-command-line-args"
-import { IArguments} from "./types/Type"
+import { IArguments, IConfig} from "./types/Type"
 import K8sMonitor from "./monitors/K8sMonitor";
+import ConfigManager from "./config/ConfigManager";
 
 const logger= require('npmlog')
 
@@ -19,7 +20,7 @@ type KubernetesConfig = {
 export class NodeMonMain {
 
     private _isAWS:boolean = false;
-    private _config:Config = {interval:10000};
+    private _config:IConfig = {interval:10000};
     private _k8sMonitor?:K8sMonitor = undefined;
     constructor() {
         this._isAWS = this.isAWS()
@@ -30,7 +31,11 @@ export class NodeMonMain {
             const args = parse<IArguments>({
                 configFile: {type: String, alias: 'f'}
             })
-            this._config = this.initConfigManager(args.configFile);
+
+            const configManager = new ConfigManager(args.configFile);
+            this._config = configManager.config;
+    
+
             logger.info(`load config from ${args.configFile}`)
             logger.info(this._config.interval)
             if( this._config.kubernetes) {
@@ -53,6 +58,7 @@ export class NodeMonMain {
 
         if( this._config.kubernetes ) {
             const { interval, label } = this._config.kubernetes;
+            
             this._k8sMonitor = new K8sMonitor(interval, label);
         }
 
@@ -62,7 +68,6 @@ export class NodeMonMain {
     private initEventPublishier = () => {}
     private startNodeManager = () => {}
     private startESExporter = () => {}
-    private initConfigManager = (configFile:string):Config =>{ return {interval:10000}}
 
     private mainLoop = () => {
         logger.info('NodeMon main Loop started')
