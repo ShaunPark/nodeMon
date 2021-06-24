@@ -31,7 +31,11 @@ export class NodeMonMain {
                 configFile: {type: String, alias: 'f'}
             })
             this._config = this.initConfigManager(args.configFile);
-            logger.info(this._config)
+            logger.info(this._config.interval)
+            if( this._config.kubernetes) {
+                const {interval, label} = this._config.kubernetes;
+                logger.info(` interval ${interval} : ${label}`)
+            }
         }  catch (err) {
             logger.err(err)
             process.exit(1);
