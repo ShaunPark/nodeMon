@@ -52,14 +52,14 @@ class K8sMonitor {
                         const {name} = item.metadata;
 
                         logger.info(`Node name : ${name}`)
-                        const node = new Node()
+                        const temoNode = new Node()
 
                         if ( name ) {
 
                             if ( item?.status) {
                                 if(item?.status?.conditions) {
-                                    node.conditions = item?.status?.conditions;
-                                    logger.info(`Node condition count : ${node.conditions.length}`)
+                                    temoNode.conditions = item?.status?.conditions;
+                                    logger.info(`Node condition count : ${temoNode.conditions.length}`)
                                 } else {
                                     logger.info(`Node condition is not found`)
                                 }
@@ -71,11 +71,11 @@ class K8sMonitor {
                                 } else {
                                     logger.info(`Node event is not found`)
                                 }
-                                node.events = list;
+                                temoNode.events = list;
                             })
     
-                            logger.info(`node info ${node.conditions?.length} ${node.events?.items.length}`)
-                            nodes.set(name, node)
+                            logger.info(`node info ${temoNode.conditions?.length} ${temoNode.events?.items.length}`)
+                            nodes.set(name, temoNode)
                         }
                     }
                 })
