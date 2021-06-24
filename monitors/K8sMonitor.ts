@@ -80,7 +80,22 @@ class K8sMonitor {
                     }
                 })
 
-                this.sendToNodeManager(nodes)
+                nodes.forEach((value, key) => {
+                    logger.info(`----Conditions aaa-----------`)
+        
+                    value.conditions?.forEach( condition => {
+                        logger.log(condition)
+                    })
+        
+                    logger.info(`----Events aaa-----------`)
+        
+                    value.events?.items.forEach( item => {
+                        logger.log(item)
+                    })
+                })
+        
+
+                //this.sendToNodeManager(nodes)
             }
         } catch(err) {
             console.error(err)
