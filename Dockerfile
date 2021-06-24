@@ -8,4 +8,4 @@ RUN npm install && npm install -g typescript && npm install -g ts-node
 COPY . .
 RUN tsc
 
-CMD [ "ts-node", "App.ts", "-f", "/config/config.yaml"]
+CMD [ "ts-node", "NodeMonMain.ts", "-f", "/config/config.yaml"]
