@@ -57,7 +57,7 @@ export class NodeMonMain {
         this.startNodeManager()
 
         if( this._config.kubernetes ) {
-            this._k8sMonitor = new K8sMonitor(this._config.kubernetes?.label);
+            this._k8sMonitor = new K8sMonitor(this._config.kubernetes.label);
         }
 
         setInterval(this.mainLoop, this._config.interval)
