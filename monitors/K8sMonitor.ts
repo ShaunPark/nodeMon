@@ -97,15 +97,15 @@ class K8sMonitor {
                 })
 
                 nodes.forEach((value, key) => {
-                    logger.info(`----Conditions aaa-----------`)
+                    logger.info(`----${key} Conditions aaa-----${value.conditions.length} ${value.events.length}------`)
         
-                    value.conditions?.forEach( condition => {
+                    value.conditions.forEach( condition => {
                         logger.log(condition)
                     })
         
                     logger.info(`----Events aaa-----------`)
         
-                    value.events?.forEach( item => {
+                    value.events.forEach( item => {
                         logger.log(item)
                     })
                 })
@@ -140,7 +140,7 @@ class K8sMonitor {
 
         const { body } = await k8sApi.listEventForAllNamespaces(undefined, undefined, `involvedObject.kind=Node,involvedObject.name=${nodeName}`)
 
-        logger.info(`return value ${body}`)
+        logger.info(`return value ${JSON.stringify(body)}`)
 
         return Promise.resolve(body)
         // return new Promise((resolve, reject) => {
