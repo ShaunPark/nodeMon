@@ -4,6 +4,9 @@ import { parse } from "ts-command-line-args"
 import { IArguments, IConfig} from "./types/Type"
 import K8sMonitor from "./monitors/K8sMonitor";
 import ConfigManager from "./config/ConfigManager";
+import { Worker, MessageChannel, MessagePort } from "worker_threads"
+import path from 'path'
+import { Logger } from "./logger/Logger";
 
 const logger= require('npmlog')
 
@@ -18,10 +21,12 @@ type KubernetesConfig = {
 }
 
 export class NodeMonMain {
+    public _config:IConfig = {interval:10000};
 
     private _isAWS:boolean = false;
-    public _config:IConfig = {interval:10000};
     private _k8sMonitor?:K8sMonitor = undefined;
+    private _esLogger!:Worker;
+
     constructor() {
         this._isAWS = this.isAWS()
 
@@ -65,7 +70,28 @@ export class NodeMonMain {
         setInterval(this.mainLoop, interval)
     }
 
-    private initEventPublishier = () => {}
+    private initEventPublishier = () => {
+        this._esLogger = new Worker('./build/exporters/ESExporter.js', {
+            workerData: {
+                aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
+                interval: 10000,
+                host: 'localhost',
+                port: 5000            }
+        })
+
+        // Create Log Channel and init Logger class
+        const { port1, port2 } = new MessageChannel();
+        Logger.initLogger(port1);
+
+        try {
+            this._esLogger.postMessage({port: port2}, [port2]);
+
+        } catch(err) {
+            console.error(err)
+            throw err;
+        }
+    }
+
     private startNodeManager = () => {}
     private startESExporter = () => {}
 
@@ -82,9 +108,6 @@ export class NodeMonMain {
 
         this.monitorPrometheus()
     }
-
-    // private monitorK8S = () => {
-    // }
 
     private monitorPrometheus = () => {}
 

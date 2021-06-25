@@ -19,12 +19,12 @@ class ESExporter {
     }
 
     private log = (event:MessageEvent) => {
-        console.log(event)
-        if( event instanceof Object && Object.prototype.hasOwnProperty.call(event, "type")) {
-            console.log(`log in es exporter : ${event}`);
-        } else {
-            console.log(`event in es exporter : ${event}`);
-        }
+        console.log(`log in es exporter : ${event}`)
+        // if( event instanceof Object && Object.prototype.hasOwnProperty.call(event, "type")) {
+        //     console.log(`log in es exporter : ${event}`);
+        // } else {
+        //     console.log(`event in es exporter : ${event}`);
+        // }
     }
 
     private event = (event:MessageEvent) => {
