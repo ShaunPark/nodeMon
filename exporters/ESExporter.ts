@@ -7,10 +7,10 @@ const { workerData, parentPort } = require('worker_threads');
 class ESExporter {
 
     constructor(private interval:number, private host:string, private port:number) {
-        parentPort.addEventListener("message", this.messageHandler)
+        parentPort.addEventListener("message", this.initMessageHandler)
     }
 
-    private messageHandler = (event:MessageEvent) => {
+    private initMessageHandler = (event:MessageEvent) => {
         if( event.data.port ) {
             const ePort:MessagePort = event.data.port;
             ePort.addListener("message", this.log);

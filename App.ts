@@ -19,45 +19,45 @@ class NodeMon {
     }
 
     public run = () => {
-        console.log(this._config)
-        this.createLoggerThread()
+        // console.log(this._config)
+        // this.createLoggerThread()
 
-        setInterval(() => {
-            const dateStr = new Date();
-            const msg = `run ${dateStr.toDateString()}`;
-            const milliseconds = dateStr.getMilliseconds();
+        // setInterval(() => {
+        //     const dateStr = new Date();
+        //     const msg = `run ${dateStr.toDateString()}`;
+        //     const milliseconds = dateStr.getMilliseconds();
 
-            if( (milliseconds % 3) == 0 ) {
-                Logger.event(msg);
-            } else {
-                Logger.log(msg);
-            }
+        //     if( (milliseconds % 3) == 0 ) {
+        //         Logger.event(msg);
+        //     } else {
+        //         Logger.log(msg);
+        //     }
 
-        }, this._config.interval)
+        // }, this._config.interval)
     }
 
     private createLoggerThread() {  
    
-        this._esLogger = new Worker('./build/exporters/ESExporter.js', {
-            workerData: {
-                aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
-                interval: 10000,
-                host: 'localhost',
-                port: 5000            }
-        })
+        // this._esLogger = new Worker('./build/exporters/ESExporter.js', {
+        //     workerData: {
+        //         aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
+        //         interval: 10000,
+        //         host: 'localhost',
+        //         port: 5000            }
+        // })
         
 
-        // Create Log Channel and init Logger class
-        const { port1, port2 } = new MessageChannel();
-        Logger.initLogger(port1);
+        // // Create Log Channel and init Logger class
+        // const { port1, port2 } = new MessageChannel();
+        // Logger.initLogger(port1);
 
-        try {
-            this._esLogger.postMessage({port: port2}, [port2]);
+        // try {
+        //     this._esLogger.postMessage({port: port2}, [port2]);
 
-        } catch(err) {
-            console.error(err)
-            throw err;
-        }
+        // } catch(err) {
+        //     console.error(err)
+        //     throw err;
+        // }
     }
 
     private createMonitorThread() {

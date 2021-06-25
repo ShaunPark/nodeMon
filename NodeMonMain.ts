@@ -26,6 +26,7 @@ export class NodeMonMain {
     private _isAWS:boolean = false;
     private _k8sMonitor?:K8sMonitor = undefined;
     private _esLogger!:Worker;
+    private _nodeManager!:Worker;
 
     constructor() {
         this._isAWS = this.isAWS()
@@ -74,18 +75,25 @@ export class NodeMonMain {
         this._esLogger = new Worker('./build/exporters/ESExporter.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
-                interval: 10000,
-                host: 'localhost',
-                port: 5000            }
+                config: this._config
+            }
+        })
+
+        this._nodeManager = new Worker('./build/managers/NodeManager.js', {
+            workerData: {
+                aliasModule: path.resolve(__dirname, 'managers/NodeManager.ts'),
+                config: this._config
+            }
         })
 
         // Create Log Channel and init Logger class
-        const { port1, port2 } = new MessageChannel();
-        Logger.initLogger(port1);
+        const esChannel = new MessageChannel();
+        const nmChannel = new MessageChannel();
+        Logger.initLogger(esChannel.port1,nmChannel.port1 );
 
         try {
-            this._esLogger.postMessage({port: port2}, [port2]);
-
+            this._esLogger.postMessage({port: esChannel.port2}, [esChannel.port2]);
+            this._esLogger.postMessage({port: nmChannel.port2}, [nmChannel.port2]);
         } catch(err) {
             console.error(err)
             throw err;
