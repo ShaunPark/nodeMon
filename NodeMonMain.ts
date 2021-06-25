@@ -93,7 +93,7 @@ export class NodeMonMain {
 
         try {
             this._esLogger.postMessage({port: esChannel.port2}, [esChannel.port2]);
-            this._esLogger.postMessage({port: nmChannel.port2}, [nmChannel.port2]);
+            this._nodeManager.postMessage({port: nmChannel.port2}, [nmChannel.port2]);
         } catch(err) {
             console.error(err)
             throw err;

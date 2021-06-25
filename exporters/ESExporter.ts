@@ -19,7 +19,7 @@ class ESExporter {
     }
 
     private log = (event:MessageEvent) => {
-        console.log(`log in es exporter : ${event}`)
+        console.log(`log in es exporter : ${JSON.stringify(event)}`)
         // if( event instanceof Object && Object.prototype.hasOwnProperty.call(event, "type")) {
         //     console.log(`log in es exporter : ${event}`);
         // } else {
@@ -28,7 +28,7 @@ class ESExporter {
     }
 
     private event = (event:MessageEvent) => {
-        console.log(`event in es exporter : ${event.data}`);
+        console.log(`event in es exporter : ${JSON.stringify(event)}`);
     }
 
     private sendLog() {
