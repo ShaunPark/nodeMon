@@ -1,10 +1,20 @@
 import { MessagePort } from "worker_threads"
 import { Logger } from "../logger/Logger";
 import express from "express"
-import { NodeCondition } from "../types/Type";
-
+import { NodeCondition, NodeEvent } from "../types/Type";
+import equal from 'deep-equal'
 const { workerData, parentPort } = require('worker_threads');
 
+interface NodeConditionEvent {
+    kind: string,
+    nodeName: string,
+    conditions: Array<NodeCondition>
+}
+interface NodeEventsEvent {
+    kind: string,
+    nodeName: string,
+    conditions: Array<NodeEvent>
+}
 class NodeManager {
     private application : express.Application;
     private nodes = new Map<string, Map<string, NodeCondition>>()
@@ -28,30 +38,46 @@ class NodeManager {
         console.log(`--- onEvent : ${JSON.stringify(event)}`)
 
         if(event.kind === "NodeCondition") {
-            console.log(`receive node condtions : ${JSON.stringify(event)}`)
-            const conditionMap = this.nodes.get(event.nodeName)
+            const nodeCondition = event as NodeConditionEvent
+            const conditionMap = this.nodes.get(nodeCondition.nodeName)
             if( conditionMap ) {
-                const conditions:Array<NodeCondition> = event.data;
-                conditions.map( condition => {
-                    conditionMap.set( condition.type, condition);
-                })
+                const conditions:Array<NodeCondition> = nodeCondition.conditions;
+                // conditions.map( condition => {
+                //     const tempCondition = conditionMap.get(condition.type)
+                //     if( tempCondition ) {
+                //         if( equal(tempCondition, condition)) {
+                //         } else {
+                //             console.log("value changed !!! ")
+                //             conditionMap.set( condition.type, condition);
+                //         }
+                //     } else {
+                //         conditionMap.set( condition.type, condition);
+                //     }
+                // })
+
+                conditions.filter( (condition) => {
+                    const tempCondition = conditionMap.get(condition.type)
+                    if( tempCondition ) {
+                        if( equal(tempCondition, condition)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }).map( condition => conditionMap.set( condition.type, condition))
+                
                 this.nodes.set(event.nodeName, conditionMap)
             } else {
                 const newMap = new Map<string, NodeCondition>();
-                const conditions:Array<NodeCondition> = event.data;
-
-                if( conditions ) {
-                    conditions.map( condition => {
-                        newMap.set( condition.type, condition);
-                    })
-                    this.nodes.set(event.nodeName, newMap)
-                } else {
-                    console.log('conditions is undefined')
-                }
+                const conditions:Array<NodeCondition> = nodeCondition.conditions;
+                conditions.map( condition => {
+                    newMap.set( condition.type, condition);
+                })
+                this.nodes.set(event.nodeName, newMap)
             }
 
         } else if(event.kind === "NodeEvent") {
-            console.log(`receive node events : ${JSON.stringify(event)}`)
+            const nodeEvent = event as NodeEventsEvent
+            console.log(`receive node events : ${nodeEvent.nodeName}`)
         }
     }
 
