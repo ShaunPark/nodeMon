@@ -1,11 +1,53 @@
 import * as k8s from "@kubernetes/client-node"
+import { deleteItems } from "@kubernetes/client-node";
 
 const { workerData } = require('worker_threads');
 const logger= require('npmlog')
 
 interface NodeEvent  {
-    timestamp: Date,
-    event?: K8SEvent,
+    action?: string;
+    count?: number;
+    /**
+    * Time when this Event was first observed.
+    */
+    eventTime?: Date;
+    /**
+    * The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)
+    */
+    firstTimestamp?: Date;
+    involvedObject: InvolvedObject;
+    /**
+    * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+    */
+    kind?: string;
+    /**
+    * The time at which the most recent occurrence of this event was recorded.
+    */
+    lastTimestamp?: Date;
+    /**
+    * A human-readable description of the status of this operation.
+    */
+    message?: string;
+    // metadata: V1ObjectMeta;
+    /**
+    * This should be a short, machine understandable string that gives the reason for the transition into the object\'s current status.
+    */
+    reason?: string;
+    // related?: V1ObjectReference;
+    /**
+    * Name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`.
+    */
+    // reportingComponent?: string;
+    /**
+    * ID of the controller instance, e.g. `kubelet-xyzf`.
+    */
+    // reportingInstance?: string;
+    // series?: CoreV1EventSeries;
+    // source?: V1EventSource;
+    /**
+    * Type of this event (Normal, Warning), new types could be added in the future
+    */
+    type?: string;
 }
 
 interface K8SEvent {
@@ -24,7 +66,6 @@ interface InvolvedObject {
     name: string,
     uid: string
 }
-
 
 interface NodeCondition {
     lastHeartbeatTime?: Date;
@@ -53,56 +94,24 @@ class K8sMonitor {
             const k8sApi = this._k8sApi;
             if( k8sApi ) {
                 const {body} = await k8sApi.listNode()
-                let nodes = new Map<string, Node>()
 
-                logger.info(`${body.items.length} nodes found`)
+                let nodeConditions = new Map<string, NodeCondition>()
 
                 body.items.map( item => {
+                    if( item.metadata && item.status ) {
+                        const { name } = item.metadata;
+                        const {conditions} = item.status;
 
-                    logger.info(JSON.stringify(item))
+                        if ( name && conditions ) {
 
-                    if( item.metadata ) {
-                        const {name} = item.metadata;
+                            this.sendNodeConditionsToManager(name, conditions)
 
-                        logger.info(`Node name : ${name}`)
-                        let temoNode = new Node()
-
-                        if ( name ) {
-
-                            if ( item.status) {
-                                const {conditions} = item.status;
-                                if( conditions) {
-                                    conditions.map( condition => {
-                                        const cond:NodeCondition = condition;
-                                        logger.info(`cond: ${JSON.stringify(cond)}`)
-                                        logger.info(`condition: ${JSON.stringify(condition)}`)
-                                        temoNode.conditions.push(cond);
-                                    })
-                                }
-                                // if(item?.status?.conditions) {
-                                //     temoNode.conditions = item?.status?.conditions;
-                                //     logger.info(`Node condition count : ${temoNode.conditions.length}`)
-                                // } else {
-                                //     logger.info(`Node condition is not found`)
-                                // }
-                            }
-
-                            this.getNodeEventAsync(k8sApi, name).then( list => {
-                                if(list) {
-                                    logger.info(`Node event count : ${list.items.length}`)
-                                } else {
-                                    logger.info(`Node event is not found`)
-                                }
-                                // temoNode.events = list;
-                            }).catch(()=> logger.info("catch"))
-    
-                            logger.info(`node info ${temoNode.conditions.length} ${temoNode.events.length}`)
-                            nodes.set(name, temoNode)
+                            this.getNodeEventsAsync(k8sApi, name).then( array => {
+                                this.sendNodeEventsToManager(name, array)
+                            })
                         }
                     }
                 })
-
-                this.sendToNodeManager(nodes)
             }
         } catch(err) {
             console.error(err)
@@ -110,44 +119,26 @@ class K8sMonitor {
         }
     }
 
-    private sendToNodeManager(nodes:Map<string, Node>) {
-        nodes.forEach((value, key) => {
-            logger.info(`----${key} Conditions aaa-----${value.conditions.length} ${value.events.length}------`)
-
-            logger.info(JSON.stringify(value))
-            value.conditions.forEach( condition => {
-                logger.log(condition)
-            })
-
-            logger.info(`----Events aaa-----------`)
-
-            value.events.forEach( item => {
-                logger.log(item)
-            })
+    private sendNodeEventsToManager(nodeName:string, nodeEvents:Array<k8s.CoreV1Event>) {
+        const newArr:Array<NodeEvent> = []
+        nodeEvents.map( event => {
+            newArr.push( event as NodeEvent)
         })
+        logger.info(`Send Node Events of ${nodeName} \n ${JSON.stringify(newArr)}`)
+
     }
 
-    private async getNodeEventAsync(k8sApi :k8s.CoreV1Api, nodeName?:string):Promise<k8s.CoreV1EventList>{
-        logger.info(`----Node Events of ${nodeName}  ------------------------------------------`)
+    private sendNodeConditionsToManager(nodeName:string, nodeConditions:Array<k8s.V1NodeCondition>) {
+        const newArr:Array<NodeCondition> = []
+        nodeConditions.map( condition => {
+            newArr.push( condition as NodeCondition)
+        })
+        logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
+    }
 
+    private async getNodeEventsAsync(k8sApi :k8s.CoreV1Api, nodeName?:string):Promise<Array<k8s.CoreV1Event>>{
         const { body } = await k8sApi.listEventForAllNamespaces(undefined, undefined, `involvedObject.kind=Node,involvedObject.name=${nodeName}`)
-
-        logger.info(`return value ${JSON.stringify(body)}`)
-
-        return Promise.resolve(body)
-        // return new Promise((resolve, reject) => {
-        //     if( body.items.length > 0) {
-        //         body.items.map( (item) => {
-        //             const nodeEvent:NodeEvent = { timestamp: new Date()};
-        //             nodeEvent.event = item;
-        //             console.log( `event message : ${nodeEvent.event.message}`)
-        //             // console.log(`Message : ${message} @ ${eventTime?.toISOString()}`)
-        //         })
-        //     } else {
-        //         Logger.log("No Events");
-        //     }
-    
-        // })
+        return Promise.resolve(body.items)
     }
 }
 export default K8sMonitor
