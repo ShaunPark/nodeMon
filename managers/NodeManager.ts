@@ -10,13 +10,11 @@ class NodeManager {
     }
 
     private initMessageHandler = (event:MessageEvent) => {
-        if( event.data.port ) {
-            const ePort:MessagePort = event.data.port;
-            ePort.addListener("message", this.onEvent);
-        }
+        const ePort:MessagePort = event.data.port;
 
-        if( event.data.esPort ) {
-            const ePort:MessagePort = event.data.port;
+        if( event.data.type === "parent" ) {
+            ePort.addListener("message", this.onEvent);
+        } else {
             Logger.initLoggerForNodeManager( ePort );
         }
     }
