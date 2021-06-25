@@ -65,7 +65,7 @@ class K8sMonitor {
             newArr.push( event as NodeEvent)
         })
         //logger.info(`Send Node Events of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({kind:"NodeEvent", data:newArr})
+        Logger.sendEventToNodeManager({kind:"NodeEvent", nodeName: nodeName,  events: newArr})
     }
 
     private sendNodeConditionsToManager(nodeName:string, nodeConditions:Array<k8s.V1NodeCondition>) {
@@ -74,7 +74,7 @@ class K8sMonitor {
             newArr.push( condition as NodeCondition)
         })
         // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({kind:"NodeCondition", data:newArr})
+        Logger.sendEventToNodeManager({kind:"NodeCondition", nodeName: nodeName,  conditions: newArr})
     }
 
     private async getNodeEventsAsync(k8sApi :k8s.CoreV1Api, nodeName?:string):Promise<Array<k8s.CoreV1Event>> {

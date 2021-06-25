@@ -58,10 +58,8 @@ export class NodeMonMain {
 
     public run = (): void => {
         logger.info(`NodeMon started`)
-        this.initEventPublishier();
-        this.startESExporter();
-        this.startNodeManager()
-
+        this.initChannels();
+        
         if( this._config.kubernetes ) {
             this._k8sMonitor = new K8sMonitor(this._config.kubernetes.label);
         }
@@ -71,7 +69,7 @@ export class NodeMonMain {
         setInterval(this.mainLoop, interval)
     }
 
-    private initEventPublishier = () => {
+    private initChannels = () => {
         this._esLogger = new Worker('./build/exporters/ESExporter.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
@@ -103,9 +101,6 @@ export class NodeMonMain {
             throw err;
         }
     }
-
-    private startNodeManager = () => {}
-    private startESExporter = () => {}
 
     private mainLoop = () => {
         logger.info('NodeMon main Loop started')

@@ -1,12 +1,17 @@
 import { MessagePort } from "worker_threads"
 import { Logger } from "../logger/Logger";
+import express from "express"
+import { NodeCondition } from "../types/Type";
 
 const { workerData, parentPort } = require('worker_threads');
 
 class NodeManager {
+    private application : express.Application;
+    private nodes = new Map<string, Map<string, NodeCondition>>()
 
     constructor(private interval:number, private host:string, private port:MessagePort, private loggerPort:MessagePort) {
         parentPort.addEventListener("message", this.initMessageHandler)
+        this.application = express();
     }
 
     private initMessageHandler = (event:MessageEvent) => {
@@ -19,18 +24,40 @@ class NodeManager {
         }
     }
 
-    private onEvent = (event:MessageEvent) => {
-        console.log(`receive node events : ${JSON.stringify(event)}`)
-        
-        // if( event instanceof Object && Object.prototype.hasOwnProperty.call(event, "type")) {
-        //     console.log(`log in es exporter : ${event}`);
-        // } else {
-        //     console.log(`event in es exporter : ${event}`);
-        // }
+    private onEvent = (event:any) => {
+        if(event.kind === "NodeCondition") {
+            console.log(`receive node condtions : ${JSON.stringify(event)}`)
+            const conditionMap = this.nodes.get(event.nodeName)
+            if( conditionMap ) {
+                const conditions:Array<NodeCondition> = event.data;
+                conditions.map( condition => {
+                    conditionMap.set( condition.type, condition);
+                })
+                this.nodes.set(event.nodeName, conditionMap)
+            } else {
+                const newMap = new Map<string, NodeCondition>();
+                const conditions:Array<NodeCondition> = event.data;
+                conditions.map( condition => {
+                    newMap.set( condition.type, condition);
+                })
+                this.nodes.set(event.nodeName, newMap)
+            }
+
+        } else if(event.kind === "NodeEvent") {
+            console.log(`receive node events : ${JSON.stringify(event)}`)
+        }
     }
 
     public run() {
         setInterval(this.checkNodeStatus, 10000)
+
+        this.application.get('/', (request, response) => {
+            response.send(this.nodes)
+        })
+
+        this.application.listen(8880, () => {
+            console.log("express started")
+        })
     }
 
     private checkNodeStatus = () => {
