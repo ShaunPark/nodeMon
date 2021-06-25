@@ -70,7 +70,10 @@ class K8sMonitor {
                                 const {conditions} = item.status;
 
                                 conditions?.map( condition => {
-                                    temoNode.conditions.push(condition as NodeCondition);
+                                    const cond:NodeCondition = condition;
+                                    logger.log(`cond: ${JSON.stringify(cond)}`)
+                                    logger.log(`condition: ${JSON.stringify(condition)}`)
+                                    temoNode.conditions.push(cond);
                                 })
                                 // if(item?.status?.conditions) {
                                 //     temoNode.conditions = item?.status?.conditions;
@@ -99,6 +102,7 @@ class K8sMonitor {
                 nodes.forEach((value, key) => {
                     logger.info(`----${key} Conditions aaa-----${value.conditions.length} ${value.events.length}------`)
         
+                    logger.info(JSON.stringify(value))
                     value.conditions.forEach( condition => {
                         logger.log(condition)
                     })
