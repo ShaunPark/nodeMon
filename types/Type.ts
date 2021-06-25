@@ -11,6 +11,7 @@ export interface Ik8s {
     interval: number;
     label?: string;
     labelExpr?: string;
+    nodeSelector: string;
 }
 
 export interface IEvent {

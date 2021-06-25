@@ -1,6 +1,6 @@
 import * as k8s from "@kubernetes/client-node"
 import { deleteItems } from "@kubernetes/client-node";
-import { NodeCondition, NodeEvent } from "../types/Type";
+import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import { Logger } from "../logger/Logger";
 
 const { workerData } = require('worker_threads');
@@ -11,7 +11,7 @@ class Node {
     public events:Array<NodeEvent> = [];
 }
 class K8sMonitor {
-    constructor( private label?:string ) {
+    constructor( private config?:IConfig ) {
         this.init()
     }
 
@@ -32,7 +32,12 @@ class K8sMonitor {
             const k8sApi = this._k8sApi;
 
             if( k8sApi ) {
-                const {body} = await k8sApi.listNode()
+                const {body} = await k8sApi.listNode(undefined, undefined, undefined, undefined, this.config?.kubernetes?.nodeSelector)
+                //pretty?: string, allowWatchBookmarks?: boolean, _continue?: string, fieldSelector?: string, labelSelector?: string, limit?: number, resourceVersion?: string, resourceVersionMatch?: string, timeoutSeconds?: number, watch?: boolean, options?: {
+                //     headers: {
+                //         [name: string]: string;
+                //     };
+                // }
 
                 let nodeConditions = new Map<string, NodeCondition>()
     

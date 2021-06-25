@@ -59,9 +59,9 @@ export class NodeMonMain {
     public run = (): void => {
         logger.info(`NodeMon started`)
         this.initChannels();
-        
+
         if( this._config.kubernetes ) {
-            this._k8sMonitor = new K8sMonitor(this._config.kubernetes.label);
+            this._k8sMonitor = new K8sMonitor(this._config);
         }
         const interval = (this._config.interval == undefined || this._config.interval < 1000)?1000:this._config.interval;
         logger.info(`NodeMon main Loop interval : ${interval}`)
