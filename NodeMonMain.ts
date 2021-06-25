@@ -87,15 +87,17 @@ export class NodeMonMain {
         })
 
         // Create Log Channel and init Logger class
-        const esChannel = new MessageChannel();
-        const nmChannel = new MessageChannel();
-        Logger.initLogger(esChannel.port1,nmChannel.port1 );
+        const mainToesChannel = new MessageChannel();
+        const mainTonmChannel = new MessageChannel();
+        const nmToEsChannel = new MessageChannel();
+        Logger.initLogger(mainToesChannel.port1,mainTonmChannel.port1 );
 
         try {
-            this._nodeManager.postMessage({type: "parent", port: nmChannel.port2}, [nmChannel.port2]);
-            this._nodeManager.postMessage({type: "es", port: esChannel.port2}, [esChannel.port2]);
+            this._nodeManager.postMessage({type: "parent", port: mainTonmChannel.port2}, [mainTonmChannel.port2]);
+            this._nodeManager.postMessage({type: "es", port: nmToEsChannel.port2}, [nmToEsChannel.port2]);
 
-            this._esLogger.postMessage({port: esChannel.port2}, [esChannel.port2]);
+            this._esLogger.postMessage({type: "parent", port: mainToesChannel.port2}, [mainToesChannel.port2]);
+            this._esLogger.postMessage({type: "nm", port: nmToEsChannel.port1}, [nmToEsChannel.port1]);
         } catch(err) {
             console.error(err)
             throw err;

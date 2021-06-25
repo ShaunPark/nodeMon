@@ -11,11 +11,8 @@ class ESExporter {
     }
 
     private initMessageHandler = (event:MessageEvent) => {
-        if( event.data.port ) {
-            const ePort:MessagePort = event.data.port;
-            ePort.addListener("message", this.log);
-            // ePort.addListener(Symbol.for("event"), this.event);
-        }
+        const ePort:MessagePort = event.data.port;
+        ePort.addListener("message", this.log);
     }
 
     private log = (event:MessageEvent) => {
