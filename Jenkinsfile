@@ -30,4 +30,11 @@ node {
              app.push("latest")
          }
      }
+
+    //  stage('Kubernetes deploy') {
+    //     steps {
+    //         kubernetesDeploy configs: "deployment.yaml", kubeconfigId: 'springboot'
+    //         sh "kubectl --kubeconfig=/root/.jenkins/.kube/config rollout restart deployment/wildfly-deployment"
+    //     }
+    // }
  }
