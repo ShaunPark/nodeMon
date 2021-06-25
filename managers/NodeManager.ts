@@ -25,6 +25,8 @@ class NodeManager {
     }
 
     private onEvent = (event:any) => {
+        console.log(`--- onEvent : ${JSON.stringify(event)}`)
+
         if(event.kind === "NodeCondition") {
             console.log(`receive node condtions : ${JSON.stringify(event)}`)
             const conditionMap = this.nodes.get(event.nodeName)
@@ -37,10 +39,15 @@ class NodeManager {
             } else {
                 const newMap = new Map<string, NodeCondition>();
                 const conditions:Array<NodeCondition> = event.data;
-                conditions.map( condition => {
-                    newMap.set( condition.type, condition);
-                })
-                this.nodes.set(event.nodeName, newMap)
+
+                if( conditions ) {
+                    conditions.map( condition => {
+                        newMap.set( condition.type, condition);
+                    })
+                    this.nodes.set(event.nodeName, newMap)
+                } else {
+                    console.log('conditions is undefined')
+                }
             }
 
         } else if(event.kind === "NodeEvent") {
