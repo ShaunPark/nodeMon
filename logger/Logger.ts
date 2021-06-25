@@ -2,10 +2,14 @@ import { MessagePort } from "worker_threads";
 export class Logger {
     private static esPort:MessagePort;
     private static nmPort:MessagePort;
-    
+
     public static initLogger(esPort:MessagePort, nmPort:MessagePort) {
         Logger.esPort = esPort;
         Logger.nmPort = nmPort;
+    }
+
+    public static initLoggerForNodeManager(esPort:MessagePort) {
+        Logger.esPort = esPort;
     }
 
     public static sendEventToES(event:any) {

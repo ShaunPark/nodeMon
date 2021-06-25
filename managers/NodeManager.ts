@@ -14,6 +14,11 @@ class NodeManager {
             const ePort:MessagePort = event.data.port;
             ePort.addListener("message", this.onEvent);
         }
+
+        if( event.data.esPort ) {
+            const ePort:MessagePort = event.data.port;
+            Logger.initLoggerForNodeManager( ePort );
+        }
     }
 
     private onEvent = (event:MessageEvent) => {
