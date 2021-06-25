@@ -1,4 +1,6 @@
 import { MessagePort } from "worker_threads"
+import { Logger } from "../logger/Logger";
+
 const { workerData, parentPort } = require('worker_threads');
 
 class NodeManager {
@@ -15,7 +17,7 @@ class NodeManager {
     }
 
     private onEvent = (event:MessageEvent) => {
-        console.log(`receive node events : ${event}`)
+        console.log(`receive node events : ${JSON.stringify(event)}`)
         
         // if( event instanceof Object && Object.prototype.hasOwnProperty.call(event, "type")) {
         //     console.log(`log in es exporter : ${event}`);
@@ -33,7 +35,7 @@ class NodeManager {
         // run routine 
 
         // run daily routine
-
+        Logger.sendEventToES("messsage from nodemanager")
     }
 
     private dayCheckStartTime:Date = new Date();
