@@ -81,3 +81,4 @@ export interface NodeCondition {
     status: string;
     type: string;
 }
+

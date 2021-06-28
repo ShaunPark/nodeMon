@@ -3,6 +3,7 @@ import { Logger } from "../logger/Logger";
 import express from "express"
 import { NodeCondition, NodeEvent } from "../types/Type";
 import equal from 'deep-equal'
+import { EventsV1beta1Api } from "@kubernetes/client-node";
 const { workerData, parentPort } = require('worker_threads');
 
 interface NodeConditionEvent {
@@ -15,6 +16,38 @@ interface NodeEventsEvent {
     nodeName: string,
     conditions: Array<NodeEvent>
 }
+
+const eventHandlers = {
+    NodeCondition: (event:any, nodes:Map<string, Map<string, NodeCondition>>) => {
+        const nodeCondition = event as NodeConditionEvent
+        const conditionMap = nodes.get(nodeCondition.nodeName)
+        
+        if( conditionMap ) {
+            nodeCondition.conditions.filter( (condition) => {
+                const tempCondition = conditionMap.get(condition.type)
+                if( tempCondition ) {
+                    if( equal(tempCondition, condition)) {
+                        return false;
+                    }
+                }
+                return true;
+            }).map( condition => conditionMap.set( condition.type, condition))
+            
+            nodes.set(event.nodeName, conditionMap)
+        } else {
+            const newMap = new Map<string, NodeCondition>();
+            nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
+            nodes.set(event.nodeName, newMap)
+        }
+    },
+    NodeEvent: (event:any, nodes:Map<string, Map<string, NodeCondition>>) => {
+        const nodeEvent = event as NodeEventsEvent
+        console.log(`receive node events : ${nodeEvent.nodeName}`)
+    },
+}
+
+type EventTypes = "NodeCondition" | "NodeEvent"
+
 class NodeManager {
     private application : express.Application;
     private nodes = new Map<string, Map<string, NodeCondition>>()
@@ -24,6 +57,7 @@ class NodeManager {
         this.application = express();
     }
 
+    // 스레드간 채널 연결 초기화
     private initMessageHandler = (event:MessageEvent) => {
         const ePort:MessagePort = event.data.port;
 
@@ -34,51 +68,40 @@ class NodeManager {
         }
     }
 
+    // Kubernetes 모니터에서 전달된 이벤트 처리
+
+
     private onEvent = (event:any) => {
         console.log(`--- onEvent : ${JSON.stringify(event)}`)
+        //수신한 이벤트를 처리
+        eventHandlers[event.kind as EventTypes](event, this.nodes);
 
-        if(event.kind === "NodeCondition") {
-            const nodeCondition = event as NodeConditionEvent
-            const conditionMap = this.nodes.get(nodeCondition.nodeName)
-            if( conditionMap ) {
-                const conditions:Array<NodeCondition> = nodeCondition.conditions;
-                // conditions.map( condition => {
-                //     const tempCondition = conditionMap.get(condition.type)
-                //     if( tempCondition ) {
-                //         if( equal(tempCondition, condition)) {
-                //         } else {
-                //             console.log("value changed !!! ")
-                //             conditionMap.set( condition.type, condition);
-                //         }
-                //     } else {
-                //         conditionMap.set( condition.type, condition);
-                //     }
-                // })
-
-                conditions.filter( (condition) => {
-                    const tempCondition = conditionMap.get(condition.type)
-                    if( tempCondition ) {
-                        if( equal(tempCondition, condition)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }).map( condition => conditionMap.set( condition.type, condition))
+        // if(event.kind === "NodeCondition") {
+        //     const nodeCondition = event as NodeConditionEvent
+        //     const conditionMap = this.nodes.get(nodeCondition.nodeName)
+            
+        //     if( conditionMap ) {
+        //         nodeCondition.conditions.filter( (condition) => {
+        //             const tempCondition = conditionMap.get(condition.type)
+        //             if( tempCondition ) {
+        //                 if( equal(tempCondition, condition)) {
+        //                     return false;
+        //                 }
+        //             }
+        //             return true;
+        //         }).map( condition => conditionMap.set( condition.type, condition))
                 
-                this.nodes.set(event.nodeName, conditionMap)
-            } else {
-                const newMap = new Map<string, NodeCondition>();
-                const conditions:Array<NodeCondition> = nodeCondition.conditions;
-                conditions.map( condition => {
-                    newMap.set( condition.type, condition);
-                })
-                this.nodes.set(event.nodeName, newMap)
-            }
+        //         this.nodes.set(event.nodeName, conditionMap)
+        //     } else {
+        //         const newMap = new Map<string, NodeCondition>();
+        //         nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
+        //         this.nodes.set(event.nodeName, newMap)
+        //     }
 
-        } else if(event.kind === "NodeEvent") {
-            const nodeEvent = event as NodeEventsEvent
-            console.log(`receive node events : ${nodeEvent.nodeName}`)
-        }
+        // } else if(event.kind === "NodeEvent") {
+        //     const nodeEvent = event as NodeEventsEvent
+        //     console.log(`receive node events : ${nodeEvent.nodeName}`)
+        // }
     }
 
     public run() {
