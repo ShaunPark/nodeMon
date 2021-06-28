@@ -94,7 +94,14 @@ class NodeManager {
     }
 
     private checkNodeStatus = () => {
-        console.log("NodeManager started.")
+        console.log("Node status !!! ") 
+        this.nodes.forEach( (node, nodeName) => {
+            console.log(`${nodeName}`)
+            node.forEach( (condition, type) => {
+                console.log(`${type} : ${condition.status} : ${condition.reason}`)
+            })
+        })
+        
         // run routine 
 
         // run daily routine

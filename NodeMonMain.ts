@@ -21,31 +21,25 @@ type KubernetesConfig = {
 }
 
 export class NodeMonMain {
-    public _config:IConfig = {interval:10000};
-
     private _isAWS:boolean = false;
     private _k8sMonitor?:K8sMonitor = undefined;
     private _esLogger!:Worker;
     private _nodeManager!:Worker;
+    private configManager:ConfigManager;
 
-    constructor() {
+    constructor(private configFile:string) {
         this._isAWS = this.isAWS()
 
         // command line argument parsing 
         // argument 파싱 에러 발생 시 종료 
         try {
-            const args = parse<IArguments>({
-                configFile: {type: String, alias: 'f'}
-            })
+            this.configManager = new ConfigManager(configFile);
+            const config:IConfig = this.configManager.config;
 
-            const configManager = new ConfigManager(args.configFile);
-            this._config = configManager.config;
-    
-
-            logger.info(`load config from ${args.configFile}`)
-            logger.info(this._config.interval)
-            if( this._config.kubernetes) {
-                const {interval, label} = this._config.kubernetes;
+            logger.info(`load config from ${configFile}`)
+            logger.info(config.interval)
+            if( config.kubernetes) {
+                const {interval, label} = config.kubernetes;
                 logger.info(` interval ${interval} : ${label}`)
             } else {
                 logger.info('no kubernetes info')
@@ -57,30 +51,34 @@ export class NodeMonMain {
     }
 
     public run = (): void => {
-        logger.info(`NodeMon started`)
-        this.initChannels();
+        const config:IConfig = this.configManager.config;
 
-        if( this._config.kubernetes ) {
-            this._k8sMonitor = new K8sMonitor(this._config);
+        logger.info(config.interval)
+
+        logger.info(`NodeMon started`)
+        this.initChannels(config);
+
+        if( config.kubernetes ) {
+            this._k8sMonitor = new K8sMonitor(config);
         }
-        const interval = (this._config.interval == undefined || this._config.interval < 1000)?1000:this._config.interval;
+        const interval = (config.interval == undefined || config.interval < 1000)?1000:config.interval;
         logger.info(`NodeMon main Loop interval : ${interval}`)
 
         setInterval(this.mainLoop, interval)
     }
 
-    private initChannels = () => {
+    private initChannels = (config:IConfig) => {
         this._esLogger = new Worker('./build/exporters/ESExporter.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
-                config: this._config
+                config: config
             }
         })
 
         this._nodeManager = new Worker('./build/managers/NodeManager.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'managers/NodeManager.ts'),
-                config: this._config
+                config: config
             }
         })
 
@@ -123,5 +121,8 @@ export class NodeMonMain {
     }
 }
 
-const nodeMon = new NodeMonMain();
+const args = parse<IArguments>({
+    configFile: {type: String, alias: 'f'}
+})
+const nodeMon = new NodeMonMain(args.configFile);
 nodeMon.run();

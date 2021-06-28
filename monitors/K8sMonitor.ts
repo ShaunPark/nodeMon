@@ -3,7 +3,7 @@ import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import { Logger } from "../logger/Logger";
 
 const { workerData } = require('worker_threads');
-const logger= require('npmlog')
+// const logger= require('npmlog')
 
 class Node {
     public conditions:Array<NodeCondition> = [];
