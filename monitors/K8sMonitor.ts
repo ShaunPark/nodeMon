@@ -10,7 +10,7 @@ class Node {
     public events:Array<NodeEvent> = [];
 }
 class K8sMonitor {
-    constructor( ) {
+    constructor() {
         this.init()
     }
 

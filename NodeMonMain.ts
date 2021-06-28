@@ -59,7 +59,7 @@ export class NodeMonMain {
         this.initChannels(config);
 
         if( config.kubernetes ) {
-            this._k8sMonitor = new K8sMonitor(config);
+            this._k8sMonitor = new K8sMonitor();
         }
         const interval = (config.interval == undefined || config.interval < 1000)?1000:config.interval;
         logger.info(`NodeMon main Loop interval : ${interval}`)
@@ -101,12 +101,14 @@ export class NodeMonMain {
     }
 
     private mainLoop = () => {
+        const config:IConfig = this.configManager.config;
+
         logger.info('NodeMon main Loop started')
         // this.monitorK8S()
         if ( this._k8sMonitor ) {
             logger.info('K8S monitor main Loop started')
 
-            this._k8sMonitor.run().then( () => {
+            this._k8sMonitor.run(config).then( () => {
                 console.log("monitor k8s ended.")
             });
         }
