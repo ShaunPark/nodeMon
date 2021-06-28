@@ -10,7 +10,7 @@ class Node {
     public events:Array<NodeEvent> = [];
 }
 class K8sMonitor {
-    constructor( private config?:IConfig ) {
+    constructor( ) {
         this.init()
     }
 
@@ -20,9 +20,11 @@ class K8sMonitor {
         this._k8sApi = kc.makeApiClient(k8s.CoreV1Api);
     }
 
-    private _k8sApi:k8s.CoreV1Api|undefined;
+    private _k8sApi?:k8s.CoreV1Api;
+    private _config?:IConfig;
 
-    public async run() {
+    public async run(config:IConfig) {
+        this._config = config;
         try {    
             if( !this._k8sApi ) {
                 this.init()
@@ -33,7 +35,7 @@ class K8sMonitor {
             if( k8sApi ) {
 
                 // Node selector를 적용하여 node 목록 조회
-                const {body} = await k8sApi.listNode(undefined, undefined, undefined, undefined, this.config?.kubernetes?.nodeSelector)
+                const {body} = await k8sApi.listNode(undefined, undefined, undefined, undefined, config?.kubernetes?.nodeSelector)
 
                 body.items.map( item => {
                     if( item.metadata && item.status ) {
@@ -57,7 +59,7 @@ class K8sMonitor {
     }
 
     private sendNodeEventsToManager(nodeName:string, nodeEvents:Array<k8s.CoreV1Event>) {
-        const targetEvents = this.config?.kubernetes?.events;
+        const targetEvents = this._config?.kubernetes?.events;
 
         const newArr:Array<NodeEvent> = []
         
@@ -76,7 +78,7 @@ class K8sMonitor {
 
     private sendNodeConditionsToManager(nodeName:string, nodeConditions:Array<k8s.V1NodeCondition>) {
         // 모니터링 대상 condition만 처리 그 외는 무시
-        const targetConditions = this.config?.kubernetes?.conditions;
+        const targetConditions = this._config?.kubernetes?.conditions;
 
         const newArr:Array<NodeCondition> = []
         //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
