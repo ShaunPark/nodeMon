@@ -68,9 +68,9 @@ export interface NodeEvent  {
 }
 
 export interface InvolvedObject {
-    kind: string,
-    name: string,
-    uid: string
+    kind?: string,
+    name?: string,
+    uid?: string
 }
 
 export interface NodeCondition {

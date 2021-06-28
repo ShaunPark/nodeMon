@@ -58,6 +58,21 @@ class K8sMonitor {
         }
     }
 
+    private pushEvent(arr: Array<NodeEvent>, e: NodeEvent) {
+        arr.push( {
+            action: e.action,
+            count: e.count,
+            eventTime: e.eventTime,
+            firstTimestamp: e.firstTimestamp,
+            involvedObject: { kind: e.involvedObject.kind, name: e.involvedObject.name, uid: e.involvedObject.uid },
+            kind: e.kind,
+            lastTimestamp: e.lastTimestamp,
+            message: e.message,
+            reason: e.reason,
+            type: e.type            
+        })
+    }
+    
     private sendNodeEventsToManager(nodeName:string, nodeEvents:Array<k8s.CoreV1Event>) {
         const targetEvents = this._config?.kubernetes?.events;
 
@@ -67,11 +82,12 @@ class K8sMonitor {
         if( targetEvents && targetEvents?.length > 0 ) {
             nodeEvents
             .filter(event => event.type && targetEvents.includes(event.type))
-            .map(event => newArr.push( event as NodeEvent))
+            .map(e => this.pushEvent(newArr, e))
 
         } else {
-            nodeEvents.map( event => newArr.push( event as NodeEvent))    
+            nodeEvents.map( e => this.pushEvent(newArr, e))    
         }
+
         //logger.info(`Send Node Events of ${nodeName} \n ${JSON.stringify(newArr)}`)
         Logger.sendEventToNodeManager({kind:"NodeEvent", nodeName: nodeName,  events: newArr})
     }
