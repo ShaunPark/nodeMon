@@ -72,7 +72,7 @@ class K8sMonitor {
             type: e.type            
         })
     }
-    
+
     private sendNodeEventsToManager(nodeName:string, nodeEvents:Array<k8s.CoreV1Event>) {
         const targetEvents = this._config?.kubernetes?.events;
 
@@ -81,9 +81,8 @@ class K8sMonitor {
         //targetEvent가 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
         if( targetEvents && targetEvents?.length > 0 ) {
             nodeEvents
-            .filter(event => event.type && targetEvents.includes(event.type))
+            .filter(event => event.reason && targetEvents.includes(event.reason))
             .map(e => this.pushEvent(newArr, e))
-
         } else {
             nodeEvents.map( e => this.pushEvent(newArr, e))    
         }
