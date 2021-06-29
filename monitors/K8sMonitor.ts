@@ -2,7 +2,7 @@ import * as k8s from "@kubernetes/client-node"
 import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import { Logger } from "../logger/Logger";
 
-const { workerData } = require('worker_threads');
+// const { workerData } = require('worker_threads');
 // const logger= require('npmlog')
 
 class Node {

@@ -56,7 +56,7 @@ export class NodeMonMain {
         logger.info(config.interval)
 
         logger.info(`NodeMon started`)
-        this.initChannels(config);
+        this.initChannels(this.configFile);
 
         if( config.kubernetes ) {
             this._k8sMonitor = new K8sMonitor();
@@ -67,18 +67,18 @@ export class NodeMonMain {
         setInterval(this.mainLoop, interval)
     }
 
-    private initChannels = (config:IConfig) => {
+    private initChannels = (configFile:string) => {
         this._esLogger = new Worker('./build/exporters/ESExporter.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
-                config: config
+                config: configFile
             }
         })
 
         this._nodeManager = new Worker('./build/managers/NodeManager.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'managers/NodeManager.ts'),
-                config: config
+                config: configFile
             }
         })
 

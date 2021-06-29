@@ -1,10 +1,21 @@
 import * as AWS from 'aws-sdk';
+import ConfigManager from '../config/ConfigManager';
+import { IConfig } from '../types/Type';
 
 export class AWSReboot {
   private ec2:any;
 
-  constructor() {
+  constructor(private configManager:ConfigManager) {
     this.ec2 = new AWS.EC2();
+    const config:IConfig = this.configManager.config;
+    const region:string|undefined = config.nodeManager?.awsRegion;
+
+    if( region ) {
+      AWS.config.update({region: region});
+    } else {
+      AWS.config.update({region: 'ap-northeast-2'});
+    }
+
   }
 
   public run() {

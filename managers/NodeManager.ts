@@ -1,10 +1,10 @@
 import { MessagePort } from "worker_threads"
 import { Logger } from "../logger/Logger";
 import express from "express"
-import { NodeCondition, NodeEvent } from "../types/Type";
+import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import equal from 'deep-equal'
-import { EventsV1beta1Api } from "@kubernetes/client-node";
 import { AWSReboot } from "../utils/AWSReboot";
+import ConfigManager from "../config/ConfigManager";
 const { workerData, parentPort } = require('worker_threads');
 
 interface NodeConditionEvent {
@@ -52,10 +52,12 @@ type EventTypes = "NodeCondition" | "NodeEvent"
 class NodeManager {
     private application : express.Application;
     private nodes = new Map<string, Map<string, NodeCondition>>()
+    private configManager:ConfigManager;
 
-    constructor(private interval:number, private host:string, private port:MessagePort, private loggerPort:MessagePort) {
+    constructor(private configFile:string) {
         parentPort.addEventListener("message", this.initMessageHandler)
         this.application = express();
+        this.configManager = new ConfigManager(this.configFile);
     }
 
     // 스레드간 채널 연결 초기화
@@ -106,7 +108,13 @@ class NodeManager {
     }
 
     public run() {
-        setInterval(this.checkNodeStatus, 10000)
+        const config:IConfig = this.configManager.config;
+        
+        let interval:number = 10000;
+        if( config.nodeManager  && config.nodeManager.interval ) {
+            interval = config.nodeManager.interval
+        }
+        setInterval(this.checkNodeStatus, interval)
 
         this.application.get('/', (request, response) => {
             response.send(this.nodes)
@@ -129,8 +137,7 @@ class NodeManager {
         // run routine 
 
         // run daily routine
-
-        const aws:AWSReboot = new AWSReboot()
+        const aws:AWSReboot = new AWSReboot(this.configManager)
         aws.run()
         Logger.sendEventToES("messsage from nodemanager")
     }
@@ -149,5 +156,5 @@ class NodeManager {
     }
 }
 
-const nodeManager = new NodeManager(workerData.interval, workerData.host, workerData.port, workerData.loggerPort)
+const nodeManager = new NodeManager(workerData.config)
 nodeManager.run()

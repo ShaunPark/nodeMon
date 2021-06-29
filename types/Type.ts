@@ -5,6 +5,7 @@ export interface IArguments {
 export interface IConfig {
     interval?: number;
     kubernetes?: Ik8s;
+    nodeManager?: INodeMgr;
 }
 
 export interface Ik8s {
@@ -16,6 +17,10 @@ export interface Ik8s {
     events?: Array<string>
 }
 
+interface INodeMgr {
+    interval: number;
+    awsRegion: string
+}
 export interface IEvent {
     type: string;
     message: string;
