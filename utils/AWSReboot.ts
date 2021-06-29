@@ -12,7 +12,7 @@ export class AWSReboot {
       // if( region ) {
       //   AWS.config.update({region: region});
       // } else {
-        AWS.config.update({region: 'ap-northeast-2'});
+        AWS.config.update({apiVersion: '2016-11-15', region: 'ap-northeast-2'});
       // }
       this.ec2 = new AWS.EC2();
   
