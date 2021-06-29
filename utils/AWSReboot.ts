@@ -12,12 +12,18 @@ export class AWSReboot {
 
     console.log(`process.env.AWS_ACCESS_KEY_ID : ${process.env.AWS_ACCESS_KEY_ID}`)
     console.log(`process.env.AWS_SECRET_ACCESS_KEY : ${process.env.AWS_SECRET_ACCESS_KEY}`)
-    if( region ) {
-      AWS.config.update({region: region});
-    } else {
-      AWS.config.update({region: 'ap-northeast-2'});
+    try {
+      if( region ) {
+        AWS.config.update({region: region});
+      } else {
+        AWS.config.update({region: 'ap-northeast-2'});
+      }
+      this.ec2 = new AWS.EC2();
+  
+    } catch(err) {
+      console.error(err)
+      throw err;
     }
-    this.ec2 = new AWS.EC2();
   }
 
   public run() {
