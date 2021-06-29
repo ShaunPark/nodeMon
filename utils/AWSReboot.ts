@@ -8,16 +8,12 @@ export class AWSReboot {
   constructor(private configManager:ConfigManager) {
     const config:IConfig = this.configManager.config;
     const region:string|undefined = config.nodeManager?.awsRegion;
-
-
-    console.log(`process.env.AWS_ACCESS_KEY_ID : ${process.env.AWS_ACCESS_KEY_ID}`)
-    console.log(`process.env.AWS_SECRET_ACCESS_KEY : ${process.env.AWS_SECRET_ACCESS_KEY}`)
     try {
-      if( region ) {
-        AWS.config.update({region: region});
-      } else {
+      // if( region ) {
+      //   AWS.config.update({region: region});
+      // } else {
         AWS.config.update({region: 'ap-northeast-2'});
-      }
+      // }
       this.ec2 = new AWS.EC2();
   
     } catch(err) {
