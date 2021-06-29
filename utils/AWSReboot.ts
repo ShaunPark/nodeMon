@@ -6,7 +6,6 @@ export class AWSReboot {
   private ec2:any;
 
   constructor(private configManager:ConfigManager) {
-    this.ec2 = new AWS.EC2();
     const config:IConfig = this.configManager.config;
     const region:string|undefined = config.nodeManager?.awsRegion;
 
@@ -15,7 +14,7 @@ export class AWSReboot {
     } else {
       AWS.config.update({region: 'ap-northeast-2'});
     }
-
+    this.ec2 = new AWS.EC2();
   }
 
   public run() {
