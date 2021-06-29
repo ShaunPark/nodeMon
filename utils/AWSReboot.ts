@@ -9,6 +9,9 @@ export class AWSReboot {
     const config:IConfig = this.configManager.config;
     const region:string|undefined = config.nodeManager?.awsRegion;
 
+
+    console.log(`process.env.AWS_ACCESS_KEY_ID : ${process.env.AWS_ACCESS_KEY_ID}`)
+    console.log(`process.env.AWS_SECRET_ACCESS_KEY : ${process.env.AWS_SECRET_ACCESS_KEY}`)
     if( region ) {
       AWS.config.update({region: region});
     } else {
