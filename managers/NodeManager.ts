@@ -4,6 +4,7 @@ import express from "express"
 import { NodeCondition, NodeEvent } from "../types/Type";
 import equal from 'deep-equal'
 import { EventsV1beta1Api } from "@kubernetes/client-node";
+import { AWSReboot } from "../utils/AWSReboot";
 const { workerData, parentPort } = require('worker_threads');
 
 interface NodeConditionEvent {
@@ -117,17 +118,20 @@ class NodeManager {
     }
 
     private checkNodeStatus = () => {
-        console.log("Node status !!! ") 
-        this.nodes.forEach( (node, nodeName) => {
-            console.log(`${nodeName}`)
-            node.forEach( (condition, type) => {
-                console.log(`${type} : ${condition.status} : ${condition.reason}`)
-            })
-        })
+        // console.log("Node status !!! ") 
+        // this.nodes.forEach( (node, nodeName) => {
+        //     console.log(`${nodeName}`)
+        //     node.forEach( (condition, type) => {
+        //         console.log(`${type} : ${condition.status} : ${condition.reason}`)
+        //     })
+        // })
         
         // run routine 
 
         // run daily routine
+
+        const aws:AWSReboot = new AWSReboot()
+        aws.run()
         Logger.sendEventToES("messsage from nodemanager")
     }
 

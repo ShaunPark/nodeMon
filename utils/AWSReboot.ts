@@ -8,7 +8,7 @@ export class AWSReboot {
   }
 
   public run() {
-    this.ec2.describeInstances({DryRun: true}, (err:any, data:any) => {
+    this.ec2.describeInstances({DryRun: false}, (err:any, data:any) => {
       if (err) {
         console.log("Error", err.stack);
       } else {
