@@ -25,7 +25,7 @@ export class AWSReboot {
   public run(ipAddress?:string) {
     const param:any = { DryRun: false }
     if( ipAddress ) {
-      param['Filters'] = [{Name: 'ip-address', Values: [ ipAddress ]}]
+      param['Filters'] = [{Name: 'private-ip-address', Values: [ ipAddress ]}]
     }
 
     console.log(JSON.stringify(param))
