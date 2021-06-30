@@ -138,7 +138,8 @@ class NodeManager {
 
         // run daily routine
         const aws:AWSReboot = new AWSReboot(this.configManager)
-        aws.run("10.0.0.11")
+        //aws.run("10.0.0.11")
+        aws.run()
         Logger.sendEventToES("messsage from nodemanager")
     }
 

@@ -22,8 +22,11 @@ export class AWSReboot {
     }
   }
 
-  public run(ipAddress:string) {
-    const param = {Filters: [ {Name: 'ip-address', Values: [ ipAddress ]}], DryRun: false}
+  public run(ipAddress?:string) {
+    const param:any = { DryRun: false }
+    if( ipAddress ) {
+      param['Filters'] = [{Name: 'ip-address', Values: [ ipAddress ]}]
+    }
 
     console.log(JSON.stringify(param))
     this.ec2.describeInstances(param, (err:any, data:any) => {
