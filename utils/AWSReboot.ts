@@ -72,24 +72,29 @@ export class AWSReboot {
 
     console.log(`Reboot param : ${rebootParam}`)
     let startData: AWS.EC2.RebootInstancesRequest;
+
     this.ec2.rebootInstances(rebootParam).promise()
-      .then(async (data: AWS.EC2.RebootInstancesRequest) => {
-        startData = data
-        return await this.ec2.waitFor("instanceRunning", rebootParam).promise()
-      })
-      .then((wait: any) => {
-        console.log(wait)
-        if (!startData.InstanceIds) {
-          throw new Error("Reboot Instance Error");
-        } else {
-          console.log(`Reboot for nodes finished successfully`)
-        }
-      })
-      .catch((error: Error) => {
-        throw new Error(`Reboot Instance Error - ${error.message}`);
-      })
+    .then(async (data: AWS.EC2.RebootInstancesRequest) => {
+      console.log(`Reboot request for ${instanceIds} done`)
+
+      setInterval(this.checkStatus, 10000)
+    })
+    .catch((error: Error) => {
+      throw new Error(`Reboot Instance Error - ${error.message}`);
+    })
+  }
+
+  private checkStatus= (rebootParam: EC2ReBootParam) => {
+    console.log("Check node status !!!!!!!!!!!!!!!!!!!!!!!!!")
+    this.ec2.describeInstanceStatus(rebootParam).promise()
+    .then( (data: AWS.EC2.DescribeInstanceStatusResult) => {
+      console.log(JSON.stringify(data))
+      // console.log(JSON.stringify(jp.query(data, '$..InstanceState.Name'))
+    })
   }
 }
+
+
 
 type EC2ReBootParam = {
   DryRun?: boolean,
