@@ -72,7 +72,7 @@ export class AWSReboot {
 
     console.log(`Reboot param : ${rebootParam}`)
     let startData: AWS.EC2.RebootInstancesRequest;
-    this.ec2.RebootInstances(rebootParam).promise()
+    this.ec2.rebootInstances(rebootParam).promise()
       .then(async (data: AWS.EC2.RebootInstancesRequest) => {
         startData = data
         return await this.ec2.waitFor("instanceRunning", rebootParam).promise()
