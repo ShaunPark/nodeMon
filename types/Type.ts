@@ -20,6 +20,7 @@ export interface Ik8s {
 interface INodeMgr {
     interval: number;
     awsRegion: string
+    awsVPC: string;
 }
 export interface IEvent {
     type: string;

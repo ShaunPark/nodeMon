@@ -2,63 +2,104 @@ import * as AWS from 'aws-sdk';
 import ConfigManager from '../config/ConfigManager';
 import { IConfig } from '../types/Type';
 const jp = require('jsonpath')
-export class AWSReboot {
-  private ec2:any;
 
-  constructor(private configManager:ConfigManager) {
-    const config:IConfig = this.configManager.config;
-    const region:string|undefined = config.nodeManager?.awsRegion;
+const JSON_PATH_INSTANCE_ID = '$..Instances[*].InstanceId'
+const REGION_AP_2 = 'ap-northeast-2'
+const FILTER = 'Filters'
+const PRIVATE_IP_ADDRESS = 'private-ip-address'
+export class AWSReboot {
+  private ec2: any;
+
+  constructor(private configManager: ConfigManager) {
+    const config: IConfig = this.configManager.config;
+    const region: string | undefined = config.nodeManager?.awsRegion;
     try {
-      // if( region ) {
-      //   AWS.config.update({region: region});
-      // } else {
-        AWS.config.update({region: 'ap-northeast-2'});
-      // }
+      if (region) {
+        AWS.config.update({ region: region });
+      } else {
+        AWS.config.update({ region: REGION_AP_2 });
+      }
       this.ec2 = new AWS.EC2();
-  
-    } catch(err) {
+
+    } catch (err) {
       console.error(err)
       throw err;
     }
   }
 
-  public run(ipAddress?:string) {
-    const param:any = { DryRun: false }
-    if( ipAddress ) {
-      param['Filters'] = [{Name: 'private-ip-address', Values: [ ipAddress ]}]
+
+  public run(ipAddress: string[]) {
+
+    const vpc = this.configManager?.config?.nodeManager?.awsVPC;
+
+    const param: EC2ListParam = { Filters: [], DryRun: false }
+
+    // ip 가 지정된 경우에만 
+    if (ipAddress && ipAddress.length > 0) {
+      param.Filters.push({ Name: PRIVATE_IP_ADDRESS, Values: ipAddress })
+    } else {
+      throw new Error();
+    }
+
+    if( vpc ) {
+      param.Filters.push({Name:'vpc-id', Values: [vpc]})
     }
 
     console.log(JSON.stringify(param))
-    this.ec2.describeInstances(param, (err:any, data:any) => {
-      if (err) {
-        console.log("Error", err.stack);
-      } else {
-        console.log(JSON.stringify(data));
+    // get instance information filtered by private ip address
+    this.ec2.describeInstances(param).promise()
+    .then( (data:AWS.EC2.DescribeInstancesResult) => {
+      const instanceIds = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
+      this.rebootNode(instanceIds)
 
-        const instanceIds = jp.query(data, '$..Instances[*].InstanceId')
-
-        console.log(JSON.stringify(instanceIds))
-      }
+      console.log(JSON.stringify(instanceIds))
     })
+    .catch((err:Error) => {
+      console.log("Error", err.stack);
+      throw err;
+    })
+  }
+
+  private rebootNode(instanceIds: string[]) {
+    const rebootParam: EC2ReBootParam = { InstanceIds: instanceIds }
+    if (instanceIds.length > 1) {
+      rebootParam['DryRun'] = true;
+    } else {
+      rebootParam['DryRun'] = false;
+    }
+
+    console.log(`Reboot param : ${rebootParam}`)
+    let startData: AWS.EC2.RebootInstancesRequest;
+    this.ec2.RebootInstances(rebootParam).promise()
+      .then(async (data: AWS.EC2.RebootInstancesRequest) => {
+        startData = data
+        return await this.ec2.waitFor("instanceRunning", rebootParam).promise()
+      })
+      .then((wait: any) => {
+        console.log(wait)
+        if (!startData.InstanceIds) {
+          return new Error("Reboot Instance Error");
+        }
+      })
+      .catch((error: Error) => {
+        return new Error(`Reboot Instance Error - ${error.message}`);
+      })
   }
 }
 
-// // var AWS = require('aws-sdk');
-// // // Set the region 
-// // AWS.config.update({region: 'REGION'});
+type EC2ReBootParam = {
+  DryRun?: boolean,
+  InstanceIds: Array<string>
+}
 
-// // Create EC2 service object
-// var ec2 = new AWS.EC2({apiVersion: '2016-11-15'});
+type EC2ListParam = {
+  DryRun?: boolean,
+  Filters: Array<EC2Filter>
+}
 
-// var params = {
-//   DryRun: false
-// };
+type EC2Filter = {
+  Name: string,
+  Values: Array<string>
+}
 
-// // Call EC2 to retrieve policy for selected bucket
-// ec2.describeInstances(params, function(err, data) {
-//   if (err) {
-//     console.log("Error", err.stack);
-//   } else {
-//     console.log("Success", JSON.stringify(data));
-//   }
-// });
+
