@@ -115,8 +115,10 @@ class NodeManager {
         if( config.nodeManager  && config.nodeManager.interval ) {
             interval = config.nodeManager.interval
         }
-        setInterval(this.checkNodeStatus, interval)
+        //setInterval(this.checkNodeStatus, interval)
 
+        this.checkNodeStatus();
+        
         this.application.get('/', (request, response) => {
             response.send(this.nodes)
         })
