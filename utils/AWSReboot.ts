@@ -1,8 +1,7 @@
 import * as AWS from 'aws-sdk';
 import ConfigManager from '../config/ConfigManager';
 import { IConfig } from '../types/Type';
-import * as jp from 'jsonpath'
-
+const jp = require('jsonpath')
 export class AWSReboot {
   private ec2:any;
 
