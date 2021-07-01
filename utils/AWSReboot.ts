@@ -30,6 +30,8 @@ export class AWSReboot {
 
   public run(ipAddress: string[]) {
 
+    console.log(`Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
+
     const vpc = this.configManager?.config?.nodeManager?.awsVPC;
 
     const param: EC2ListParam = { Filters: [], DryRun: false }
@@ -79,6 +81,8 @@ export class AWSReboot {
         console.log(wait)
         if (!startData.InstanceIds) {
           return new Error("Reboot Instance Error");
+        } else {
+          console.log(`Reboot for nodes finished successfully`)
         }
       })
       .catch((error: Error) => {
