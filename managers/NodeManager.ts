@@ -5,6 +5,7 @@ import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import equal from 'deep-equal'
 import { AWSReboot } from "../utils/AWSReboot";
 import ConfigManager from "../config/ConfigManager";
+
 const { workerData, parentPort } = require('worker_threads');
 
 interface NodeConditionEvent {

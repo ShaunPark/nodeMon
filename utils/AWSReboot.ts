@@ -1,6 +1,7 @@
 import * as AWS from 'aws-sdk';
 import ConfigManager from '../config/ConfigManager';
 import { IConfig } from '../types/Type';
+import * as jp from 'jsonpath'
 
 export class AWSReboot {
   private ec2:any;
@@ -33,7 +34,11 @@ export class AWSReboot {
       if (err) {
         console.log("Error", err.stack);
       } else {
-        console.log("Success", JSON.stringify(data));
+        console.log(JSON.stringify(data));
+
+        const instanceIds = jp.query(data, '$..Instances[*].InstanceId')
+
+        console.log(JSON.stringify(instanceIds))
       }
     })
   }
