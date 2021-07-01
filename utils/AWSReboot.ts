@@ -80,13 +80,13 @@ export class AWSReboot {
       .then((wait: any) => {
         console.log(wait)
         if (!startData.InstanceIds) {
-          return new Error("Reboot Instance Error");
+          throw new Error("Reboot Instance Error");
         } else {
           console.log(`Reboot for nodes finished successfully`)
         }
       })
       .catch((error: Error) => {
-        return new Error(`Reboot Instance Error - ${error.message}`);
+        throw new Error(`Reboot Instance Error - ${error.message}`);
       })
   }
 }
