@@ -117,8 +117,8 @@ class NodeManager {
         }
         //setInterval(this.checkNodeStatus, interval)
 
-        this.checkNodeStatus();
-        
+        setTimeout(this.checkNodeStatus, interval);
+
         this.application.get('/', (request, response) => {
             response.send(this.nodes)
         })
