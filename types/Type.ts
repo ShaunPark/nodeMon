@@ -19,8 +19,9 @@ export interface Ik8s {
 
 interface INodeMgr {
     interval: number;
-    awsRegion: string
-    awsVPC: string;
+    awsRegion?: string
+    awsVPC?: string;
+    sshPemFile?: string;
 }
 export interface IEvent {
     type: string;

@@ -6,7 +6,7 @@ import K8sMonitor from "./monitors/K8sMonitor";
 import ConfigManager from "./config/ConfigManager";
 import { Worker, MessageChannel, MessagePort } from "worker_threads"
 import path from 'path'
-import { Logger } from "./logger/Logger";
+import Logger from "./logger/Logger";
 
 const logger= require('npmlog')
 

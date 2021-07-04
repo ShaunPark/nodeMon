@@ -1,9 +1,10 @@
 import { MessagePort } from "worker_threads"
-import { Logger } from "../logger/Logger";
+import Logger from "../logger/Logger";
 import express from "express"
 import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import equal from 'deep-equal'
-import { AWSReboot } from "../utils/AWSReboot";
+import AWSReboot from "../utils/AWSReboot";
+import SSHReboot from "../utils/SSHReboot"
 import ConfigManager from "../config/ConfigManager";
 
 const { workerData, parentPort } = require('worker_threads');
@@ -140,8 +141,14 @@ class NodeManager {
         // run routine 
 
         // run daily routine
-        const aws:AWSReboot = new AWSReboot(this.configManager)
+
+
+        const aws:SSHReboot = new SSHReboot(this.configManager)
         aws.run(["10.0.0.13"])
+
+        // const aws:AWSReboot = new AWSReboot(this.configManager)
+        // aws.run(["10.0.0.13"])
+
         //aws.run()
         Logger.sendEventToES("messsage from nodemanager")
     }

@@ -1,5 +1,5 @@
 import { MessagePort } from "worker_threads";
-export class Logger {
+class Logger {
     private static esPort:MessagePort;
     private static nmPort:MessagePort;
 
@@ -20,3 +20,5 @@ export class Logger {
         Logger.nmPort.postMessage(event);
     }
 }
+
+export default Logger

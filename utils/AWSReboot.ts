@@ -7,7 +7,7 @@ const JSON_PATH_INSTANCE_ID = '$..Instances[*].InstanceId'
 const REGION_AP_2 = 'ap-northeast-2'
 const FILTER = 'Filters'
 const PRIVATE_IP_ADDRESS = 'private-ip-address'
-export class AWSReboot {
+class AWSReboot {
   private ec2: any;
 
   constructor(private configManager: ConfigManager) {
@@ -76,25 +76,12 @@ export class AWSReboot {
     this.ec2.rebootInstances(rebootParam).promise()
     .then(async (data: AWS.EC2.RebootInstancesRequest) => {
       console.log(`Reboot request for ${instanceIds} done`)
-
-      setInterval(this.checkStatus, 10000)
     })
     .catch((error: Error) => {
       throw new Error(`Reboot Instance Error - ${error.message}`);
     })
   }
-
-  private checkStatus= (rebootParam: EC2ReBootParam) => {
-    console.log("Check node status !!!!!!!!!!!!!!!!!!!!!!!!!")
-    this.ec2.describeInstanceStatus(rebootParam).promise()
-    .then( (data: AWS.EC2.DescribeInstanceStatusResult) => {
-      console.log(JSON.stringify(data))
-      // console.log(JSON.stringify(jp.query(data, '$..InstanceState.Name'))
-    })
-  }
 }
-
-
 
 type EC2ReBootParam = {
   DryRun?: boolean,
@@ -111,4 +98,4 @@ type EC2Filter = {
   Values: Array<string>
 }
 
-
+export default  AWSReboot;

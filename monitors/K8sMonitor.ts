@@ -1,6 +1,6 @@
 import * as k8s from "@kubernetes/client-node"
 import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
-import { Logger } from "../logger/Logger";
+import Logger from "../logger/Logger";
 
 // const { workerData } = require('worker_threads');
 // const logger= require('npmlog')
@@ -35,18 +35,20 @@ class K8sMonitor {
             if( k8sApi ) {
 
                 // Node selector를 적용하여 node 목록 조회
-                const {body} = await k8sApi.listNode(undefined, undefined, undefined, undefined, config?.kubernetes?.nodeSelector)
+                const { body } = await k8sApi.listNode(undefined, undefined, undefined, undefined, config?.kubernetes?.nodeSelector)
 
                 body.items.map( item => {
                     if( item.metadata && item.status ) {
                         const { name } = item.metadata;
-                        const {conditions} = item.status;
+                        const { conditions } = item.status;
+
+                        console.log(JSON.stringify(item))
             
                         if ( name && conditions ) {
                             // Node condition를 node manager로 전달
-                            this.sendNodeConditionsToManager(name, conditions)
+                            this.sendNodeConditionsToManager(name, "", conditions)
                             // 각 Node별 event조회 및 처리
-                            this.getNodeEventsAsync(k8sApi, name).then( array => this.sendNodeEventsToManager(name, array))
+                            this.getNodeEventsAsync(k8sApi, name).then( array => this.sendNodeEventsToManager(name, "", array))
                         }
                     }
                 })
@@ -73,7 +75,7 @@ class K8sMonitor {
         })
     }
 
-    private sendNodeEventsToManager(nodeName:string, nodeEvents:Array<k8s.CoreV1Event>) {
+    private sendNodeEventsToManager(nodeName:string, nodeIp:string, nodeEvents:Array<k8s.CoreV1Event>) {
         const targetEvents = this._config?.kubernetes?.events;
 
         const newArr:Array<NodeEvent> = []
@@ -88,10 +90,10 @@ class K8sMonitor {
         }
 
         //logger.info(`Send Node Events of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({kind:"NodeEvent", nodeName: nodeName,  events: newArr})
+        Logger.sendEventToNodeManager({kind:"NodeEvent", nodeName: nodeName,  nodeIp: nodeIp, events: newArr})
     }
 
-    private sendNodeConditionsToManager(nodeName:string, nodeConditions:Array<k8s.V1NodeCondition>) {
+    private sendNodeConditionsToManager(nodeName:string, nodeIp:string, nodeConditions:Array<k8s.V1NodeCondition>) {
         // 모니터링 대상 condition만 처리 그 외는 무시
         const targetConditions = this._config?.kubernetes?.conditions;
 
@@ -106,7 +108,7 @@ class K8sMonitor {
         }
 
         // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({kind:"NodeCondition", nodeName: nodeName,  conditions: newArr})
+        Logger.sendEventToNodeManager({kind:"NodeCondition", nodeName: nodeName, nodeIp: nodeIp, conditions: newArr})
     }
 
     private async getNodeEventsAsync(k8sApi :k8s.CoreV1Api, nodeName?:string):Promise<Array<k8s.CoreV1Event>> {
