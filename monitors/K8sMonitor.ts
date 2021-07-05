@@ -1,6 +1,8 @@
 import * as k8s from "@kubernetes/client-node"
 import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import Logger from "../logger/Logger";
+import * as jsonpath from 'jsonpath'
+// const jp = require('jsonpath')
 
 // const { workerData } = require('worker_threads');
 // const logger= require('npmlog')
@@ -42,14 +44,20 @@ class K8sMonitor {
                         const { name } = item.metadata;
                         const { conditions } = item.status;
 
-                        console.log(JSON.stringify(item))
-            
-                        if ( name && conditions ) {
-                            // Node condition를 node manager로 전달
-                            this.sendNodeConditionsToManager(name, "", conditions)
-                            // 각 Node별 event조회 및 처리
-                            this.getNodeEventsAsync(k8sApi, name).then( array => this.sendNodeEventsToManager(name, "", array))
-                        }
+                        // get internal ip address from status
+                        const retArr:string[] = jsonpath.query(item,'$.status.addresses[?(@.type=="InternalIP")].address')
+
+                        if( retArr.length < 1) {
+                            console.error(`Cannot get internal ip-address of node ${name}. skip ${name}`)
+                            
+                        } else {
+                            if ( name && conditions ) {
+                                // Node condition를 node manager로 전달
+                                this.sendNodeConditionsToManager(name, retArr[0], conditions)
+                                // 각 Node별 event조회 및 처리
+                                this.getNodeEventsAsync(k8sApi, name).then( array => this.sendNodeEventsToManager(name, retArr[0], array))
+                            }
+                        }        
                     }
                 })
             }
@@ -60,7 +68,7 @@ class K8sMonitor {
         }
     }
 
-    private pushEvent(arr: Array<NodeEvent>, e: NodeEvent) {
+    private pushEventToArray(arr: Array<NodeEvent>, e: NodeEvent) {
         arr.push( {
             action: e.action,
             count: e.count,
@@ -84,9 +92,9 @@ class K8sMonitor {
         if( targetEvents && targetEvents?.length > 0 ) {
             nodeEvents
             .filter(event => event.reason && targetEvents.includes(event.reason))
-            .map(e => this.pushEvent(newArr, e))
+            .map(e => this.pushEventToArray(newArr, e))
         } else {
-            nodeEvents.map( e => this.pushEvent(newArr, e))    
+            nodeEvents.map( e => this.pushEventToArray(newArr, e))    
         }
 
         //logger.info(`Send Node Events of ${nodeName} \n ${JSON.stringify(newArr)}`)
