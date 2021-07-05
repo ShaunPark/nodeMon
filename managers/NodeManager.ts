@@ -12,38 +12,42 @@ const { workerData, parentPort } = require('worker_threads');
 interface NodeConditionEvent {
     kind: string,
     nodeName: string,
+    nodeIp: string,
     conditions: Array<NodeCondition>
 }
 interface NodeEventsEvent {
     kind: string,
     nodeName: string,
+    nodeIp: string,
     conditions: Array<NodeEvent>
 }
 
+type NodeConditionCache = {
+    ipAddress: string
+    conditions: Map<string, NodeCondition>
+}
+
 const eventHandlers = {
-    NodeCondition: (event:any, nodes:Map<string, Map<string, NodeCondition>>) => {
+    NodeCondition: (event:any, nodes:Map<string, NodeConditionCache>) => {
         const nodeCondition = event as NodeConditionEvent
-        const conditionMap = nodes.get(nodeCondition.nodeName)
+        const node = nodes.get(nodeCondition.nodeName)
         
-        if( conditionMap ) {
+        if( node ) {
             nodeCondition.conditions.filter( (condition) => {
-                const tempCondition = conditionMap.get(condition.type)
-                if( tempCondition ) {
-                    if( equal(tempCondition, condition)) {
-                        return false;
-                    }
+                const tempCondition = node.conditions.get(condition.type)
+                if( tempCondition && equal(tempCondition, condition)) {
+                    return false;
                 }
                 return true;
-            }).map( condition => conditionMap.set( condition.type, condition))
-            
-            nodes.set(event.nodeName, conditionMap)
+            }).map( condition => node.conditions.set( condition.type, condition))
         } else {
             const newMap = new Map<string, NodeCondition>();
+            const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap};
             nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
-            nodes.set(event.nodeName, newMap)
+            nodes.set(event.nodeName, node)
         }
     },
-    NodeEvent: (event:any, nodes:Map<string, Map<string, NodeCondition>>) => {
+    NodeEvent: (event:any, nodes:Map<string, NodeConditionCache>) => {
         const nodeEvent = event as NodeEventsEvent
         console.log(`receive node events : ${nodeEvent.nodeName}`)
     },
@@ -53,7 +57,7 @@ type EventTypes = "NodeCondition" | "NodeEvent"
 
 class NodeManager {
     private application : express.Application;
-    private nodes = new Map<string, Map<string, NodeCondition>>()
+    private static nodes = new Map<string, NodeConditionCache>()
     private configManager:ConfigManager;
 
     constructor(private configFile:string) {
@@ -74,39 +78,10 @@ class NodeManager {
     }
 
     // Kubernetes 모니터에서 전달된 이벤트 처리
-
-
     private onEvent = (event:any) => {
         console.log(`--- onEvent : ${JSON.stringify(event)}`)
         //수신한 이벤트를 처리
-        eventHandlers[event.kind as EventTypes](event, this.nodes);
-
-        // if(event.kind === "NodeCondition") {
-        //     const nodeCondition = event as NodeConditionEvent
-        //     const conditionMap = this.nodes.get(nodeCondition.nodeName)
-            
-        //     if( conditionMap ) {
-        //         nodeCondition.conditions.filter( (condition) => {
-        //             const tempCondition = conditionMap.get(condition.type)
-        //             if( tempCondition ) {
-        //                 if( equal(tempCondition, condition)) {
-        //                     return false;
-        //                 }
-        //             }
-        //             return true;
-        //         }).map( condition => conditionMap.set( condition.type, condition))
-                
-        //         this.nodes.set(event.nodeName, conditionMap)
-        //     } else {
-        //         const newMap = new Map<string, NodeCondition>();
-        //         nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
-        //         this.nodes.set(event.nodeName, newMap)
-        //     }
-
-        // } else if(event.kind === "NodeEvent") {
-        //     const nodeEvent = event as NodeEventsEvent
-        //     console.log(`receive node events : ${nodeEvent.nodeName}`)
-        // }
+        eventHandlers[event.kind as EventTypes](event, NodeManager.nodes);
     }
 
     public run() {
@@ -121,7 +96,7 @@ class NodeManager {
         setTimeout(this.checkNodeStatus, interval);
 
         this.application.get('/', (request, response) => {
-            response.send(this.nodes)
+            response.send(NodeManager.nodes)
         })
 
         this.application.listen(8880, () => {

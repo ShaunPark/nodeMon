@@ -2,10 +2,6 @@ import * as k8s from "@kubernetes/client-node"
 import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import Logger from "../logger/Logger";
 import * as jsonpath from 'jsonpath'
-// const jp = require('jsonpath')
-
-// const { workerData } = require('worker_threads');
-// const logger= require('npmlog')
 
 class Node {
     public conditions:Array<NodeCondition> = [];
