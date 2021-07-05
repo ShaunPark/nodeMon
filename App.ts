@@ -3,7 +3,7 @@ import { parse } from "ts-command-line-args"
 import { Worker, MessageChannel, MessagePort } from "worker_threads"
 import path from 'path'
 import { IArguments, IConfig} from "./types/Type"
-import { Logger } from "./logger/Logger";
+import Logger from "./logger/Logger";
 
 class NodeMon {
     private _config:IConfig;

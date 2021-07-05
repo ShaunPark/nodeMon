@@ -142,12 +142,13 @@ class NodeManager {
 
         // run daily routine
 
+        const ipAddress:string[] = ["10.0.0.13"]
 
-        const aws:SSHReboot = new SSHReboot(this.configManager)
-        aws.run(["10.0.0.13"])
+        // const ssh:SSHReboot = new SSHReboot(this.configManager)
+        // ssh.run(ipAddress)
 
         // const aws:AWSReboot = new AWSReboot(this.configManager)
-        // aws.run(["10.0.0.13"])
+        // aws.run(ipAddress)
 
         //aws.run()
         Logger.sendEventToES("messsage from nodemanager")
