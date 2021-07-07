@@ -7,6 +7,7 @@ import ConfigManager from "./config/ConfigManager";
 import { Worker, MessageChannel, MessagePort } from "worker_threads"
 import path from 'path'
 import Logger from "./logger/Logger";
+import { K8SNodeInformer } from "./watches/K8SInformer";
 
 const logger= require('npmlog')
 
@@ -58,13 +59,18 @@ export class NodeMonMain {
         logger.info(`NodeMon started`)
         this.initChannels(this.configFile);
 
-        if( config.kubernetes ) {
-            this._k8sMonitor = new K8sMonitor();
-        }
-        const interval = (config.interval == undefined || config.interval < 1000)?1000:config.interval;
-        logger.info(`NodeMon main Loop interval : ${interval}`)
+        // if( config.kubernetes ) {
+        //     this._k8sMonitor = new K8sMonitor();
+        // }
+        // const interval = (config.interval == undefined || config.interval < 1000)?1000:config.interval;
+        // logger.info(`NodeMon main Loop interval : ${interval}`)
+        // 
+        //setInterval(this.mainLoop, interval)
 
-        setInterval(this.mainLoop, interval)
+        if( config.kubernetes ) {
+            const nodeInformer = new K8SNodeInformer()
+            nodeInformer.createAndStartInformer(this.configManager.config)
+        }
     }
 
     private initChannels = (configFile:string) => {

@@ -14,9 +14,11 @@ node {
          app = docker.build("coolage/node-mon")
      }
 
-     stage('Test image') {
-         sh 'npm test'
-     }
+    //  stage('Test image') {
+    //      app.inside {
+    //          sh 'echo '
+    //      }
+    //  }
 
      stage('Push image') {
          /* Finally, we'll push the image with two tags:

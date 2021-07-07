@@ -1,0 +1,15 @@
+interval: 3000
+kubernetes:
+    interval: 3000
+    label: "draino-enabled=true"
+    nodeSelector: "draino-enabled=true"
+    conditions:
+    - CustomErrorCondition
+    - KernelDeadlock
+    events:
+    - NodeNotSchedulable
+nodeManager:
+    interval: 10000
+    awsRegion: "ap-northeast-2"
+    awsVPC: "vpc-08d52a53e0cfed045"
+    sshPemFile: "/etc/ssl/certs/my.pem"

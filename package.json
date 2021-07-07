@@ -4,6 +4,7 @@
   "description": "",
   "main": "build/NodeMonMain.js",
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.20.0",
     "@elastic/elasticsearch": "^7.13.0",
     "@kubernetes/client-node": "^0.14.3",
     "@types/aws-sdk": "^2.7.0",
@@ -12,7 +13,6 @@
     "@types/js-yaml": "^4.0.1",
     "@types/jsonpath": "^0.2.0",
     "@types/ssh2": "^0.5.46",
-    "aws-sdk": "^2.936.0",
     "deep-equal": "^2.0.5",
     "js-yaml": "^4.1.0",
     "jsonpath": "^1.1.1",
