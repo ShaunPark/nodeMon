@@ -1,7 +1,8 @@
 import * as k8s from '@kubernetes/client-node';
-import { V1Node } from '@kubernetes/client-node';
-import { json } from 'express';
-import { IConfig } from '../types/Type';
+import { V1NodeCondition } from '@kubernetes/client-node';
+import { NodeInfo } from '../managers/NodeCache';
+import { IConfig, NodeCondition } from '../types/Type';
+import Logger from "../logger/Logger";
 
 interface LocalLabel {
     key: string,
@@ -86,6 +87,31 @@ export class K8SNodeInformer {
             }, 5000);
         });
         informer.start()
+    }
+
+    sendNodeCondition = (name:string, unschedulable:boolean, nodeIp:string, conditions:Array<V1NodeCondition>) => {
+        const nodeInfo:NodeInfo = { nodeName: name, nodeUnscheduleable:unschedulable, nodeIp}
+
+                                // Node condition를 node manager로 전달
+        this.sendNodeConditionsToManager(nodeInfo, conditions)
+    }
+
+    private sendNodeConditionsToManager(node:NodeInfo, nodeConditions:Array<k8s.V1NodeCondition>) {
+        // 모니터링 대상 condition만 처리 그 외는 무시
+        const targetConditions = this._config?.kubernetes?.conditions;
+
+        const newArr:Array<NodeCondition> = []
+        //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
+        if( targetConditions && targetConditions.length > 0 )  {
+            nodeConditions
+            .filter(condition => targetConditions.includes(condition.type))
+            .map( condition => newArr.push( condition as NodeCondition))
+        } else {
+            nodeConditions.map( condition => newArr.push( condition as NodeCondition))
+        }
+
+        // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
+        Logger.sendEventToNodeManager({kind:"NodeCondition", conditions: newArr, ...node})
     }
 
     public checkValid(labelMap?:LocalLabel[], labels?:{[key: string]: string;}):boolean {
