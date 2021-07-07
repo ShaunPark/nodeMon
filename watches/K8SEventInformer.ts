@@ -43,7 +43,7 @@ export class K8SEventInformer {
         const listFn = () => this._k8sApi.listEventForAllNamespaces(
             true,
             undefined,
-            `involvedObject.kind=Node`,
+            'involvedObject.kind=Node'
         );
 
         const informer = k8s.makeInformer(
