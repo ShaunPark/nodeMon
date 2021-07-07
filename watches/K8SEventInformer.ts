@@ -59,21 +59,21 @@ export class K8SEventInformer {
         informer.on('add', (obj: k8s.CoreV1Event) => {
             console.log('Node add event !!!', JSON.stringify(obj.involvedObject.kind))
             if( this.checkValid(obj)) {
-                console.log(`Added: ${JSON.stringify(obj)}`);
+                console.log(`Added: ${obj.involvedObject.name} ${obj.reason} ${obj.type}`);
             }
         });
         informer.on('update', (obj: k8s.CoreV1Event) => {
             console.log('Node update event !!!', JSON.stringify(obj.involvedObject.kind))
 
             if( this.checkValid(obj)) {
-                console.log(`Updated: ${JSON.stringify(obj)}`);
+                console.log(`Updated:  ${obj.involvedObject.name} ${obj.reason} ${obj.type}`);
             }
         });
         informer.on('delete', (obj: k8s.CoreV1Event) => {
             console.log('Node delete event !!!')
 
             if( this.checkValid(obj)) {
-                console.log(`Deleted: ${JSON.stringify(obj)}`);
+                console.log(`Deleted:  ${obj.involvedObject.name} ${obj.reason} ${obj.type}`);
             }
         });
         informer.on('error', (err: k8s.CoreV1Event) => {
