@@ -57,13 +57,13 @@ export class K8SEventInformer {
         console.log(JSON.stringify(labelMap))
 
         informer.on('add', (obj: k8s.CoreV1Event) => {
-            console.log('Node add event !!!', JSON.stringify(obj.metadata?.labels))
+            console.log('Node add event !!!', JSON.stringify(obj))
             // if( this.checkValid(labelMap, obj.metadata?.labels)) {
             //     console.log(`Added: ${JSON.stringify(obj)}`);
             // }
         });
         informer.on('update', (obj: k8s.CoreV1Event) => {
-            console.log('Node update event !!!', JSON.stringify(obj.metadata?.labels))
+            console.log('Node update event !!!', JSON.stringify(obj))
 
             // if( this.checkValid(labelMap, obj.metadata?.labels)) {
             //     console.log(`Updated: ${JSON.stringify(obj)}`);
