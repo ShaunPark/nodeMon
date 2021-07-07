@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
-import { V1NodeCondition } from '@kubernetes/client-node';
+import { CoreV1Event, V1NodeCondition } from '@kubernetes/client-node';
 import { NodeInfo } from '../managers/NodeCache';
 import { IConfig, NodeCondition } from '../types/Type';
 import Logger from "../logger/Logger";
@@ -57,24 +57,24 @@ export class K8SEventInformer {
         console.log(JSON.stringify(labelMap))
 
         informer.on('add', (obj: k8s.CoreV1Event) => {
-            console.log('Node add event !!!', JSON.stringify(obj))
-            // if( this.checkValid(labelMap, obj.metadata?.labels)) {
-            //     console.log(`Added: ${JSON.stringify(obj)}`);
-            // }
+            console.log('Node add event !!!', JSON.stringify(obj.involvedObject.kind))
+            if( this.checkValid(obj)) {
+                console.log(`Added: ${JSON.stringify(obj)}`);
+            }
         });
         informer.on('update', (obj: k8s.CoreV1Event) => {
-            console.log('Node update event !!!', JSON.stringify(obj))
+            console.log('Node update event !!!', JSON.stringify(obj.involvedObject.kind))
 
-            // if( this.checkValid(labelMap, obj.metadata?.labels)) {
-            //     console.log(`Updated: ${JSON.stringify(obj)}`);
-            // }
+            if( this.checkValid(obj)) {
+                console.log(`Updated: ${JSON.stringify(obj)}`);
+            }
         });
         informer.on('delete', (obj: k8s.CoreV1Event) => {
             console.log('Node delete event !!!')
 
-            // if( this.checkValid(labelMap, obj.metadata?.labels)) {
-            //     console.log(`Deleted: ${JSON.stringify(obj)}`);
-            // }
+            if( this.checkValid(obj)) {
+                console.log(`Deleted: ${JSON.stringify(obj)}`);
+            }
         });
         informer.on('error', (err: k8s.CoreV1Event) => {
             console.error(err);
@@ -112,20 +112,7 @@ export class K8SEventInformer {
     //     Logger.sendEventToNodeManager({kind:"NodeCondition", conditions: newArr, ...node})
     // }
 
-    public checkValid(labelMap?:LocalLabel[], labels?:{[key: string]: string;}):boolean {
-        if ( labelMap && labels ) {
-            let hasAllLabel: boolean = true;
-            labelMap.forEach( lbl => {
-                const v = labels[lbl.key]
-                if( !v  ) {
-                    hasAllLabel = false;
-                } else if( lbl.value != "" && v != lbl.value){
-                    hasAllLabel = false;
-                }
-            })
-            return hasAllLabel
-        } 
-
-        return (labelMap == undefined)
+    public checkValid(event:CoreV1Event):boolean {
+        return event.involvedObject.kind == "Node"
     }
 }
