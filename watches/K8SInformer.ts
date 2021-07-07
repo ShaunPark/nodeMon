@@ -93,7 +93,9 @@ export class K8SNodeInformer {
             let hasAllLabel: boolean = true;
             labelMap.forEach( lbl => {
                 const v = labels[lbl.key]
-                if( !v || v != lbl.value ) {
+                if( !v  ) {
+                    hasAllLabel = false;
+                } else if( lbl.value != "" && v != lbl.value){
                     hasAllLabel = false;
                 }
             })

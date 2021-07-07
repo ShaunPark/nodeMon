@@ -122,8 +122,9 @@ describe('NodeManager', () => {
                         "kubernetes.io/hostname": "ip-10-0-0-11",
                         "kubernetes.io/os": "linux"
                     }
-        assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled=true"), labels), true)
-        assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled=false"), labels), false)
+                    assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled"), labels), true)
+                    assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled=true"), labels), true)
+                    assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled=false"), labels), false)
         assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled=true,kubernetes.io/os=linux"), labels), true)
         assert.strictEqual(inform.checkValid(inform.stringsToArray("draino-enabled=true,kubernetes.io/os=windows"), labels), false)
         
