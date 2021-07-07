@@ -12,7 +12,7 @@ export interface Ik8s {
     interval: number;
     label?: string;
     labelExpr?: string;
-    nodeSelector?: string;
+    nodeSelector?: string
     conditions?: Array<string>
     events?: Array<string>
 }
