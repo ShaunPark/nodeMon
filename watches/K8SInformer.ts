@@ -1,4 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
+import { json } from 'express';
 import { IConfig } from '../types/Type';
 
 
@@ -18,7 +19,8 @@ export class K8SNodeInformer {
         this._k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
     }
 
-    createAndStartInformer = (config:IConfig) => {            
+    createAndStartInformer = (config:IConfig) => {      
+        console.log("labelSelector ", JSON.stringify(config?.kubernetes?.nodeSelector))
         const listFn = () => this._k8sApi.listNode(
             undefined,
             undefined,
