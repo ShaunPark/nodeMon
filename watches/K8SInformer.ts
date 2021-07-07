@@ -55,14 +55,16 @@ export class K8SNodeInformer {
 
         const labelMap = this.stringsToArray(labelSelector)
 
+        console.log(JSON.stringify(labelMap))
+
         informer.on('add', (obj: k8s.V1Node) => {
-            console.log('Node add event !!!')
+            console.log('Node add event !!!', JSON.stringify(obj.metadata?.labels))
             if( this.checkValid(labelMap, obj.metadata?.labels)) {
                 console.log(`Added: ${JSON.stringify(obj)}`);
             }
         });
         informer.on('update', (obj: k8s.V1Node) => {
-            console.log('Node update event !!!')
+            console.log('Node update event !!!', JSON.stringify(obj.metadata?.labels))
 
             if( this.checkValid(labelMap, obj.metadata?.labels)) {
                 console.log(`Updated: ${JSON.stringify(obj)}`);
