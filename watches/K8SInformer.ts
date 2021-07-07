@@ -20,13 +20,13 @@ export class K8SNodeInformer {
     }
 
     createAndStartInformer = (config:IConfig) => {      
-        console.log("labelSelector ", JSON.stringify(config?.kubernetes?.nodeSelector))
+        const labelSelector = config?.kubernetes?.nodeSelector;
         const listFn = () => this._k8sApi.listNode(
             undefined,
+            true,
             undefined,
             undefined,
-            undefined,
-            config?.kubernetes?.nodeSelector,
+            labelSelector,
         );
     
         const informer = k8s.makeInformer(
