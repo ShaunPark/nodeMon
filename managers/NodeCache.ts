@@ -35,7 +35,7 @@ export const eventHandlers = {
         const node = nodes.get(nodeCondition.nodeName)
         console.log(`receive node condition : ${nodeName}`)
 
-        const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable?"":"/Unschedulable")
+        const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable?"/Unschedulable":"")
 
         if( node ) {
             nodeCondition.conditions.filter( (condition) => {
@@ -63,11 +63,11 @@ export const eventHandlers = {
             console.log(`Node ${nodeName} does not exist in list. Ignore`)
         } else {
             // 모니터 시작전 발생한 old 이벤트는 무시
-            if( startTime > event.lastTimestamp ) {
+            if( startTime.getTime() > event.lastTimestamp.getTime() ) {
                 node.status = event.reason;
                 node.lastUpdateTime = event.lastTimestamp
             } else {
-                console.log(`Event raised at ${event.lastTimestamp}. Ignore old event.${startTime}`)
+                console.log(`Event raised at ${event.lastTimestamp.getTime()}. Ignore old event.${startTime.getTime()}`)
             }
             // reason: obj.reason, 
             // source: obj.source?.component,
