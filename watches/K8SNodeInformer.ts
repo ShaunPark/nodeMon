@@ -104,8 +104,12 @@ export class K8SNodeInformer {
                 if (name && conditions) {
                     const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
                     const status = conditions.find( condition => condition.type == "Ready")
+                    let statusString = status?.status=="True"?"Ready":"NotReady"
+                    if( unschedulable ) {
+                        statusString = statusString + "/Unschedulable"
+                    }
                     // Node condition를 node manager로 전달
-                    this.sendNodeConditionsToManager(nodeInfo, conditions, status?.status=="True"?"Ready":"NotReady")
+                    this.sendNodeConditionsToManager(nodeInfo, conditions, statusString)
                 }
             }
         }
