@@ -67,7 +67,7 @@ export const eventHandlers = {
                 node.status = event.reason;
                 node.lastUpdateTime = event.lastTimestamp
             } else {
-                console.log(`Event raised at ${event.lastTimestamp}. Ignore old event.`)
+                console.log(`Event raised at ${event.lastTimestamp}. Ignore old event.${startTime}`)
             }
             // reason: obj.reason, 
             // source: obj.source?.component,
