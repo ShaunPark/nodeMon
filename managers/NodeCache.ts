@@ -66,12 +66,12 @@ export const eventHandlers = {
             const eventDate = event.lastTimestamp as Date
             console.log(eventDate)
             console.log(JSON.stringify(eventDate))
-            if( startTime.getTime() > eventDate.getTime() ) {
-                node.status = event.reason;
-                node.lastUpdateTime = eventDate
-            } else {
+            // if( startTime.getTime() > eventDate.getTime() ) {
+            //     node.status = event.reason;
+            //     node.lastUpdateTime = eventDate
+            // } else {
                 console.log(`Event raised at ${event.lastTimestamp.getTime()}. Ignore old event.${startTime.getTime()}`)
-            }
+            // }
             // reason: obj.reason, 
             // source: obj.source?.component,
             // lastTimestamp: obj.lastTimestamp 
