@@ -100,7 +100,7 @@ export class K8SNodeInformer {
             console.log(`retArr ${JSON.stringify(retArr)} `)
             if (retArr.length < 1) {
                 console.error(`Cannot get internal ip-address of node ${name}. skip ${name}`)
-
+            } else {
                 if (name && conditions) {
                     const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
                     // Node condition를 node manager로 전달
