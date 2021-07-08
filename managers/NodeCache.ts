@@ -1,3 +1,4 @@
+import { GetConsoleScreenshotCommand } from '@aws-sdk/client-ec2'
 import equal from 'deep-equal'
 import { NodeCondition, NodeEvent } from "../types/Type"
 import { NodeStatus } from './NodeManager'
@@ -65,12 +66,12 @@ export const eventHandlers = {
             // 모니터 시작전 발생한 old 이벤트는 무시
             const eventDate = event.lastTimestamp as Date
             console.log(eventDate)
-            console.log(JSON.stringify(eventDate))
+            console.log(JSON.stringify(event))
             // if( startTime.getTime() > eventDate.getTime() ) {
             //     node.status = event.reason;
             //     node.lastUpdateTime = eventDate
             // } else {
-                console.log(`Event raised at ${eventDate.getTime()}. Ignore old event.${startTime.getTime()}`)
+            //    console.log(`Event raised at ${eventDate.getTime()}. Ignore old event.${startTime.getTime()}`)
             // }
             // reason: obj.reason, 
             // source: obj.source?.component,
