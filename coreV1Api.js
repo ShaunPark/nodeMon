@@ -9044,7 +9044,6 @@ class CoreV1Api {
             for (const interceptor of this.interceptors) {
                 interceptorPromise = interceptorPromise.then(() => interceptor(localVarRequestOptions));
             }
-            
             console.log("======================================")
             console.log(JSON.stringify(localVarRequestOptions))
             console.log("======================================")

@@ -11,4 +11,4 @@ RUN tsc
 RUN mv /nodeMon/coreV1Api.js /nodeMon/node_modules/@kubernetes/client-node/dist/gen/api/coreV1Api.js
 EXPOSE 8880
 
-CMD [ "ts-node", "NodeMonMain.ts", "-f", "/config/config.yaml"]
+CMD [ "node", "build/NodeMonMain.js", "-f", "/config/config.yaml"]
