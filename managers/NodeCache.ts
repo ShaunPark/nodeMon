@@ -35,6 +35,8 @@ export const eventHandlers = {
         const node = nodes.get(nodeCondition.nodeName)
         console.log(`receive node condition : ${nodeName}`)
 
+        const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable?"":"/Unschedulable")
+
         if( node ) {
             nodeCondition.conditions.filter( (condition) => {
                 const tempCondition = node.conditions.get(condition.type)
@@ -45,10 +47,10 @@ export const eventHandlers = {
             }).map( condition => node.conditions.set( condition.type, condition))
             node.ipAddress = nodeCondition.nodeIp
             node.lastUpdateTime = new Date()
+            node.status = status
         } else {
             const newMap = new Map<string, NodeCondition>();
-            const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable?"":"/Unschedulable")
-            const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap, lastUpdateTime: new Date(), status:nodeCondition.status};
+            const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap, lastUpdateTime: new Date(), status:status};
             nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
             nodes.set(nodeName, node)
         }
