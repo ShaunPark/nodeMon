@@ -74,7 +74,7 @@ export const eventHandlers = {
     PrintNode: (nodes:Map<string, NodeConditionCache>) => {
         const arr = new Array<Object>()
         nodes.forEach( (node, key) => {
-            arr.push({ name:key, ...node})
+            arr.push({ name:key, ipAddress:node.ipAddress,  lastUpdateTime:node.lastUpdateTime, status:node.status})
         })
         console.table(arr);
     },
