@@ -8,20 +8,23 @@ interface LocalLabel {
     key: string,
     value: any
 }
+
+let k8sApi:k8s.CoreV1Api;
+
 export class K8SEventInformer {
-    private _k8sApi: k8s.CoreV1Api;
+    // private _k8sApi: k8s.CoreV1Api;
     private _config?: IConfig;
     private _kc: k8s.KubeConfig;
     constructor() {
         this._kc = new k8s.KubeConfig();
         this._kc.loadFromDefault();
-        this._k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
+        k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
     }
 
     private reInit() {
         this._kc = new k8s.KubeConfig();
         this._kc.loadFromDefault();
-        this._k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
+        k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
     }
 
 
@@ -40,7 +43,7 @@ export class K8SEventInformer {
 
     createAndStartInformer = (config: IConfig) => {
         const labelSelector = config?.kubernetes?.nodeSelector;
-        const listFn = () => this._k8sApi.listEventForAllNamespaces(
+        const listFn = () => k8sApi.listEventForAllNamespaces(
             true,
             undefined,
             'involvedObject.kind=Node'
