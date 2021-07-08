@@ -2,7 +2,7 @@ import * as chai from 'chai'
 import assert from 'assert'
 import { NodeConditionCache, NodeConditionEvent } from '../managers/NodeCache';
 import { eventHandlers } from '../managers/NodeCache';
-import { K8SNodeInformer } from '../watches/K8SInformer';
+import { K8SNodeInformer } from '../watches/K8SNodeInformer';
 import { V1Node } from '@kubernetes/client-node';
 
 

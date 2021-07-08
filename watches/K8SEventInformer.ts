@@ -56,24 +56,24 @@ export class K8SEventInformer {
 
         console.log(JSON.stringify(labelMap))
 
-        informer.on('add', (obj: k8s.CoreV1Event) => {
-            console.log('Node add event !!!', JSON.stringify(obj.involvedObject.kind))
-            if( this.checkValid(obj)) {
-                console.log(`Added: ${obj.involvedObject.name} ${obj.reason} ${obj.type}`);
-            }
+        informer.on('add', (evt: k8s.CoreV1Event) => {
+            console.log('Node add event !!!', JSON.stringify(evt.involvedObject.kind))
+            if( this.checkValid(evt)) {
+                Logger.sendEventToNodeManager(this.createSendingEvent(evt))
+             }
         });
-        informer.on('update', (obj: k8s.CoreV1Event) => {
-            console.log('Node update event !!!', JSON.stringify(obj.involvedObject.kind))
+        informer.on('update', (evt: k8s.CoreV1Event) => {
+            console.log('Node update event !!!', JSON.stringify(evt.involvedObject.kind))
 
-            if( this.checkValid(obj)) {
-                console.log(`Updated:  ${obj.involvedObject.name} ${obj.reason} ${obj.type}`);
+            if( this.checkValid(evt)) {
+                Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
-        informer.on('delete', (obj: k8s.CoreV1Event) => {
+        informer.on('delete', (evt: k8s.CoreV1Event) => {
             console.log('Node delete event !!!')
 
-            if( this.checkValid(obj)) {
-                console.log(`Deleted:  ${obj.involvedObject.name} ${obj.reason} ${obj.type}`);
+            if( this.checkValid(evt)) {
+                console.log(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
             }
         });
         informer.on('error', (err: k8s.CoreV1Event) => {
@@ -86,6 +86,57 @@ export class K8SEventInformer {
         });
         informer.start()
     }
+
+    private createSendingEvent(obj:CoreV1Event):Object {
+        return {   
+            kind:"NodeEvent",
+            nodeName: obj.involvedObject.name, 
+            reason: obj.reason, 
+            source: obj.source?.component,
+            lastTimestamp: obj.lastTimestamp 
+        }
+    }
+
+    private targetEvents:Array<string> = [ 
+        "CordonStarting", 
+        "CordonSucceeded",  
+        "CordonFailed", 
+        "UncordonStarting",
+        "UncordonSucceeded",
+        "UncordonFailed",
+        "DrainScheduled",
+        "DrainSchedulingFailed",
+        "DrainStarting",
+        "DrainSucceeded",
+        "DrainFailed"
+    ]
+
+    public checkValid(event:CoreV1Event):boolean {
+        if( event.reason )
+            return event.involvedObject.kind == "Node" && event.reason in this.targetEvents
+        return false
+    }
+
+    // {
+    //     "metadata": {
+    //         "namespace": "default",
+    //         "managedFields": [
+    //             {
+    //                 "manager": "draino",
+    //             }
+    //         ]
+    //     },
+    //     "involvedObject": {
+    //         "kind": "Node",
+    //         "name": "ip-10-0-0-11",
+    //     },
+    //     "reason": "DrainSchedulingFailed",
+    //     "source": {
+    //         "component": "draino"
+    //     },
+    //     "firstTimestamp": "2021-07-07T08:00:11Z",
+    //     "lastTimestamp": "2021-07-07T08:00:11Z",
+    // },
 
     // sendNodeCondition = (name:string, unschedulable:boolean, nodeIp:string, conditions:Array<V1NodeCondition) => {
     //     const nodeInfo:NodeInfo = { nodeName: name, nodeUnscheduleable:unschedulable, nodeIp}
@@ -111,8 +162,4 @@ export class K8SEventInformer {
     //     // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
     //     Logger.sendEventToNodeManager({kind:"NodeCondition", conditions: newArr, ...node})
     // }
-
-    public checkValid(event:CoreV1Event):boolean {
-        return event.involvedObject.kind == "Node"
-    }
 }
