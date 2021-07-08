@@ -48,10 +48,22 @@ export const eventHandlers = {
         }
     },
     NodeEvent: (event:any, nodes:Map<string, NodeConditionCache>) => {
-        const nodeEvent = event as NodeEventsEvent
-        console.log(`receive node events : ${nodeEvent.nodeName}`)
+        const nodeName = event.nodeName;
+        console.log(`receive node events : ${nodeName}`)
+        const node = nodes.get(nodeName)
+        if (node == undefined) {
+            console.log(`Node ${nodeName} does not exist in list. Ignore`)
+        } else {
+            node.status = event.reason;
+            node.lastUpdateTime = event.lastTimestamp
+            // reason: obj.reason, 
+            // source: obj.source?.component,
+            // lastTimestamp: obj.lastTimestamp 
+        }
     },
-
+    PrintNode: (nodes:Map<string, NodeConditionCache>) => {
+        console.table(nodes.entries());
+    },
     DeleteNode: (event:any, nodes:Map<string, NodeConditionCache>) => {
         nodes.forEach( (node, key) => {
             const today = new Date()

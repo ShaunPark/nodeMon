@@ -107,11 +107,19 @@ export class K8SEventInformer {
         "UncordonStarting",
         "UncordonSucceeded",
         "UncordonFailed",
+
         "DrainScheduled",
         "DrainSchedulingFailed",
         "DrainStarting",
         "DrainSucceeded",
-        "DrainFailed"
+        "DrainFailed",
+
+        "NodeNotReady",
+        "Starting",
+        "Rebooted",
+        "NodeAllocatableEnforced",
+        "NodeReady",
+        "NodeNotSchedulable"
     ]
 
     public checkValid(event:CoreV1Event):boolean {

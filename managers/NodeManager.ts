@@ -37,7 +37,6 @@ class NodeManager {
 
     // Kubernetes 모니터에서 전달된 이벤트 처리
     private onEvent = (event: any) => {
-        console.log(`--- onEvent : ${JSON.stringify(event)}`)
         //수신한 이벤트를 처리
         eventHandlers[event.kind as EventTypes](event, NodeManager.nodes);
     }
@@ -60,6 +59,8 @@ class NodeManager {
         // this.application.listen(8880, () => {
         //     console.log("express started")
         // })
+
+        setInterval(() => eventHandlers['PrintNode'](NodeManager.nodes), interval)
     }
 
     private checkNodeStatus = () => {
