@@ -10,6 +10,7 @@ export interface NodeInfo {
 
 export interface NodeConditionEvent extends NodeInfo {
     kind: string,
+    status: string,
     conditions: Array<NodeCondition>
 }
 
@@ -22,8 +23,10 @@ export type NodeConditionCache = {
     ipAddress: string
     conditions: Map<string, NodeCondition>
     lastUpdateTime: Date
-    status: NodeStatus
+    status: string
 }
+
+const startTime:Date = new Date()
 
 export const eventHandlers = {
     NodeCondition: (event:any, nodes:Map<string, NodeConditionCache>) => {
@@ -44,7 +47,7 @@ export const eventHandlers = {
             node.lastUpdateTime = new Date()
         } else {
             const newMap = new Map<string, NodeCondition>();
-            const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap, lastUpdateTime: new Date(), status:"NotReady"};
+            const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap, lastUpdateTime: new Date(), status:nodeCondition.status};
             nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
             nodes.set(nodeName, node)
         }
@@ -56,8 +59,13 @@ export const eventHandlers = {
         if (node == undefined) {
             console.log(`Node ${nodeName} does not exist in list. Ignore`)
         } else {
-            node.status = event.reason;
-            node.lastUpdateTime = event.lastTimestamp
+            // 모니터 시작전 발생한 old 이벤트는 무시
+            if( startTime > event.lastTimestamp ) {
+                node.status = event.reason;
+                node.lastUpdateTime = event.lastTimestamp
+            } else {
+                console.log(`Event raised at ${event.lastTimestamp}. Ignore old event.`)
+            }
             // reason: obj.reason, 
             // source: obj.source?.component,
             // lastTimestamp: obj.lastTimestamp 

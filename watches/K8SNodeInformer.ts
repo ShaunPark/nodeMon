@@ -103,14 +103,15 @@ export class K8SNodeInformer {
             } else {
                 if (name && conditions) {
                     const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
+                    const status = conditions.find( condition => condition.type == "Ready")
                     // Node condition를 node manager로 전달
-                    this.sendNodeConditionsToManager(nodeInfo, conditions)
+                    this.sendNodeConditionsToManager(nodeInfo, conditions, status?.status=="True"?"Ready":"NotReady")
                 }
             }
         }
     }
 
-    private sendNodeConditionsToManager(node: NodeInfo, nodeConditions: Array<k8s.V1NodeCondition>) {
+    private sendNodeConditionsToManager(node: NodeInfo, nodeConditions: Array<k8s.V1NodeCondition>, status:string) {
         // 모니터링 대상 condition만 처리 그 외는 무시
         const targetConditions = this._config?.kubernetes?.conditions;
 
@@ -125,7 +126,7 @@ export class K8SNodeInformer {
         }
 
         // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({ kind: "NodeCondition", conditions: newArr, ...node })
+        Logger.sendEventToNodeManager({ kind: "NodeCondition", status: status, conditions: newArr, ...node })
     }
 
     public checkValid(labelMap?: LocalLabel[], labels?: { [key: string]: string; }): boolean {

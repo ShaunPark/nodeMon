@@ -24,7 +24,8 @@ describe('NodeManager', () => {
                 "status": "False",
                 "type": "KernelDeadlock"
             }],
-        "nodeUnscheduleable": true
+        "nodeUnscheduleable": true,
+        status: "Ready"
     }
 
     const nowDt = new Date()
@@ -42,7 +43,8 @@ describe('NodeManager', () => {
                 "status": "True",
                 "type": "KernelDeadlock"
             }],
-        "nodeUnscheduleable": true
+        "nodeUnscheduleable": true,
+        status: "Ready"
     }
 
     it('save events', () => {
@@ -79,7 +81,8 @@ describe('NodeManager', () => {
                 "status": "True",
                 "type": "KernelDeadlock"
             }],
-        "nodeUnscheduleable": true
+        "nodeUnscheduleable": true,
+        status: "Ready"
     }
 
     it('add condition', () => {
@@ -102,7 +105,8 @@ describe('NodeManager', () => {
                 "status": "True",
                 "type": "KernelDeadlock"
             }],
-        "nodeUnscheduleable": true
+        "nodeUnscheduleable": true,
+        status: "Ready"
 
     }
 
