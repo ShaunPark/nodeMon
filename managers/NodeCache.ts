@@ -27,9 +27,11 @@ export type NodeConditionCache = {
 
 export const eventHandlers = {
     NodeCondition: (event:any, nodes:Map<string, NodeConditionCache>) => {
+        const nodeName = event.nodeName;
         const nodeCondition = event as NodeConditionEvent
         const node = nodes.get(nodeCondition.nodeName)
-        
+        console.log(`receive node condition : ${nodeName}`)
+
         if( node ) {
             nodeCondition.conditions.filter( (condition) => {
                 const tempCondition = node.conditions.get(condition.type)
@@ -44,7 +46,7 @@ export const eventHandlers = {
             const newMap = new Map<string, NodeCondition>();
             const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap, lastUpdateTime: new Date(), status:"NotReady"};
             nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
-            nodes.set(event.nodeName, node)
+            nodes.set(nodeName, node)
         }
     },
     NodeEvent: (event:any, nodes:Map<string, NodeConditionCache>) => {

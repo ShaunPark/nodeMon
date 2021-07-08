@@ -91,7 +91,6 @@ export class K8SNodeInformer {
         informer.start()
     }
 
-
     sendNodeCondition = (node: V1Node) => {
         if (node.metadata && node.status) {
             const { name } = node.metadata;
