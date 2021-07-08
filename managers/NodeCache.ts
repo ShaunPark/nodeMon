@@ -70,7 +70,7 @@ export const eventHandlers = {
             //     node.status = event.reason;
             //     node.lastUpdateTime = eventDate
             // } else {
-                console.log(`Event raised at ${event.lastTimestamp.getTime()}. Ignore old event.${startTime.getTime()}`)
+                console.log(`Event raised at ${eventDate.getTime()}. Ignore old event.${startTime.getTime()}`)
             // }
             // reason: obj.reason, 
             // source: obj.source?.component,
