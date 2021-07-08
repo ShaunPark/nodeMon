@@ -53,13 +53,13 @@ class NodeManager {
 
         setTimeout(this.checkNodeStatus, interval);
 
-        this.application.get('/', (request, response) => {
-            response.send(NodeManager.nodes)
-        })
+        // this.application.get('/', (request, response) => {
+        //     response.send(NodeManager.nodes)
+        // })
 
-        this.application.listen(8880, () => {
-            console.log("express started")
-        })
+        // this.application.listen(8880, () => {
+        //     console.log("express started")
+        // })
     }
 
     private checkNodeStatus = () => {
