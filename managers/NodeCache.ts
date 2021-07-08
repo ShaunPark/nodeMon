@@ -47,6 +47,7 @@ export const eventHandlers = {
             node.lastUpdateTime = new Date()
         } else {
             const newMap = new Map<string, NodeCondition>();
+            const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable?"":"/Unschedulable")
             const node:NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions:newMap, lastUpdateTime: new Date(), status:nodeCondition.status};
             nodeCondition.conditions.map( condition => newMap.set( condition.type, condition))
             nodes.set(nodeName, node)
