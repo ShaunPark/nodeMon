@@ -62,7 +62,6 @@ export class K8SNodeInformer {
         informer.on('add', (obj: k8s.V1Node) => {
             console.log('Node add event !!!', JSON.stringify(obj.metadata?.labels))
             if (this.checkValid(labelMap, obj.metadata?.labels)) {
-
                 this.sendNodeCondition(obj)
             }
         });
@@ -92,12 +91,13 @@ export class K8SNodeInformer {
     }
 
     sendNodeCondition = (node: V1Node) => {
+        console.log(`sendNodeCondition `)
         if (node.metadata && node.status) {
             const { name } = node.metadata;
             const { conditions } = node.status;
             const unschedulable = node.spec?.unschedulable ? true : false;
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
-
+            console.log(`retArr ${JSON.stringify(retArr)} `)
             if (retArr.length < 1) {
                 console.error(`Cannot get internal ip-address of node ${name}. skip ${name}`)
 

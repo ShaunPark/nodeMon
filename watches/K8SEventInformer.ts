@@ -60,20 +60,20 @@ export class K8SEventInformer {
         console.log(JSON.stringify(labelMap))
 
         informer.on('add', (evt: k8s.CoreV1Event) => {
-            console.log('Node add event !!!', JSON.stringify(evt.involvedObject.kind))
+            console.log('Event added !!!', JSON.stringify(evt.involvedObject.kind))
             if( this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
              }
         });
         informer.on('update', (evt: k8s.CoreV1Event) => {
-            console.log('Node update event !!!', JSON.stringify(evt.involvedObject.kind))
+            console.log('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
 
             if( this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
         informer.on('delete', (evt: k8s.CoreV1Event) => {
-            console.log('Node delete event !!!')
+            console.log('Event deleted !!!')
 
             if( this.checkValid(evt)) {
                 console.log(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
