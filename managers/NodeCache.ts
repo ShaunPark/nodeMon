@@ -64,7 +64,11 @@ export const eventHandlers = {
         }
     },
     PrintNode: (nodes:Map<string, NodeConditionCache>) => {
-        console.table(nodes.entries());
+        const arr = new Array<Object>()
+        nodes.forEach( (node, key) => {
+            arr.push({ name:key, ...node})
+        })
+        console.table(arr);
     },
     DeleteNode: (event:any, nodes:Map<string, NodeConditionCache>) => {
         nodes.forEach( (node, key) => {
