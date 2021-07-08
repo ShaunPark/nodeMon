@@ -8,6 +8,7 @@ import { Worker, MessageChannel, MessagePort } from "worker_threads"
 import path from 'path'
 import Logger from "./logger/Logger";
 import { K8SEventInformer } from "./watches/K8SEventInformer";
+import { K8SNodeInformer } from "./watches/K8SNodeInformer";
 
 const logger= require('npmlog')
 
@@ -68,8 +69,10 @@ export class NodeMonMain {
         //setInterval(this.mainLoop, interval)
 
         if( config.kubernetes ) {
-            const nodeInformer = new K8SEventInformer()
+            const nodeInformer = new K8SNodeInformer()
             nodeInformer.createAndStartInformer(this.configManager.config)
+            const eventInformer = new K8SEventInformer()
+            eventInformer.createAndStartInformer(this.configManager.config)
         }
     }
 

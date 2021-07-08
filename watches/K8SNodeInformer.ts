@@ -1,8 +1,9 @@
 import * as k8s from '@kubernetes/client-node';
-import { V1NodeCondition } from '@kubernetes/client-node';
+import { V1Node, V1NodeCondition } from '@kubernetes/client-node';
 import { NodeInfo } from '../managers/NodeCache';
 import { IConfig, NodeCondition } from '../types/Type';
 import Logger from "../logger/Logger";
+import jsonpath from 'jsonpath';
 
 interface LocalLabel {
     key: string,
@@ -33,7 +34,7 @@ export class K8SNodeInformer {
         const strs = str.trim().split(",")
         strs.forEach(s => {
             const values = s.trim().split("=")
-            array.push({key:values[0] , value:values.slice(1).join("=")})
+            array.push({ key: values[0], value: values.slice(1).join("=") })
         })
         return array
     }
@@ -60,22 +61,23 @@ export class K8SNodeInformer {
 
         informer.on('add', (obj: k8s.V1Node) => {
             console.log('Node add event !!!', JSON.stringify(obj.metadata?.labels))
-            if( this.checkValid(labelMap, obj.metadata?.labels)) {
-                console.log(`Added: ${JSON.stringify(obj)}`);
+            if (this.checkValid(labelMap, obj.metadata?.labels)) {
+
+                this.sendNodeCondition(obj)
             }
         });
         informer.on('update', (obj: k8s.V1Node) => {
             console.log('Node update event !!!', JSON.stringify(obj.metadata?.labels))
 
-            if( this.checkValid(labelMap, obj.metadata?.labels)) {
-                console.log(`Updated: ${JSON.stringify(obj)}`);
+            if (this.checkValid(labelMap, obj.metadata?.labels)) {
+                this.sendNodeCondition(obj)
             }
         });
         informer.on('delete', (obj: k8s.V1Node) => {
             console.log('Node delete event !!!')
 
-            if( this.checkValid(labelMap, obj.metadata?.labels)) {
-                console.log(`Deleted: ${JSON.stringify(obj)}`);
+            if (this.checkValid(labelMap, obj.metadata?.labels)) {
+                this.sendNodeCondition(obj)
             }
         });
         informer.on('error', (err: k8s.V1Node) => {
@@ -89,44 +91,57 @@ export class K8SNodeInformer {
         informer.start()
     }
 
-    sendNodeCondition = (name:string, unschedulable:boolean, nodeIp:string, conditions:Array<V1NodeCondition>) => {
-        const nodeInfo:NodeInfo = { nodeName: name, nodeUnscheduleable:unschedulable, nodeIp}
 
-                                // Node condition를 node manager로 전달
-        this.sendNodeConditionsToManager(nodeInfo, conditions)
+    sendNodeCondition = (node: V1Node) => {
+        if (node.metadata && node.status) {
+            const { name } = node.metadata;
+            const { conditions } = node.status;
+            const unschedulable = node.spec?.unschedulable ? true : false;
+            const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
+
+            if (retArr.length < 1) {
+                console.error(`Cannot get internal ip-address of node ${name}. skip ${name}`)
+
+                if (name && conditions) {
+                    const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
+                    // Node condition를 node manager로 전달
+                    this.sendNodeConditionsToManager(nodeInfo, conditions)
+                }
+            }
+        }
     }
 
-    private sendNodeConditionsToManager(node:NodeInfo, nodeConditions:Array<k8s.V1NodeCondition>) {
+    private sendNodeConditionsToManager(node: NodeInfo, nodeConditions: Array<k8s.V1NodeCondition>) {
         // 모니터링 대상 condition만 처리 그 외는 무시
         const targetConditions = this._config?.kubernetes?.conditions;
 
-        const newArr:Array<NodeCondition> = []
+        const newArr: Array<NodeCondition> = []
         //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
-        if( targetConditions && targetConditions.length > 0 )  {
+        if (targetConditions && targetConditions.length > 0) {
             nodeConditions
-            .filter(condition => targetConditions.includes(condition.type))
-            .map( condition => newArr.push( condition as NodeCondition))
+                .filter(condition => targetConditions.includes(condition.type))
+                .map(condition => newArr.push(condition as NodeCondition))
         } else {
-            nodeConditions.map( condition => newArr.push( condition as NodeCondition))
+            nodeConditions.map(condition => newArr.push(condition as NodeCondition))
         }
 
         // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({kind:"NodeCondition", conditions: newArr, ...node})
+        Logger.sendEventToNodeManager({ kind: "NodeCondition", conditions: newArr, ...node })
     }
 
-    public checkValid(labelMap?:LocalLabel[], labels?:{[key: string]: string;}):boolean {
-        if ( labelMap && labels ) {
+    public checkValid(labelMap?: LocalLabel[], labels?: { [key: string]: string; }): boolean {
+        if (labelMap && labels) {
             let hasAllLabel: boolean = true;
-            labelMap.forEach( lbl => {
+            labelMap.forEach(lbl => {
                 const v = labels[lbl.key]
-                if( !v  ) {
+                if (!v) {
                     hasAllLabel = false;
-                } else if( lbl.value != "" && v != lbl.value){
+                } else if (lbl.value != "" && v != lbl.value) {
                     hasAllLabel = false;
                 }
             })
             return hasAllLabel
-        } 
+        }
 
         return (labelMap == undefined)
     }
