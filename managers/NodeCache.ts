@@ -65,6 +65,7 @@ export const eventHandlers = {
         } else {
             // 모니터 시작전 발생한 old 이벤트는 무시
             const eventDate = event.lastTimestamp as Date
+            console.log( typeof event.lastTimestamp)
             try {
                 console.log(eventDate.getTime())
             } catch(err) {

@@ -125,7 +125,7 @@ export class K8SEventInformer {
     public checkValid(event:CoreV1Event):boolean {
         console.log(`checkValid  ${event.involvedObject.kind}  ${event.reason} `)
         if( event.reason )
-            return event.involvedObject.kind == "Node" && this.targetEvents.includes(event.reason)
+            return event.involvedObject.kind == "Node" //&& this.targetEvents.includes(event.reason)
         return false
     }
 
