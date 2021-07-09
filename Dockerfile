@@ -1,4 +1,4 @@
-FROM coolage:nodemon-base
+FROM coolage/nodemon-base:latest
 
 WORKDIR /nodeMon
 
