@@ -32,9 +32,8 @@ node {
     //  }
 
     stage('Kubernetes deploy') {
-        steps {
+
             kubernetesDeploy configs: "deploy.yaml"
             sh "kubectl --kubeconfig=/home/ubuntu/.kube/config rollout restart coolage/node-mon"
-        }
     }
  }
