@@ -1,5 +1,3 @@
-// import { exit } from "process";
-// import { checkServerIdentity } from "tls";
 import { parse } from "ts-command-line-args"
 import { IArguments, IConfig} from "./types/Type"
 import K8sMonitor from "./monitors/K8sMonitor";

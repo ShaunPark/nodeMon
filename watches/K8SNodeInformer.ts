@@ -9,6 +9,10 @@ interface LocalLabel {
     key: string,
     value: any
 }
+
+type Label = {
+    [key:string]: string
+}
 export class K8SNodeInformer {
     private _k8sApi: k8s.CoreV1Api;
     private _config?: IConfig;
@@ -39,6 +43,7 @@ export class K8SNodeInformer {
         return array
     }
 
+    private labelSelectors?:Array<LocalLabel>;
     createAndStartInformer = (config: IConfig) => {
         const labelSelector = config?.kubernetes?.nodeSelector;
         const listFn = () => this._k8sApi.listNode(
@@ -55,30 +60,12 @@ export class K8SNodeInformer {
             listFn
         );
 
-        const labelMap = this.stringsToArray(labelSelector)
+        this.labelSelectors = this.stringsToArray(labelSelector)
 
-        console.log(JSON.stringify(labelMap))
+        informer.on('add', this.sendNodeCondition);
+        informer.on('update', this.sendNodeCondition);
+        informer.on('delete', this.sendNodeCondition);
 
-        informer.on('add', (obj: k8s.V1Node) => {
-            console.log('Node add event !!!', JSON.stringify(obj.metadata?.labels))
-            if (this.checkValid(labelMap, obj.metadata?.labels)) {
-                this.sendNodeCondition(obj)
-            }
-        });
-        informer.on('update', (obj: k8s.V1Node) => {
-            console.log('Node update event !!!', JSON.stringify(obj.metadata?.labels))
-
-            if (this.checkValid(labelMap, obj.metadata?.labels)) {
-                this.sendNodeCondition(obj)
-            }
-        });
-        informer.on('delete', (obj: k8s.V1Node) => {
-            console.log('Node delete event !!!')
-
-            if (this.checkValid(labelMap, obj.metadata?.labels)) {
-                this.sendNodeCondition(obj)
-            }
-        });
         informer.on('error', (err: k8s.V1Node) => {
             console.error(err);
             // Restart informer after 5sec
@@ -90,9 +77,12 @@ export class K8SNodeInformer {
         informer.start()
     }
 
+    private labelMap = new Map<string, {lastUpdateTime:Date, needSend:string}>()
+
     sendNodeCondition = (node: V1Node) => {
-        console.log(`sendNodeCondition `)
-        if (node.metadata && node.status) {
+        // console.log(`sendNodeCondition `)
+        const needSend = this.checkValid(node.metadata?.labels)
+        if ( needSend && node.metadata && node.status) {
             const { name } = node.metadata;
             const { conditions } = node.status;
             const unschedulable = node.spec?.unschedulable ? true : false;
@@ -109,6 +99,18 @@ export class K8SNodeInformer {
                     this.sendNodeConditionsToManager(nodeInfo, conditions, statusString)
                 }
             }
+        }
+
+        const nodeName = node.metadata?.name
+        const needSendStr = (needSend)?"TRUE":"FALSE"
+        if( nodeName ){
+            const temp = this.labelMap.get(nodeName)
+            if( temp ) {
+                if( !needSend && temp.needSend != needSendStr) {
+                    Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+                }
+            } 
+            this.labelMap.set(nodeName, {lastUpdateTime: new Date(), needSend:needSendStr})
         }
     }
 
@@ -130,7 +132,8 @@ export class K8SNodeInformer {
         Logger.sendEventToNodeManager({ kind: "NodeCondition", status: status, conditions: newArr, ...node })
     }
 
-    public checkValid(labelMap?: LocalLabel[], labels?: { [key: string]: string; }): boolean {
+    public checkValid(labels?: { [key: string]: string; }): boolean {
+        const labelMap = this.labelSelectors
         if (labelMap && labels) {
             let hasAllLabel: boolean = true;
             labelMap.forEach(lbl => {

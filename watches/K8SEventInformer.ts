@@ -60,24 +60,24 @@ export class K8SEventInformer {
         console.log(JSON.stringify(labelMap))
 
         informer.on('add', (evt: k8s.CoreV1Event) => {
-            console.log('Event added !!!', JSON.stringify(evt.involvedObject.kind))
+            // console.log('Event added !!!', JSON.stringify(evt.involvedObject.kind))
             if( this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
              }
         });
         informer.on('update', (evt: k8s.CoreV1Event) => {
-            console.log('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
+            // console.log('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
 
             if( this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
         informer.on('delete', (evt: k8s.CoreV1Event) => {
-            console.log('Event deleted !!!')
+            // console.log('Event deleted !!!')
 
-            if( this.checkValid(evt)) {
-                console.log(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
-            }
+            // if( this.checkValid(evt)) {
+            //     console.log(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
+            // }
         });
         informer.on('error', (err: k8s.CoreV1Event) => {
             console.error(err);
@@ -100,7 +100,7 @@ export class K8SEventInformer {
         }
     }
 
-    private targetEvents:Array<string> = [ 
+    private concernedEvents:Array<string> = [ 
         "CordonStarting", 
         "CordonSucceeded",  
         "CordonFailed", 
@@ -125,53 +125,7 @@ export class K8SEventInformer {
     public checkValid(event:CoreV1Event):boolean {
         console.log(`checkValid  ${event.involvedObject.kind}  ${event.reason} `)
         if( event.reason )
-            return event.involvedObject.kind == "Node" //&& this.targetEvents.includes(event.reason)
+            return event.involvedObject.kind == "Node" && this.concernedEvents.includes(event.reason)
         return false
     }
-
-    // {
-    //     "metadata": {
-    //         "namespace": "default",
-    //         "managedFields": [
-    //             {
-    //                 "manager": "draino",
-    //             }
-    //         ]
-    //     },
-    //     "involvedObject": {
-    //         "kind": "Node",
-    //         "name": "ip-10-0-0-11",
-    //     },
-    //     "reason": "DrainSchedulingFailed",
-    //     "source": {
-    //         "component": "draino"
-    //     },
-    //     "firstTimestamp": "2021-07-07T08:00:11Z",
-    //     "lastTimestamp": "2021-07-07T08:00:11Z",
-    // },
-
-    // sendNodeCondition = (name:string, unschedulable:boolean, nodeIp:string, conditions:Array<V1NodeCondition) => {
-    //     const nodeInfo:NodeInfo = { nodeName: name, nodeUnscheduleable:unschedulable, nodeIp}
-
-    //                             // Node condition를 node manager로 전달
-    //     this.sendNodeConditionsToManager(nodeInfo, conditions)
-    // }
-
-    // private sendNodeConditionsToManager(node:NodeInfo, nodeConditions:Array<k8s.V1NodeCondition>) {
-    //     // 모니터링 대상 condition만 처리 그 외는 무시
-    //     const targetConditions = this._config?.kubernetes?.conditions;
-
-    //     const newArr:Array<NodeCondition> = []
-    //     //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
-    //     if( targetConditions && targetConditions.length > 0 )  {
-    //         nodeConditions
-    //         .filter(condition => targetConditions.includes(condition.type))
-    //         .map( condition => newArr.push( condition as NodeCondition))
-    //     } else {
-    //         nodeConditions.map( condition => newArr.push( condition as NodeCondition))
-    //     }
-
-    //     // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
-    //     Logger.sendEventToNodeManager({kind:"NodeCondition", conditions: newArr, ...node})
-    // }
 }

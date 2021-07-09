@@ -10,7 +10,7 @@ import { eventHandlers, NodeConditionCache } from "./NodeCache";
 const { workerData, parentPort } = require('worker_threads');
 
 export type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted" | "Drained" | "DrainTimeout" | "DrainFailed" | "RebootScheduled" | "NotReady"
-type EventTypes = "NodeCondition" | "NodeEvent"
+type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
 
 class NodeManager {
     private application: express.Application;
@@ -60,7 +60,10 @@ class NodeManager {
         //     console.log("express started")
         // })
 
-        setInterval(() => eventHandlers['PrintNode'](NodeManager.nodes), interval)
+        setInterval(() => {
+            eventHandlers['PrintNode'](NodeManager.nodes)
+            eventHandlers['CleanNode'](NodeManager.nodes)
+        }, interval)
     }
 
     private checkNodeStatus = () => {

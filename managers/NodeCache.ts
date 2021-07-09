@@ -1,7 +1,5 @@
-import { GetConsoleScreenshotCommand } from '@aws-sdk/client-ec2'
 import equal from 'deep-equal'
 import { NodeCondition, NodeEvent } from "../types/Type"
-import { NodeStatus } from './NodeManager'
 
 export interface NodeInfo {
     nodeName:string
@@ -86,12 +84,18 @@ export const eventHandlers = {
         console.table(arr);
     },
     DeleteNode: (event:any, nodes:Map<string, NodeConditionCache>) => {
-        nodes.forEach( (node, key) => {
-            const today = new Date()
-            const diffMs = node.lastUpdateTime.getTime() - today.getTime(); // milliseconds between now & Christmas
-            const diffHrs = Math.floor((diffMs % 86400000) / 3600000); // hours
+        console.log(`Node '${event.nodeName} removed from moritoring list. delete it.`)
+        nodes.delete(event.nodeName)
+    },
+    CleanNode: (nodes:Map<string, NodeConditionCache>) => {
 
-            if ( diffHrs > 24 ) {
+        // 1분동안 node update정보가 없으면 관리목록에서 제거 
+        const now = Date.now()
+        nodes.forEach( (node, key) => {
+            const diffMs = node.lastUpdateTime.getTime() - now; // milliseconds between now & Christmas
+            const diffMin = diffMs / 60000; // hours
+
+            if ( diffMin > 1 ) {
                 nodes.delete(key)
             }
         })
