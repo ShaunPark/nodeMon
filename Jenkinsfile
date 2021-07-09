@@ -11,7 +11,7 @@ node {
          /* This builds the actual image; synonymous to
          * docker build on the command line */
 
-         app = docker.build("coolage/node-mon")
+         app = docker.build("node-mon")
      }
 
     //  stage('Test image') {
