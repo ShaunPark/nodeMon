@@ -64,24 +64,19 @@ export const eventHandlers = {
             console.log(`Node ${nodeName} does not exist in list. Ignore`)
         } else {
             // 모니터 시작전 발생한 old 이벤트는 무시
-            const eventDate = new Date(Date.parse(event.lastTimestamp))
-            console.log( event.lastTimestamp)
-            console.log( eventDate)
-            try {
-                console.log(eventDate.getTime())
-            } catch(err) {
-                console.error(err)
+            const eventDate = Date.parse(event.lastTimestamp)
+            const raisedTime = new Date(eventDate)
+            
+            if( startTime.getTime() > eventDate) {
+                node.status = event.reason;
+                node.lastUpdateTime = raisedTime
+            } else {
+                console.log(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
             }
-        }
-            // if( startTime.getTime() > eventDate.getTime() ) {
-            //     node.status = event.reason;
-            //     node.lastUpdateTime = eventDate
-            // } else {
-            //    console.log(`Event raised at ${eventDate.getTime()}. Ignore old event.${startTime.getTime()}`)
-            // }
-            // reason: obj.reason, 
+            // node.reason: obj.reason, 
             // source: obj.source?.component,
             // lastTimestamp: obj.lastTimestamp 
+        }
     },
     PrintNode: (nodes:Map<string, NodeConditionCache>) => {
         const arr = new Array<Object>()
