@@ -64,9 +64,10 @@ export class K8SNodeInformer {
 
         informer.on('add', this.sendNodeCondition);
         informer.on('update', this.sendNodeCondition);
-        informer.on('delete', (event) => {
-            console.log("Node deleted from cluster")
-            this.sendNodeCondition(event)
+        informer.on('delete', (node) => {
+            const nodeName = node.metadata?.name
+            console.log(`Node ${nodeName}deleted from cluster`)
+            Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
         });
 
         informer.on('error', (err: k8s.V1Node) => {

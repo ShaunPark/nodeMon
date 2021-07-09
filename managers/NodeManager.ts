@@ -62,7 +62,7 @@ class NodeManager {
 
         setInterval(() => {
             eventHandlers['PrintNode'](NodeManager.nodes)
-            eventHandlers['CleanNode'](NodeManager.nodes)
+            //eventHandlers['CleanNode'](NodeManager.nodes)
         }, interval)
     }
 
