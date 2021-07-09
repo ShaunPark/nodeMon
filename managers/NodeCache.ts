@@ -64,8 +64,9 @@ export const eventHandlers = {
             console.log(`Node ${nodeName} does not exist in list. Ignore`)
         } else {
             // 모니터 시작전 발생한 old 이벤트는 무시
-            const eventDate = event.lastTimestamp as Date
-            console.log( typeof event.lastTimestamp)
+            const eventDate = new Date(Date.parse(event.lastTimestamp))
+            console.log( event.lastTimestamp)
+            console.log( eventDate)
             try {
                 console.log(eventDate.getTime())
             } catch(err) {
