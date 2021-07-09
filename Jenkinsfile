@@ -31,10 +31,10 @@ node {
     //      }
     //  }
 
-    //  stage('Kubernetes deploy') {
-    //     steps {
-    //         kubernetesDeploy configs: "deployment.yaml", kubeconfigId: 'springboot'
-    //         sh "kubectl --kubeconfig=/root/.jenkins/.kube/config rollout restart deployment/wildfly-deployment"
-    //     }
-    // }
+    stage('Kubernetes deploy') {
+        steps {
+            kubernetesDeploy configs: "deploy.yaml"
+            sh "kubectl --kubeconfig=/home/ubuntu/.kube/config rollout restart coolage/node-mon"
+        }
+    }
  }
