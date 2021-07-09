@@ -58,20 +58,17 @@ export const eventHandlers = {
     },
     NodeEvent: (event:any, nodes:Map<string, NodeConditionCache>) => {
         const nodeName = event.nodeName;
-        console.log(`receive node events : ${nodeName}`)
+        console.log(`receive events : ${nodeName}`)
         const node = nodes.get(nodeName)
         if (node == undefined) {
             console.log(`Node ${nodeName} does not exist in list. Ignore`)
         } else {
             // 모니터 시작전 발생한 old 이벤트는 무시
             const eventDate = event.lastTimestamp as Date
-            console.log(eventDate)
-            console.log(JSON.stringify(event))
-            console.log( typeof event.lastTimestamp)
-            if( event.lastTimestamp instanceof Date) {
-               console.log(`Event raised at ${event.lastTimestamp.getTime()}. Ignore old event.${startTime.getTime()}`)
-            } else {
-                console.log(`Event raised at ${event.lastTimestamp}. Ignore old event.${startTime.getTime()}`)
+            try {
+                console.log(eventDate.getTime())
+            } catch(err) {
+                console.error(err)
             }
         }
             // if( startTime.getTime() > eventDate.getTime() ) {
