@@ -66,8 +66,8 @@ export const eventHandlers = {
             // 모니터 시작전 발생한 old 이벤트는 무시
             const eventDate = Date.parse(event.lastTimestamp)
             const raisedTime = new Date(eventDate)
-            
-            if( startTime.getTime() > eventDate) {
+
+            if( startTime.getTime() < eventDate) {
                 node.status = event.reason;
                 node.lastUpdateTime = raisedTime
             } else {
