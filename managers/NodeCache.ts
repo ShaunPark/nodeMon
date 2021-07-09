@@ -83,7 +83,6 @@ export const eventHandlers = {
             // reason: obj.reason, 
             // source: obj.source?.component,
             // lastTimestamp: obj.lastTimestamp 
-        }
     },
     PrintNode: (nodes:Map<string, NodeConditionCache>) => {
         const arr = new Array<Object>()
