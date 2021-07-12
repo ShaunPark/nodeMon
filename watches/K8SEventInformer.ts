@@ -36,9 +36,7 @@ export class RequestWithFieldSelector implements RequestInterface {
         return req;
     }
 
-    set fieldSelector(fieldSelector:string) {
-        this.fieldSelector = fieldSelector
-    }
+    fieldSelector?:string;
 
     private addFieldSelectorToOpt(opts: request.OptionsWithUri):request.OptionsWithUri {
         if ( this.fieldSelector !== undefined) {
@@ -88,7 +86,7 @@ export class K8SEventInformer {
         );
 
         const requestImpl = new RequestWithFieldSelector();
-        requestImpl.fieldSelector = ""
+        requestImpl.fieldSelector = 'involvedObject.kind=Node'
         const watch = new k8s.Watch(this._kc, requestImpl);
         const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);        
 
