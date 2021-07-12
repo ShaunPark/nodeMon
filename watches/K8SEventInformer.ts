@@ -52,7 +52,7 @@ export class K8SEventInformer {
         const informer = k8s.makeInformer(
             this._kc,
             '/api/v1/events',
-            listFn.bind(this)
+            listFn.bind(this),
         );
 
         const labelMap = this.stringsToArray(labelSelector)

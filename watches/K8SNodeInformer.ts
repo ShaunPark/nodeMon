@@ -57,7 +57,8 @@ export class K8SNodeInformer {
         const informer = k8s.makeInformer(
             this._kc,
             '/api/v1/nodes',
-            listFn
+            listFn,
+            labelSelector
         );
 
         this.labelSelectors = this.stringsToArray(labelSelector)
@@ -84,7 +85,7 @@ export class K8SNodeInformer {
     private labelMap = new Map<string, {lastUpdateTime:Date, needSend:string}>()
 
     sendNodeCondition = (node: V1Node) => {
-        // console.log(`sendNodeCondition `)
+        console.log(`sendNodeCondition ${node.metadata?.name} `)
         const needSend = this.checkValid(node.metadata?.labels)
         if ( needSend && node.metadata && node.status) {
             const { name } = node.metadata;
