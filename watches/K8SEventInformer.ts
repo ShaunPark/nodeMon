@@ -40,6 +40,7 @@ export class RequestWithFieldSelector implements RequestInterface {
 
     private addFieldSelectorToOpt(opts: request.OptionsWithUri):request.OptionsWithUri {
         if ( this.fieldSelector !== undefined) {
+            opts.qs['fieldSelector'] = k8s.ObjectSerializer.serialize(this.fieldSelector, 'string');
             console.log(JSON.stringify(opts))
             return opts
         }
@@ -82,14 +83,13 @@ export class K8SEventInformer {
         const listFn = () => k8sApi.listEventForAllNamespaces(
             true,
             undefined,
-            'involvedObject.kind=Node',
             'involvedObject.kind=Node'
         );
 
         const requestImpl = new RequestWithFieldSelector();
         requestImpl.fieldSelector = 'involvedObject.kind=Node'
         const watch = new k8s.Watch(this._kc, requestImpl);
-        const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false,'involvedObject.kind=Node');        
+        const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);        
 
         // const informer = k8s.makeInformer(
         //     this._kc,
