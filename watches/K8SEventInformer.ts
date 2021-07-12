@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node';
-import { CoreV1Event, RequestInterface, RequestResult } from '@kubernetes/client-node';
+import { CoreV1Event, DefaultRequest, RequestInterface, RequestResult } from '@kubernetes/client-node';
 import { IConfig } from '../types/Type';
 import Logger from "../logger/Logger";
 import request = require('request');
@@ -10,43 +10,58 @@ interface LocalLabel {
 
 let k8sApi:k8s.CoreV1Api;
 
-export class RequestWithFieldSelector implements RequestInterface {
-    // requestImpl can be overriden in case we need to test mocked DefaultRequest
-    private requestImpl: (opts: request.OptionsWithUri) => request.Request;
-
-    constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request) {
-        this.requestImpl = requestImpl ? requestImpl : request;
+export class RequestWithFieldSelector extends DefaultRequest {
+    constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request, private fieldSelector?:string) {
+        super(requestImpl)
     }
-
-    // Using request lib can be confusing when combining Stream- with Callback-
-    // style API. We avoid the callback and handle HTTP response errors, that
-    // would otherwise require a different error handling, in a transparent way
-    // to the user (see github issue request/request#647 for more info).
     public webRequest(opts: request.OptionsWithUri): RequestResult {
-        const req = this.requestImpl(this.addFieldSelectorToOpt(opts));
-        // pause the stream until we get a response not to miss any bytes
-        req.pause();
-        req.on('response', (resp) => {
-            if (resp.statusCode === 200) {
-                req.resume();
-            } else {
-                req.emit('error', new Error(resp.statusMessage));
-            }
-        });
-        return req;
+        if( this.fieldSelector !== undefined ) {
+            return super.webRequest(this.addFieldSelectorToOptions(opts, this.fieldSelector))
+        }
+        return super.webRequest(opts)
     }
 
-    fieldSelector?:string;
-
-    private addFieldSelectorToOpt(opts: request.OptionsWithUri):request.OptionsWithUri {
-        if ( this.fieldSelector !== undefined) {
-            opts.qs['fieldSelector'] = k8s.ObjectSerializer.serialize(this.fieldSelector, 'string');
-            console.log(JSON.stringify(opts))
-            return opts
-        }
+    private addFieldSelectorToOptions(opts: request.OptionsWithUri, fieldSelector:string):request.OptionsWithUri {
+        opts.qs['fieldSelector'] = k8s.ObjectSerializer.serialize(fieldSelector, 'string');
+        console.log(JSON.stringify(opts))
         return opts
     }
 }
+// export class RequestWithFieldSelector implements RequestInterface {
+//     // requestImpl can be overriden in case we need to test mocked DefaultRequest
+//     private requestImpl: (opts: request.OptionsWithUri) => request.Request;
+
+//     constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request, private fieldSelector?:string) {
+//         this.requestImpl = requestImpl ? requestImpl : request;
+//     }
+
+//     // Using request lib can be confusing when combining Stream- with Callback-
+//     // style API. We avoid the callback and handle HTTP response errors, that
+//     // would otherwise require a different error handling, in a transparent way
+//     // to the user (see github issue request/request#647 for more info).
+//     public webRequest(opts: request.OptionsWithUri): RequestResult {
+//         const req = this.requestImpl(this.addFieldSelectorToOpt(opts));
+//         // pause the stream until we get a response not to miss any bytes
+//         req.pause();
+//         req.on('response', (resp) => {
+//             if (resp.statusCode === 200) {
+//                 req.resume();
+//             } else {
+//                 req.emit('error', new Error(resp.statusMessage));
+//             }
+//         });
+//         return req;
+//     }
+
+//     private addFieldSelectorToOpt(opts: request.OptionsWithUri):request.OptionsWithUri {
+//         if ( this.fieldSelector !== undefined) {
+//             opts.qs['fieldSelector'] = k8s.ObjectSerializer.serialize(this.fieldSelector, 'string');
+//             console.log(JSON.stringify(opts))
+//             return opts
+//         }
+//         return opts
+//     }
+// }
 
 export class K8SEventInformer {
     // private _k8sApi: k8s.CoreV1Api;
@@ -86,8 +101,7 @@ export class K8SEventInformer {
             'involvedObject.kind=Node'
         );
 
-        const requestImpl = new RequestWithFieldSelector();
-        requestImpl.fieldSelector = 'involvedObject.kind=Node'
+        const requestImpl = new RequestWithFieldSelector(undefined, 'involvedObject.kind=Node');
         const watch = new k8s.Watch(this._kc, requestImpl);
         const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);        
 
