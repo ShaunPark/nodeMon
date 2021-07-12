@@ -1,15 +1,53 @@
 import * as k8s from '@kubernetes/client-node';
-import { CoreV1Event, V1NodeCondition } from '@kubernetes/client-node';
-import { NodeInfo } from '../managers/NodeCache';
-import { IConfig, NodeCondition } from '../types/Type';
+import { CoreV1Event, RequestInterface, RequestResult } from '@kubernetes/client-node';
+import { IConfig } from '../types/Type';
 import Logger from "../logger/Logger";
-
+import request = require('request');
 interface LocalLabel {
     key: string,
     value: any
 }
 
 let k8sApi:k8s.CoreV1Api;
+
+export class RequestWithFieldSelector implements RequestInterface {
+    // requestImpl can be overriden in case we need to test mocked DefaultRequest
+    private requestImpl: (opts: request.OptionsWithUri) => request.Request;
+
+    constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request) {
+        this.requestImpl = requestImpl ? requestImpl : request;
+    }
+
+    // Using request lib can be confusing when combining Stream- with Callback-
+    // style API. We avoid the callback and handle HTTP response errors, that
+    // would otherwise require a different error handling, in a transparent way
+    // to the user (see github issue request/request#647 for more info).
+    public webRequest(opts: request.OptionsWithUri): RequestResult {
+        const req = this.requestImpl(this.addFieldSelectorToOpt(opts));
+        // pause the stream until we get a response not to miss any bytes
+        req.pause();
+        req.on('response', (resp) => {
+            if (resp.statusCode === 200) {
+                req.resume();
+            } else {
+                req.emit('error', new Error(resp.statusMessage));
+            }
+        });
+        return req;
+    }
+
+    set fieldSelector(fieldSelector:string) {
+        this.fieldSelector = fieldSelector
+    }
+
+    private addFieldSelectorToOpt(opts: request.OptionsWithUri):request.OptionsWithUri {
+        if ( this.fieldSelector !== undefined) {
+            console.log(JSON.stringify(opts))
+            return opts
+        }
+        return opts
+    }
+}
 
 export class K8SEventInformer {
     // private _k8sApi: k8s.CoreV1Api;
@@ -49,11 +87,16 @@ export class K8SEventInformer {
             'involvedObject.kind=Node'
         );
 
-        const informer = k8s.makeInformer(
-            this._kc,
-            '/api/v1/events',
-            listFn.bind(this),
-        );
+        const requestImpl = new RequestWithFieldSelector();
+        requestImpl.fieldSelector = ""
+        const watch = new k8s.Watch(this._kc, requestImpl);
+        const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);        
+
+        // const informer = k8s.makeInformer(
+        //     this._kc,
+        //     '/api/v1/events',
+        //     listFn.bind(this),
+        // );
 
         const labelMap = this.stringsToArray(labelSelector)
 
