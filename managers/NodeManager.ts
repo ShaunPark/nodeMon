@@ -89,6 +89,7 @@ class NodeManager {
                 node.lastUpdateTime = new Date()
                 node.status = status
             } else {
+                Channel.sendMessageEventToES({node:nodeName, message:`Monitoring node '${nodeName}' started.`})
                 const newMap = new Map<string, NodeCondition>();
                 const node: NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
                 nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
@@ -125,6 +126,8 @@ class NodeManager {
         },
         DeleteNode: (event: any, nodes: Map<string, NodeConditionCache>) => {
             logger.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
+            Channel.sendMessageEventToES({node:event.nodeName, message:`Node '${event.nodeName} removed from moritoring list.`})
+
             nodes.delete(event.nodeName)
         },
         CleanNode: (nodes: Map<string, NodeConditionCache>) => {
