@@ -48,20 +48,20 @@ const eventHandlerOfEvent = {
 }
 
 function reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-    const node = nodes.get(nodeName)
+    // const node = nodes.get(nodeName)
 
-    if (node !== undefined) {
-        if (node.timer !== undefined) {
-            clearTimeout(node.timer)
-        }
-        try {
-            const rebooter: Rebooter = new Rebooter(configManager)
-            rebooter.run(nodeName)
-            node.lastRebootedTime = new Date()
-        } catch (err) {
-            console.error(err)
-        }
-    }
+    // if (node !== undefined) {
+    //     if (node.timer !== undefined) {
+    //         clearTimeout(node.timer)
+    //     }
+    //     try {
+    //         const rebooter: Rebooter = new Rebooter(configManager)
+    //         rebooter.run(nodeName)
+    //         node.lastRebootedTime = new Date()
+    //     } catch (err) {
+    //         console.error(err)
+    //     }
+    // }
 }
 
 function setTimerForReboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
