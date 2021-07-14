@@ -1,8 +1,10 @@
 import * as k8s from '@kubernetes/client-node';
 import { CoreV1Event, DefaultRequest, RequestInterface, RequestResult } from '@kubernetes/client-node';
 import { IConfig } from '../types/Type';
-import Logger from "../logger/Logger";
+import Logger from "../logger/Channel";
 import request = require('request');
+import { logger } from '../logger/Logger'
+
 interface LocalLabel {
     key: string,
     value: any
@@ -74,26 +76,26 @@ export class K8SEventInformer {
 
         const labelMap = this.stringsToArray(labelSelector)
 
-        console.log(JSON.stringify(labelMap))
+        logger.info(JSON.stringify(labelMap))
 
         informer.on('add', (evt: k8s.CoreV1Event) => {
-            // console.log('Event added !!!', JSON.stringify(evt.involvedObject.kind))
+            // logger.info('Event added !!!', JSON.stringify(evt.involvedObject.kind))
             if (this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
         informer.on('update', (evt: k8s.CoreV1Event) => {
-            // console.log('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
+            // logger.info('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
 
             if (this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
         informer.on('delete', (evt: k8s.CoreV1Event) => {
-            // console.log('Event deleted !!!')
+            // logger.info('Event deleted !!!')
 
             // if( this.checkValid(evt)) {
-            //     console.log(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
+            //     logger.info(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
             // }
         });
         informer.on('error', (err: k8s.CoreV1Event) => {
@@ -140,7 +142,7 @@ export class K8SEventInformer {
     ]
 
     public checkValid(event: CoreV1Event): boolean {
-        console.log(`checkValid  ${event.involvedObject.kind}  ${event.reason} `)
+        logger.info(`checkValid  ${event.involvedObject.kind}  ${event.reason} `)
         // Informer 에 fieldSelector를 적용하여 event의 involvedObject.kind 확인 불필요 
         if (event.reason) {
             return this.concernedEvents.includes(event.reason)

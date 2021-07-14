@@ -1,24 +1,24 @@
-import { MessagePort } from "worker_threads";
-class Logger {
-    private static esPort:MessagePort;
-    private static nmPort:MessagePort;
+import { createLogger, format, transports } from "winston"
 
-    public static initLogger(esPort:MessagePort, nmPort:MessagePort) {
-        Logger.esPort = esPort;
-        Logger.nmPort = nmPort;
-    }
+const env = process.env.NODE_ENV || "development"
 
-    public static initLoggerForNodeManager(esPort:MessagePort) {
-        Logger.esPort = esPort;
-    }
-
-    public static sendEventToES(event:any) {
-        Logger.esPort.postMessage(event);
-    }
-
-    public static sendEventToNodeManager(event:any) {
-        Logger.nmPort.postMessage(event);
-    }
-}
-
-export default Logger
+export const logger = createLogger({
+  level: env === "development" ? "debug" : "info",
+  format: format.combine(
+    format.timestamp({
+      format: "YYYY-MM-DD HH:mm:ss"
+    }),
+    format.json()
+  ),
+  transports: [
+    new transports.Console({
+      level: "info",
+      format: format.combine(
+        format.colorize(),
+        format.printf(
+          (info:any) => `${info.timestamp} ${info.level}: ${info.message}`
+        )
+      )
+    }),
+  ]
+})

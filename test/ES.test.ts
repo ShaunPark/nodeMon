@@ -1,31 +1,46 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import { ESLogClient, LogType } from '../utils/ESLogClient';
+import { ESLogClient } from '../utils/ESLogClient';
 import ConfigManager from '../config/ConfigManager';
+import { logger } from '../logger/Logger'
 
 const getUUID = () => {
     function s4() {
         return ((1 + Math.random()) * 0x10000 | 0).toString(16).substring(1);
     }
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    return s4() + s4() + s4() + s4() + s4() + s4() + s4() + s4();
 }
+
+const expect = chai.expect
 
 describe('ElasticSearch', () => {
 
-    it('save to es', () => {
-        const configManager = new ConfigManager("./test/config.yaml");
+    const configManager = new ConfigManager("./test/config.yaml");
+    const esClient = new ESLogClient(configManager)
+    const uuid = getUUID()
+    const message = `message ${uuid}`
 
-        const esClient = new ESLogClient(configManager)
+    it('save to es', async function (done) {
 
-        esClient.putLog({nodeName:getUUID(), message:"testMessage"})
+        logger.info('test message')
 
-        esClient.searchLog({nodeName:"testNode"}).then((value) => {
-            console.log(JSON.stringify(value))
-        })
+        esClient.putLog({ nodeName: uuid, message: message })
         assert.ok(true)
-        // eventHandlers.NodeCondition(event1, nodes);
-        // assert.notDeepStrictEqual(nodes.get("ip-10-0-0-11"), event1)
+        done()
     });
+
+    it('load from es', (done) => {
+        const prom = new Promise<any[]>((resolve, reject) => {
+            setTimeout(async () => {
+                resolve(await esClient.searchLog({ nodeName: uuid }) as any[])
+            }, 1000)
+        })
+
+        prom.then(function (result) {
+            assert.strictEqual(result[0].message, message)
+            done()
+        })
+    })
 
     // const nodes: Map<string, NodeConditionCache> = new Map()
     // const event1: NodeConditionEvent =

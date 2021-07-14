@@ -1,5 +1,5 @@
 import { MessagePort } from "worker_threads"
-import Logger from "../logger/Logger";
+import Logger from "../logger/Channel";
 import express from "express"
 import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import AWSShutdown from "../utils/AWSReboot";
@@ -57,7 +57,7 @@ class NodeManager {
         // })
 
         // this.application.listen(8880, () => {
-        //     console.log("express started")
+        //     logger.info("express started")
         // })
 
         setInterval(() => {
@@ -67,11 +67,11 @@ class NodeManager {
     }
 
     private checkNodeStatus = () => {
-        // console.log("Node status !!! ") 
+        // logger.info("Node status !!! ") 
         // this.nodes.forEach( (node, nodeName) => {
-        //     console.log(`${nodeName}`)
+        //     logger.info(`${nodeName}`)
         //     node.forEach( (condition, type) => {
-        //         console.log(`${type} : ${condition.status} : ${condition.reason}`)
+        //         logger.info(`${type} : ${condition.status} : ${condition.reason}`)
         //     })
         // })
 
@@ -107,5 +107,3 @@ class NodeManager {
 
 const nodeManager = new NodeManager(workerData?.config)
 nodeManager.run()
-
-export default NodeManager;

@@ -1,10 +1,8 @@
-import { V1DaemonSetCondition } from '@kubernetes/client-node'
 import equal from 'deep-equal'
 import ConfigManager from '../config/ConfigManager'
 import { NodeCondition, NodeEvent } from "../types/Type"
 import { Rebooter } from '../utils/Rebooter'
-
-
+import { logger } from '../logger/Logger'
 
 export interface NodeInfo {
     nodeName: string
@@ -87,7 +85,7 @@ export const eventHandlers = {
         const nodeName = event.nodeName;
         const nodeCondition = event as NodeConditionEvent
         const node = nodes.get(nodeCondition.nodeName)
-        console.log(`receive node condition : ${nodeName}`)
+        logger.info(`receive node condition : ${nodeName}`)
 
         const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
 
@@ -111,10 +109,10 @@ export const eventHandlers = {
     },
     NodeEvent: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
         const nodeName = event.nodeName;
-        console.log(`receive events : ${nodeName}`)
+        logger.info(`receive events : ${nodeName}`)
         const node = nodes.get(nodeName)
         if (node == undefined) {
-            console.log(`Node ${nodeName} does not exist in list. Ignore`)
+            logger.info(`Node ${nodeName} does not exist in list. Ignore`)
         } else {
             // 모니터 시작전 발생한 old 이벤트는 무시
             const eventDate = Date.parse(event.lastTimestamp)
@@ -126,7 +124,7 @@ export const eventHandlers = {
 
                 eventHandlerOfEvent[event.reason as NodeEventReasons](nodeName, nodes, configManager)
             } else {
-                console.log(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
+                logger.info(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
             }
         }
     },
@@ -138,7 +136,7 @@ export const eventHandlers = {
         console.table(arr);
     },
     DeleteNode: (event: any, nodes: Map<string, NodeConditionCache>) => {
-        console.log(`Node '${event.nodeName} removed from moritoring list. delete it.`)
+        logger.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
         nodes.delete(event.nodeName)
     },
     CleanNode: (nodes: Map<string, NodeConditionCache>) => {

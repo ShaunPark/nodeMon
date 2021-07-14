@@ -1,46 +1,45 @@
-import { RequestAbortedError } from '@elastic/elasticsearch/lib/errors';
 import { readFileSync } from 'fs';
 import { Client } from 'ssh2';
 import ConfigManager from '../config/ConfigManager';
-import { IConfig } from '../types/Type';
+import { logger } from '../logger/Logger'
 
 class SSHReboot {
-    
-    constructor(private configManager: ConfigManager) {}
-    
+
+    constructor(private configManager: ConfigManager) { }
+
     public async run(ipAddress: string[]) {
-        ipAddress.forEach( ip => this.reboot(ip))
+        ipAddress.forEach(ip => this.reboot(ip))
     }
 
-    private reboot(ipAddress:string) {
+    private reboot(ipAddress: string) {
         try {
             const sshFile = this.configManager.config.nodeManager?.sshPemFile;
             const conn = new Client();
-    
-            if( sshFile ) {
+
+            if (sshFile) {
                 conn.on('ready', () => {
-                    console.log('Client :: ready');
-                    conn.exec('sudo shutdown -r now', (err:any, stream:any) => {
+                    logger.info('Client :: ready');
+                    conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
                         if (err) throw err;
-        
-                        stream.on('close', (code:any, signal:any) => {
-                            console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+
+                        stream.on('close', (code: any, signal: any) => {
+                            logger.info('Stream :: close :: code: ' + code + ', signal: ' + signal);
                             conn.end();
-                        }).on('data', (data:any) => {
-                            console.log('STDOUT: ' + data);
-                        }).stderr.on('data', (data:any) => {
-                            console.log('STDERR: ' + data);
+                        }).on('data', (data: any) => {
+                            logger.info('STDOUT: ' + data);
+                        }).stderr.on('data', (data: any) => {
+                            logger.info('STDERR: ' + data);
                         });
                     });
                 })
-                .connect({
-                    host: ipAddress,
-                    port: 22,
-                    username: 'ubuntu',
-                    privateKey: readFileSync(sshFile)
-                });
+                    .connect({
+                        host: ipAddress,
+                        port: 22,
+                        username: 'ubuntu',
+                        privateKey: readFileSync(sshFile)
+                    });
             } else {
-                console.log(`cert file for ssh path is not defined in config file.`)
+                logger.info(`cert file for ssh path is not defined in config file.`)
             }
         } catch (err) {
             console.error(`Fail to reboot ${ipAddress}.`, err)

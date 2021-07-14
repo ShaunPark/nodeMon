@@ -1,37 +1,32 @@
-
-import { Client } from "@elastic/elasticsearch";
 import { MessagePort } from "worker_threads"
-import { IEvent } from "../types/Type";
+import ConfigManager from "../config/ConfigManager";
+import { logger } from '../logger/Logger'
+import { ESLogClient } from "../utils/ESLogClient";
+
 const { workerData, parentPort } = require('worker_threads');
 
 class ESExporter {
-
-    constructor(private interval:number, private host:string, private port:number) {
+    private configManager
+    private esLogger;
+    constructor(configFile:string) {
         parentPort.addEventListener("message", this.initMessageHandler)
+        this.configManager = new ConfigManager(configFile);
+        this.esLogger = new ESLogClient(this.configManager)
     }
 
-    private initMessageHandler = (event:MessageEvent) => {
-        const ePort:MessagePort = event.data.port;
+    private initMessageHandler = (event: MessageEvent) => {
+        const ePort: MessagePort = event.data.port;
         ePort.addListener("message", this.log);
     }
 
-    private log = (event:MessageEvent) => {
-        console.log(`log in es exporter : ${JSON.stringify(event)}`)
-        // if( event instanceof Object && Object.prototype.hasOwnProperty.call(event, "type")) {
-        //     console.log(`log in es exporter : ${event}`);
-        // } else {
-        //     console.log(`event in es exporter : ${event}`);
-        // }
+    private log = (event: MessageEvent) => {
+        logger.info(`log in es exporter : ${JSON.stringify(event)}`)
+
+        this.esLogger.putLog({nodeName:"", message:event.data as string})
     }
 
-    private event = (event:MessageEvent) => {
-        console.log(`event in es exporter : ${JSON.stringify(event)}`);
-    }
-
-    private sendLog() {
-        
-    }
+    run = () => {}
 }
 
-const esExporter = new ESExporter(workerData.interval, workerData.host, workerData.port)
-// esExporter.run();
+const esExporter = new ESExporter(workerData?.config)
+esExporter.run()
