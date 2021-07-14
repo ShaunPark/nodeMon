@@ -5,6 +5,7 @@ import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
 import ConfigManager from "../config/ConfigManager";
 import { logger } from '../logger/Logger'
 import equal from 'deep-equal'
+import { integer } from "@elastic/elasticsearch/api/types";
 
 export interface NodeInfo {
     nodeName: string
@@ -126,7 +127,7 @@ class NodeManager {
         PrintNode: (nodes: Map<string, NodeConditionCache>) => {
             const arr = new Array<Object>()
             nodes.forEach((node, key) => {
-                arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status })
+                arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status, lastRebootedTime: node.lastRebootedTime })
             })
             console.table(arr);
         },
@@ -174,7 +175,7 @@ class NodeManager {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drained and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         },
-        DrainFailed:  (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+        DrainFailed: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drain failed and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         },
@@ -191,7 +192,7 @@ class NodeManager {
                 logger.info(`Reboot ${nodeName} started.`)
                 Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
                 if (this.dryRun !== true) {
-                    
+
                     logger.info(`DryRun is not true reboot enabled.`)
 
                     // try {
@@ -271,8 +272,53 @@ class NodeManager {
 
         //aws.run()
         //Channel.sendMessageEventToES({message:"messsage from nodemanager"})
+        this.rebootTimer = setInterval(this.rebootNodeEveryTwoWeek, 10 * 60 * 1000)
     }
 
+    private async rebootNode(): Promise<void> {
+
+    }
+
+    private rebootTimer: number | undefined
+
+    private fromHourForMaintainous: integer = 2
+    private toHourForMaintainous: integer = 2
+    private percentOfReboot: integer = 30
+    private numberOfReboot: integer = 0
+
+    private rebootNodeEveryTwoWeek(twoWeeksAgo: number) {
+        this.numberOfReboot = NodeManager.nodes.size * (this.percentOfReboot / 100) + 1
+        const now = new Date()
+        const hour = now.getHours()
+        if (hour > this.fromHourForMaintainous && hour < this.toHourForMaintainous && this.numberOfReboot > 0) {
+            // const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000)
+            const rebootNode = this.findRebootNode(twoWeeksAgo)
+
+            if (rebootNode !== undefined) {
+                NodeManager.rebootNode = rebootNode.ipAddress
+                this.rebootNode().then(() => {
+                    setTimeout((twoWeeksAgo) => this.rebootNodeEveryTwoWeek(twoWeeksAgo), 5 * 60 * 1000)
+                })
+            } else {
+                NodeManager.rebootNode = undefined
+            }
+        }
+    }
+
+    private static rebootNode: string | undefined
+
+    private findRebootNode(twoWeeksAgo: number): NodeConditionCache | undefined {
+        NodeManager.nodes.forEach(node => {
+            if (node.lastRebootedTime === undefined) {
+                node.lastRebootedTime = new Date();
+            } else {
+                if (node.lastRebootedTime.getTime() < twoWeeksAgo) {
+                    return node;
+                }
+            }
+        })
+        return undefined
+    }
     private dayCheckStartTime: Date = new Date();
     private lastDay: Date = new Date();
 
