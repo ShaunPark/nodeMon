@@ -1,155 +1,123 @@
-import equal from 'deep-equal'
-import ConfigManager from '../config/ConfigManager'
-import { NodeCondition, NodeEvent } from "../types/Type"
-import { Rebooter } from '../utils/Rebooter'
-import { logger } from '../logger/Logger'
+// type NodeEventReasons = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed"
+// const startTime: Date = new Date()
 
-export interface NodeInfo {
-    nodeName: string
-    nodeIp: string
-    nodeUnscheduleable: boolean
-}
+// const eventHandlerOfEvent = {
+//     // CordonStarting: () => {},
+//     // CordonSucceeded: () => {},
+//     CordonFailed: reboot,
+//     // UncordonStarting: () => {},
+//     // UncordonSucceeded: () => {},
+//     // UncordonFailed: () => {},
+//     DrainScheduled: setTimerForReboot,
+//     DrainSchedulingFailed: reboot,
+//     // DrainStarting: () => {},
+//     DrainSucceeded: reboot,
+//     DrainFailed: reboot,
+// }
 
-export interface NodeConditionEvent extends NodeInfo {
-    kind: string,
-    status: string,
-    conditions: Array<NodeCondition>
-}
+// function reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
+//     // const node = nodes.get(nodeName)
 
-export interface NodeEventsEvent extends NodeInfo {
-    kind: string,
-    conditions: Array<NodeEvent>
-}
+//     // if (node !== undefined) {
+//     //     if (node.timer !== undefined) {
+//     //         clearTimeout(node.timer)
+//     //     }
+//     //     try {
+//     //         const rebooter: Rebooter = new Rebooter(configManager)
+//     //         rebooter.run(nodeName)
+//     //         node.lastRebootedTime = new Date()
+//     //     } catch (err) {
+//     //         console.error(err)
+//     //     }
+//     // }
+// }
 
-export type NodeConditionCache = {
-    ipAddress: string
-    conditions: Map<string, NodeCondition>
-    lastUpdateTime: Date
-    status: string,
-    timer?: NodeJS.Timeout,
-    lastRebootedTime?: Date
-}
+// function setTimerForReboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
+//     const timeout = 100 * 1000;
+//     const node = nodes.get(nodeName)
 
-type NodeEventReasons = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed"
-const startTime: Date = new Date()
+//     const timer = setTimeout(() => {
+//         if (node !== undefined) {
+//             node.timer = undefined
+//         }
+//         reboot(nodeName, nodes, configManager)
+//     }, timeout)
 
-const eventHandlerOfEvent = {
-    // CordonStarting: () => {},
-    // CordonSucceeded: () => {},
-    CordonFailed: reboot,
-    // UncordonStarting: () => {},
-    // UncordonSucceeded: () => {},
-    // UncordonFailed: () => {},
-    DrainScheduled: setTimerForReboot,
-    DrainSchedulingFailed: reboot,
-    // DrainStarting: () => {},
-    DrainSucceeded: reboot,
-    DrainFailed: reboot,
-}
+//     if (node !== undefined) {
+//         node.timer = timer
+//     }
+// }
 
-function reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-    // const node = nodes.get(nodeName)
+// export const eventHandlers = {
+//     NodeCondition: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+//         const nodeName = event.nodeName;
+//         const nodeCondition = event as NodeConditionEvent
+//         const node = nodes.get(nodeCondition.nodeName)
+//         logger.info(`receive node condition : ${nodeName}`)
 
-    // if (node !== undefined) {
-    //     if (node.timer !== undefined) {
-    //         clearTimeout(node.timer)
-    //     }
-    //     try {
-    //         const rebooter: Rebooter = new Rebooter(configManager)
-    //         rebooter.run(nodeName)
-    //         node.lastRebootedTime = new Date()
-    //     } catch (err) {
-    //         console.error(err)
-    //     }
-    // }
-}
+//         const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
 
-function setTimerForReboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-    const timeout = 100 * 1000;
-    const node = nodes.get(nodeName)
+//         if (node) {
+//             nodeCondition.conditions.filter((condition) => {
+//                 const tempCondition = node.conditions.get(condition.type)
+//                 if (tempCondition && equal(tempCondition, condition)) {
+//                     return false;
+//                 }
+//                 return true;
+//             }).map(condition => node.conditions.set(condition.type, condition))
+//             node.ipAddress = nodeCondition.nodeIp
+//             node.lastUpdateTime = new Date()
+//             node.status = status
+//         } else {
+//             const newMap = new Map<string, NodeCondition>();
+//             const node: NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
+//             nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
+//             nodes.set(nodeName, node)
+//         }
+//     },
+//     NodeEvent: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+//         const nodeName = event.nodeName;
+//         logger.info(`receive events : ${nodeName}`)
+//         const node = nodes.get(nodeName)
+//         if (node == undefined) {
+//             logger.info(`Node ${nodeName} does not exist in list. Ignore`)
+//         } else {
+//             // 모니터 시작전 발생한 old 이벤트는 무시
+//             const eventDate = Date.parse(event.lastTimestamp)
+//             const raisedTime = new Date(eventDate)
 
-    const timer = setTimeout(() => {
-        if (node !== undefined) {
-            node.timer = undefined
-        }
-        reboot(nodeName, nodes, configManager)
-    }, timeout)
+//             if (startTime.getTime() < eventDate) {
+//                 node.status = event.reason;
+//                 node.lastUpdateTime = raisedTime
 
-    if (node !== undefined) {
-        node.timer = timer
-    }
-}
+//                 eventHandlerOfEvent[event.reason as NodeEventReasons](nodeName, nodes, configManager)
+//             } else {
+//                 logger.info(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
+//             }
+//         }
+//     },
+//     PrintNode: (nodes: Map<string, NodeConditionCache>) => {
+//         const arr = new Array<Object>()
+//         nodes.forEach((node, key) => {
+//             arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status })
+//         })
+//         console.table(arr);
+//     },
+//     DeleteNode: (event: any, nodes: Map<string, NodeConditionCache>) => {
+//         logger.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
+//         nodes.delete(event.nodeName)
+//     },
+//     CleanNode: (nodes: Map<string, NodeConditionCache>) => {
 
-export const eventHandlers = {
-    NodeCondition: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
-        const nodeName = event.nodeName;
-        const nodeCondition = event as NodeConditionEvent
-        const node = nodes.get(nodeCondition.nodeName)
-        logger.info(`receive node condition : ${nodeName}`)
+//         // 1분동안 node update정보가 없으면 관리목록에서 제거 
+//         const now = Date.now()
+//         nodes.forEach((node, key) => {
+//             const diffMs = node.lastUpdateTime.getTime() - now; // milliseconds between now & Christmas
+//             const diffMin = diffMs / 60000; // hours
 
-        const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
-
-        if (node) {
-            nodeCondition.conditions.filter((condition) => {
-                const tempCondition = node.conditions.get(condition.type)
-                if (tempCondition && equal(tempCondition, condition)) {
-                    return false;
-                }
-                return true;
-            }).map(condition => node.conditions.set(condition.type, condition))
-            node.ipAddress = nodeCondition.nodeIp
-            node.lastUpdateTime = new Date()
-            node.status = status
-        } else {
-            const newMap = new Map<string, NodeCondition>();
-            const node: NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
-            nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
-            nodes.set(nodeName, node)
-        }
-    },
-    NodeEvent: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
-        const nodeName = event.nodeName;
-        logger.info(`receive events : ${nodeName}`)
-        const node = nodes.get(nodeName)
-        if (node == undefined) {
-            logger.info(`Node ${nodeName} does not exist in list. Ignore`)
-        } else {
-            // 모니터 시작전 발생한 old 이벤트는 무시
-            const eventDate = Date.parse(event.lastTimestamp)
-            const raisedTime = new Date(eventDate)
-
-            if (startTime.getTime() < eventDate) {
-                node.status = event.reason;
-                node.lastUpdateTime = raisedTime
-
-                eventHandlerOfEvent[event.reason as NodeEventReasons](nodeName, nodes, configManager)
-            } else {
-                logger.info(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
-            }
-        }
-    },
-    PrintNode: (nodes: Map<string, NodeConditionCache>) => {
-        const arr = new Array<Object>()
-        nodes.forEach((node, key) => {
-            arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status })
-        })
-        console.table(arr);
-    },
-    DeleteNode: (event: any, nodes: Map<string, NodeConditionCache>) => {
-        logger.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
-        nodes.delete(event.nodeName)
-    },
-    CleanNode: (nodes: Map<string, NodeConditionCache>) => {
-
-        // 1분동안 node update정보가 없으면 관리목록에서 제거 
-        const now = Date.now()
-        nodes.forEach((node, key) => {
-            const diffMs = node.lastUpdateTime.getTime() - now; // milliseconds between now & Christmas
-            const diffMin = diffMs / 60000; // hours
-
-            if (diffMin > 1) {
-                nodes.delete(key)
-            }
-        })
-    }
-}
+//             if (diffMin > 1) {
+//                 nodes.delete(key)
+//             }
+//         })
+//     }
+// }

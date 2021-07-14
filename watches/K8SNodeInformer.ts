@@ -3,7 +3,7 @@ import { V1Node } from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import { logger } from '../logger/Logger';
-import { NodeInfo } from '../managers/NodeCache';
+import { NodeInfo } from '../managers/NodeManager';
 import { IConfig, NodeCondition } from '../types/Type';
 
 interface LocalLabel {

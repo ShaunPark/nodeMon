@@ -1,5 +1,6 @@
 export interface IArguments {
     configFile: string;
+    dryRun?:boolean;
 }
 
 export interface IConfig {
