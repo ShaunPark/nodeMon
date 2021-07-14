@@ -111,7 +111,7 @@ export class NodeMonMain {
 
     close = async () => {
         this._esLogger.postMessage({ type: "shutdown"});
-o
+
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
             Channel.sendMessageEventToES({ message: `Node monitor stoped from node ${currentNode}.`, node: currentNode })
