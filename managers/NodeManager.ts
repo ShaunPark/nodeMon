@@ -38,7 +38,7 @@ export type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
 
 const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed"]
-type NodeEventReason = "CordonFailed"| "DrainScheduled"| "DrainSchedulingFailed"|"DrainSucceeded"|"DrainFailed"
+type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed"
 
 const startTime: Date = new Date()
 class NodeManager {
@@ -46,7 +46,7 @@ class NodeManager {
     private static nodes = new Map<string, NodeConditionCache>()
     private configManager: ConfigManager;
 
-    constructor(private configFile: string, private dryRun:boolean) {
+    constructor(private configFile: string, private dryRun: boolean) {
         if (parentPort)
             parentPort.addEventListener("message", this.initMessageHandler)
         this.application = express();
@@ -59,6 +59,8 @@ class NodeManager {
 
         if (event.data.type === "parent") {
             ePort.addListener("message", this.onEvent);
+        } else if (event.data.type === "shutdown") {
+            logger.info(`Shutdown NodeManager`)
         } else {
             Channel.initLoggerForNodeManager(ePort);
         }
@@ -76,9 +78,9 @@ class NodeManager {
             const nodeCondition = event as NodeConditionEvent
             const node = nodes.get(nodeCondition.nodeName)
             logger.info(`receive node condition : ${nodeName}`)
-    
+
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
-    
+
             if (node) {
                 nodeCondition.conditions.filter((condition) => {
                     const tempCondition = node.conditions.get(condition.type)
@@ -91,7 +93,7 @@ class NodeManager {
                 node.lastUpdateTime = new Date()
                 node.status = status
             } else {
-                Channel.sendMessageEventToES({node:nodeName, message:`Monitoring node '${nodeName}' started.`})
+                Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
                 const node: NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
                 nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
@@ -108,7 +110,7 @@ class NodeManager {
                 // 모니터 시작전 발생한 old 이벤트는 무시
                 const eventDate = Date.parse(event.lastTimestamp)
                 const raisedTime = new Date(eventDate)
-    
+
                 if (startTime.getTime() < eventDate) {
                     node.status = event.reason;
                     node.lastUpdateTime = raisedTime
@@ -130,73 +132,80 @@ class NodeManager {
         },
         DeleteNode: (event: any, nodes: Map<string, NodeConditionCache>) => {
             logger.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
-            Channel.sendMessageEventToES({node:event.nodeName, message:`Node '${event.nodeName} removed from moritoring list.`})
+            Channel.sendMessageEventToES({ node: event.nodeName, message: `Node '${event.nodeName} removed from moritoring list.` })
 
             nodes.delete(event.nodeName)
         },
         CleanNode: (nodes: Map<string, NodeConditionCache>) => {
-    
+
             // 1분동안 node update정보가 없으면 관리목록에서 제거 
             const now = Date.now()
             nodes.forEach((node, key) => {
                 const diffMs = node.lastUpdateTime.getTime() - now; // milliseconds between now & Christmas
                 const diffMin = diffMs / 60000; // hours
-    
+
                 if (diffMin > 1) {
                     nodes.delete(key)
                 }
             })
         }
-    
+
     }
 
     private eventHandlerOfEvent = {
-        CordonStarting: () => {},
-        CordonSucceeded: () => {},
+        CordonStarting: () => { },
+        CordonSucceeded: () => { },
         CordonFailed: this.reboot,
-        UncordonStarting: () => {},
-        UncordonSucceeded: () => {},
-        UncordonFailed: () => {},
+        UncordonStarting: () => { },
+        UncordonSucceeded: () => { },
+        UncordonFailed: () => { },
         DrainScheduled: this.setTimerForReboot,
         DrainSchedulingFailed: this.reboot,
-        DrainStarting: () => {},
+        DrainStarting: () => { },
         DrainSucceeded: this.reboot,
         DrainFailed: this.reboot,
     }
 
     private reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-        if( this.dryRun !== true) {
+        if (this.dryRun !== true) {
             logger.info(`DryRun is not true reboot enabled.`)
             logger.info(`Reboot ${nodeName} started.`)
-        // const node = nodes.get(nodeName)
-    
-        // if (node !== undefined) {
-        //     if (node.timer !== undefined) {
-        //         clearTimeout(node.timer)
-        //     }
-        //     try {
-        //         const rebooter: Rebooter = new Rebooter(configManager)
-        //         rebooter.run(nodeName)
-        //         node.lastRebootedTime = new Date()
-        //     } catch (err) {
-        //         console.error(err)
-        //     }
-        // }
+            const node = nodes.get(nodeName)
+
+            if (node !== undefined) {
+                if (node.timer !== undefined) {
+                    clearTimeout(node.timer)
+                }
+
+                Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} will reboot in 1 minute.` })
+
+                setTimeout(()=>{
+                    Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
+                }, 60 * 1000)
+
+                // try {
+                //     const rebooter: Rebooter = new Rebooter(configManager)
+                //     rebooter.run(nodeName)
+                //     node.lastRebootedTime = new Date()
+                // } catch (err) {
+                //     console.error(err)
+                // }
+            }
 
         }
     }
-    
+
     private setTimerForReboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
         const timeout = 100 * 1000;
         const node = nodes.get(nodeName)
-    
+
         const timer = setTimeout(() => {
             if (node !== undefined) {
                 node.timer = undefined
             }
             this.reboot(nodeName, nodes, configManager)
         }, timeout)
-    
+
         if (node !== undefined) {
             node.timer = timer
         }
@@ -267,8 +276,4 @@ class NodeManager {
 }
 
 const nodeManager = new NodeManager(workerData?.config, workerData?.dryRun)
-process.on('SIGTERM', function onSigterm() {
-    logger.info('NodeManager - Got SIGTERM.')
-})
-
 nodeManager.run()
