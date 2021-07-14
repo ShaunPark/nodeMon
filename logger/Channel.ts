@@ -1,4 +1,5 @@
 import { MessagePort } from "worker_threads";
+import { ESLog } from "../exporters/ESExporter";
 class Channel {
     private static esPort:MessagePort;
     private static nmPort:MessagePort;
@@ -12,8 +13,8 @@ class Channel {
         Channel.esPort = esPort;
     }
 
-    public static sendMessageEventToES(event:{node?:string|"node-mon", message:string|""}) {
-        Channel.esPort.postMessage({data:event});
+    public static sendMessageEventToES(log:ESLog) {
+        Channel.esPort.postMessage({data:log});
     }
 
     public static sendEventToNodeManager(event:any) {
