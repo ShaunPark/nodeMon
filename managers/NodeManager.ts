@@ -1,9 +1,7 @@
 import { MessagePort } from "worker_threads"
-import Logger from "../logger/Channel";
+import Channel from "../logger/Channel";
 import express from "express"
-import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
-import AWSShutdown from "../utils/AWSReboot";
-import SSHReboot from "../utils/SSHReboot"
+import { IConfig } from "../types/Type";
 import ConfigManager from "../config/ConfigManager";
 import { eventHandlers, NodeConditionCache } from "./NodeCache";
 
@@ -31,7 +29,7 @@ class NodeManager {
         if (event.data.type === "parent") {
             ePort.addListener("message", this.onEvent);
         } else {
-            Logger.initLoggerForNodeManager(ePort);
+            Channel.initLoggerForNodeManager(ePort);
         }
     }
 
@@ -88,7 +86,7 @@ class NodeManager {
         // aws.run(ipAddress)
 
         //aws.run()
-        Logger.sendEventToES("messsage from nodemanager")
+        //Channel.sendMessageEventToES({message:"messsage from nodemanager"})
     }
 
     private dayCheckStartTime: Date = new Date();
