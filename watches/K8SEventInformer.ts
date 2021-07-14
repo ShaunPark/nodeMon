@@ -8,60 +8,26 @@ interface LocalLabel {
     value: any
 }
 
-let k8sApi:k8s.CoreV1Api;
+let k8sApi: k8s.CoreV1Api;
 
+// Kubernetes client library 0.15.0 까지는 Informer생성 시 fieldSelector사용 불가
+// fieldSelector을 위해 Request를 새롭게 구현하고 webRequest 직전에 fieldSelector를 queryparam에 추가하도록 함
 export class RequestWithFieldSelector extends DefaultRequest {
-    constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request, private fieldSelector?:string) {
+    constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request, private fieldSelector?: string) {
         super(requestImpl)
     }
     public webRequest(opts: request.OptionsWithUri): RequestResult {
-        if( this.fieldSelector !== undefined ) {
+        if (this.fieldSelector !== undefined) {
             return super.webRequest(this.addFieldSelectorToOptions(opts, this.fieldSelector))
         }
         return super.webRequest(opts)
     }
 
-    private addFieldSelectorToOptions(opts: request.OptionsWithUri, fieldSelector:string):request.OptionsWithUri {
+    private addFieldSelectorToOptions(opts: request.OptionsWithUri, fieldSelector: string): request.OptionsWithUri {
         opts.qs['fieldSelector'] = k8s.ObjectSerializer.serialize(fieldSelector, 'string');
-        console.log(JSON.stringify(opts))
         return opts
     }
 }
-// export class RequestWithFieldSelector implements RequestInterface {
-//     // requestImpl can be overriden in case we need to test mocked DefaultRequest
-//     private requestImpl: (opts: request.OptionsWithUri) => request.Request;
-
-//     constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request, private fieldSelector?:string) {
-//         this.requestImpl = requestImpl ? requestImpl : request;
-//     }
-
-//     // Using request lib can be confusing when combining Stream- with Callback-
-//     // style API. We avoid the callback and handle HTTP response errors, that
-//     // would otherwise require a different error handling, in a transparent way
-//     // to the user (see github issue request/request#647 for more info).
-//     public webRequest(opts: request.OptionsWithUri): RequestResult {
-//         const req = this.requestImpl(this.addFieldSelectorToOpt(opts));
-//         // pause the stream until we get a response not to miss any bytes
-//         req.pause();
-//         req.on('response', (resp) => {
-//             if (resp.statusCode === 200) {
-//                 req.resume();
-//             } else {
-//                 req.emit('error', new Error(resp.statusMessage));
-//             }
-//         });
-//         return req;
-//     }
-
-//     private addFieldSelectorToOpt(opts: request.OptionsWithUri):request.OptionsWithUri {
-//         if ( this.fieldSelector !== undefined) {
-//             opts.qs['fieldSelector'] = k8s.ObjectSerializer.serialize(this.fieldSelector, 'string');
-//             console.log(JSON.stringify(opts))
-//             return opts
-//         }
-//         return opts
-//     }
-// }
 
 export class K8SEventInformer {
     // private _k8sApi: k8s.CoreV1Api;
@@ -79,16 +45,15 @@ export class K8SEventInformer {
         k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
     }
 
-
     public stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
         if (str == undefined) {
             return undefined
         }
         const array = new Array<LocalLabel>()
-        const strs = str.trim().split(",")
-        strs.forEach(s => {
+
+        str.trim().split(",").forEach(s => {
             const values = s.trim().split("=")
-            array.push({key:values[0] , value:values.slice(1).join("=")})
+            array.push({ key: values[0], value: values.slice(1).join("=") })
         })
         return array
     }
@@ -101,15 +66,11 @@ export class K8SEventInformer {
             'involvedObject.kind=Node'
         );
 
+        // 기본 makeInformer를 대신하여 커스텀 request를 사용하여 informer를 생성하도록 수정
+        // fieldSelector를 통해 Node에서 발생한 event만 수신하도록 함.
         const requestImpl = new RequestWithFieldSelector(undefined, 'involvedObject.kind=Node');
         const watch = new k8s.Watch(this._kc, requestImpl);
-        const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);        
-
-        // const informer = k8s.makeInformer(
-        //     this._kc,
-        //     '/api/v1/events',
-        //     listFn.bind(this),
-        // );
+        const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);
 
         const labelMap = this.stringsToArray(labelSelector)
 
@@ -117,14 +78,14 @@ export class K8SEventInformer {
 
         informer.on('add', (evt: k8s.CoreV1Event) => {
             // console.log('Event added !!!', JSON.stringify(evt.involvedObject.kind))
-            if( this.checkValid(evt)) {
+            if (this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
-             }
+            }
         });
         informer.on('update', (evt: k8s.CoreV1Event) => {
             // console.log('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
 
-            if( this.checkValid(evt)) {
+            if (this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
@@ -146,20 +107,20 @@ export class K8SEventInformer {
         informer.start()
     }
 
-    private createSendingEvent(obj:CoreV1Event):Object {
-        return {   
-            kind:"NodeEvent",
-            nodeName: obj.involvedObject.name, 
-            reason: obj.reason, 
+    private createSendingEvent(obj: CoreV1Event): Object {
+        return {
+            kind: "NodeEvent",
+            nodeName: obj.involvedObject.name,
+            reason: obj.reason,
             source: obj.source?.component,
-            lastTimestamp: obj.lastTimestamp 
+            lastTimestamp: obj.lastTimestamp
         }
     }
 
-    private concernedEvents:Array<string> = [ 
-        "CordonStarting", 
-        "CordonSucceeded",  
-        "CordonFailed", 
+    private concernedEvents: Array<string> = [
+        "CordonStarting",
+        "CordonSucceeded",
+        "CordonFailed",
         "UncordonStarting",
         "UncordonSucceeded",
         "UncordonFailed",
@@ -178,10 +139,13 @@ export class K8SEventInformer {
         "NodeNotSchedulable"
     ]
 
-    public checkValid(event:CoreV1Event):boolean {
+    public checkValid(event: CoreV1Event): boolean {
         console.log(`checkValid  ${event.involvedObject.kind}  ${event.reason} `)
-        if( event.reason )
-            return event.involvedObject.kind == "Node" && this.concernedEvents.includes(event.reason)
+        // Informer 에 fieldSelector를 적용하여 event의 involvedObject.kind 확인 불필요 
+        if (event.reason) {
+            return this.concernedEvents.includes(event.reason)
+            //return event.involvedObject.kind == "Node" && this.concernedEvents.includes(event.reason)
+        }
         return false
     }
 }

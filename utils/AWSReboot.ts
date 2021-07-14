@@ -53,7 +53,7 @@ class AWSShutdown {
       const data = await this.ec2.send(command)
       const instanceIds = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
 
-      this.stopNode(instanceIds)
+      this.terminateNode(instanceIds)
 
       console.log(JSON.stringify(instanceIds))
     } catch(err) {
@@ -62,16 +62,16 @@ class AWSShutdown {
     }
   }
 
-  private async stopNode(instanceIds: string[]) {
+  // private async stopNode(instanceIds: string[]) {
 
-    const dryRun:boolean =  (instanceIds.length > 1)?true:false;
-    const param: StopInstancesCommandInput  = { InstanceIds: instanceIds , DryRun: dryRun}
-    console.log(`Reboot param : ${param}`)
+  //   const dryRun:boolean =  (instanceIds.length > 1)?true:false;
+  //   const param: StopInstancesCommandInput  = { InstanceIds: instanceIds , DryRun: dryRun}
+  //   console.log(`Reboot param : ${param}`)
 
-    const data = this.sendAWSCommand(new StopInstancesCommand(param))
-    console.log(`Reboot request for ${instanceIds} done ${data}`)
+  //   const data = this.sendAWSCommand(new StopInstancesCommand(param))
+  //   console.log(`Reboot request for ${instanceIds} done ${data}`)
 
-  }
+  // }
 
   private async terminateNode(instanceIds: string[]) {
 

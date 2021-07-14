@@ -38,7 +38,7 @@ class NodeManager {
     // Kubernetes 모니터에서 전달된 이벤트 처리
     private onEvent = (event: any) => {
         //수신한 이벤트를 처리
-        eventHandlers[event.kind as EventTypes](event, NodeManager.nodes);
+        eventHandlers[event.kind as EventTypes](event, NodeManager.nodes, this.configManager);
     }
 
     public run() {

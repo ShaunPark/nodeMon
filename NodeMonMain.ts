@@ -21,15 +21,12 @@ type KubernetesConfig = {
 }
 
 export class NodeMonMain {
-    private _isAWS:boolean = false;
     private _k8sMonitor?:K8sMonitor = undefined;
     private _esLogger!:Worker;
     private _nodeManager!:Worker;
     private configManager:ConfigManager;
 
     constructor(private configFile:string) {
-        this._isAWS = this.isAWS()
-
         // command line argument parsing 
         // argument 파싱 에러 발생 시 종료 
         try {
@@ -124,10 +121,6 @@ export class NodeMonMain {
     }
 
     private monitorPrometheus = () => {}
-
-    private isAWS():boolean {
-        return false
-    }
 }
 
 const args = parse<IArguments>({
