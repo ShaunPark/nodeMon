@@ -117,8 +117,10 @@ export class NodeMonMain {
             Channel.sendMessageEventToES({ message: `Node monitor stopped.`, node: "--------" })
         }
 
-        await this._esLogger.terminate()
-        await this._nodeManager.terminate()
+        setTimeout( () => {
+            this._esLogger.terminate()
+            this._nodeManager.terminate()
+        }, 1000)
     }
 }
 
@@ -127,14 +129,11 @@ const args = parse<IArguments>({
     dryRun: { type: Boolean, optional: true }
 })
 const nodeMon = new NodeMonMain(args.configFile, args.dryRun);
-const shutdown = () => {
-    nodeMon.close();
-}
 
 process.on('SIGTERM', function onSigterm() {
     logger.info('Got SIGTERM. Graceful shutdown start')
-    // start graceul shutdown here
-    shutdown()
+
+    nodeMon.close();
 })
 
 nodeMon.run();
