@@ -23,7 +23,7 @@ export class NodeMonMain {
     private _nodeManager!: Worker;
     private configManager: ConfigManager;
 
-    constructor(private configFile: string) {
+    constructor(private configFile: string, private dryRun?:boolean) {
         // command line argument parsing 
         // argument 파싱 에러 발생 시 종료 
         try {
@@ -75,7 +75,8 @@ export class NodeMonMain {
         this._nodeManager = new Worker('./build/managers/NodeManager.js', {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'managers/NodeManager.ts'),
-                config: configFile
+                config: configFile,
+                dryRun: (this.dryRun === undefined)?false:this.dryRun
             }
         })
 
@@ -109,7 +110,8 @@ export class NodeMonMain {
 }
 
 const args = parse<IArguments>({
-    configFile: { type: String, alias: 'f' }
+    configFile: { type: String, alias: 'f' },
+    dryRun: { type: Boolean, optional: true }
 })
-const nodeMon = new NodeMonMain(args.configFile);
+const nodeMon = new NodeMonMain(args.configFile, args.dryRun);
 nodeMon.run();
