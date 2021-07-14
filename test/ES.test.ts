@@ -10,7 +10,7 @@ const getUUID = () => {
     }
     return s4() + s4() + s4() + s4() + s4() + s4() + s4() + s4();
 }
-
+const NodeEventReasons = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed"]
 const expect = chai.expect
 
 describe('ElasticSearch', () => {
@@ -20,28 +20,45 @@ describe('ElasticSearch', () => {
     const uuid = getUUID()
     const message = `message ${uuid}`
 
-    it('save to es', async function (done) {
+    // it('save to es', async function (done) {
 
-        logger.info('test message')
+    //     logger.info('test message')
 
-        esClient.putLog({ nodeName: uuid, message: message })
-        assert.ok(true)
-        done()
-    });
+    //     esClient.putLog({ nodeName: uuid, message: message })
+    //     assert.ok(true)
+    //     done()
+    // });
 
-    it('load from es', (done) => {
-        const prom = new Promise<any[]>((resolve, reject) => {
-            setTimeout(async () => {
-                resolve(await esClient.searchLog({ nodeName: uuid }) as any[])
-            }, 1000)
-        })
+    // it('load from es', (done) => {
+    //     const prom = new Promise<any[]>((resolve, reject) => {
+    //         setTimeout(async () => {
+    //             resolve(await esClient.searchLog({ nodeName: uuid }) as any[])
+    //         }, 1000)
+    //     })
 
-        prom.then(function (result) {
-            assert.strictEqual(result[0].message, message)
-            done()
-        })
-    })
+    //     prom.then(function (result) {
+    //         assert.strictEqual(result[0].message, message)
+    //         done()
+    //     })
+    // })
 
+    // it('typetest a', () => {
+    //     const a: any = "CordonStatring"
+    //     const reason = a as NodeEventReasons
+    //     console.log(typeof reason)
+    //     console.log(reason)
+    //     assert.notStrictEqual(reason, undefined)
+    // })
+
+
+    // it('typetest b', () => {
+    //     const a: any = "DrainScheduled"
+    //     const reason = a as NodeEventReasons
+    //     console.log(typeof reason)
+    //     console.log(reason)
+
+    //     assert.ok(reason !== undefined)
+    // })
     // const nodes: Map<string, NodeConditionCache> = new Map()
     // const event1: NodeConditionEvent =
     // {

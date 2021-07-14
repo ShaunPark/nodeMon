@@ -36,7 +36,9 @@ const { workerData, parentPort } = require('worker_threads');
 
 export type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted" | "Drained" | "DrainTimeout" | "DrainFailed" | "RebootScheduled" | "NotReady"
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
-type NodeEventReasons = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed"
+
+const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed"]
+type NodeEventReason = "CordonFailed"| "DrainScheduled"| "DrainSchedulingFailed"|"DrainSucceeded"|"DrainFailed"
 
 const startTime: Date = new Date()
 class NodeManager {
@@ -110,8 +112,10 @@ class NodeManager {
                 if (startTime.getTime() < eventDate) {
                     node.status = event.reason;
                     node.lastUpdateTime = raisedTime
-    
-                    this.eventHandlerOfEvent[event.reason as NodeEventReasons](nodeName, nodes, configManager)
+                    if (NodeEventReasonArray.includes(event.reason)) {
+                        logger.info(`event.reason '${event.reason}'is NodeEventReasons`)
+                        this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName, nodes, configManager)
+                    }
                 } else {
                     logger.info(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
                 }
@@ -147,15 +151,15 @@ class NodeManager {
     }
 
     private eventHandlerOfEvent = {
-        // CordonStarting: () => {},
-        // CordonSucceeded: () => {},
+        CordonStarting: () => {},
+        CordonSucceeded: () => {},
         CordonFailed: this.reboot,
-        // UncordonStarting: () => {},
-        // UncordonSucceeded: () => {},
-        // UncordonFailed: () => {},
+        UncordonStarting: () => {},
+        UncordonSucceeded: () => {},
+        UncordonFailed: () => {},
         DrainScheduled: this.setTimerForReboot,
         DrainSchedulingFailed: this.reboot,
-        // DrainStarting: () => {},
+        DrainStarting: () => {},
         DrainSucceeded: this.reboot,
         DrainFailed: this.reboot,
     }
