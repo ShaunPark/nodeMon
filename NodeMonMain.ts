@@ -57,10 +57,10 @@ export class NodeMonMain {
             eventInformer.createAndStartInformer(this.configManager.config)
         }
         const currentNode = process.env.NODE_NAME
-        if (process.env.NODE_NAME) {
+        if (currentNode) {
             Channel.sendMessageEventToES({message:`Node monitor started on node ${currentNode}.`, node:currentNode})
         } else {
-            Channel.sendMessageEventToES({message:`Node monitor started.`})
+            Channel.sendMessageEventToES({message:`Node monitor started.`, node:"--------"})
         }
     }
 
