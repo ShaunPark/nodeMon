@@ -4,7 +4,10 @@ import { logger } from '../logger/Logger'
 import { ESLogClient } from "../utils/ESLogClient";
 
 const { workerData, parentPort } = require('worker_threads');
-
+interface ESLog {
+    node:string,
+    message:string
+}
 class ESExporter {
     private configManager
     private esLogger;
@@ -19,10 +22,10 @@ class ESExporter {
         ePort.addListener("message", this.log);
     }
 
-    private log = (event: MessageEvent) => {
+    private log = (event: MessageEvent<ESLog>) => {
         logger.info(`log in es exporter : ${JSON.stringify(event)}`)
 
-        this.esLogger.putLog({nodeName:"", message:event.data as string})
+        this.esLogger.putLog({nodeName:event.data.node, message:event.data.message})
     }
 
     run = () => {}
