@@ -149,60 +149,72 @@ class NodeManager {
                 }
             })
         }
-
     }
 
     private eventHandlerOfEvent = {
         CordonStarting: () => { },
         CordonSucceeded: () => { },
-        CordonFailed: this.reboot,
+        CordonFailed: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} failed to cordon and will reboot in 1 minute.` })
+            this.reboot(nodeName, nodes, configManager)
+        },
         UncordonStarting: () => { },
         UncordonSucceeded: () => { },
         UncordonFailed: () => { },
-        DrainScheduled: this.setTimerForReboot,
-        DrainSchedulingFailed: this.reboot,
+        DrainScheduled: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining is scheduled.` })
+            this.setTimerForReboot(nodeName, nodes, configManager)
+        },
+        DrainSchedulingFailed: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} failed to schedule for draining and will reboot in 1 minute.` })
+            this.reboot(nodeName, nodes, configManager)
+        },
         DrainStarting: () => { },
-        DrainSucceeded: this.reboot,
-        DrainFailed: this.reboot,
+        DrainSucceeded: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drained and will reboot in 1 minute.` })
+            this.reboot(nodeName, nodes, configManager)
+        },
+        DrainFailed:  (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drain failed and will reboot in 1 minute.` })
+            this.reboot(nodeName, nodes, configManager)
+        },
     }
 
     private reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-        if (this.dryRun !== true) {
-            logger.info(`DryRun is not true reboot enabled.`)
-            logger.info(`Reboot ${nodeName} started.`)
-            const node = nodes.get(nodeName)
-
-            if (node !== undefined) {
-                if (node.timer !== undefined) {
-                    clearTimeout(node.timer)
-                }
-
-                Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} will reboot in 1 minute.` })
-
-                setTimeout(()=>{
-                    Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
-                }, 60 * 1000)
-
-                // try {
-                //     const rebooter: Rebooter = new Rebooter(configManager)
-                //     rebooter.run(nodeName)
-                //     node.lastRebootedTime = new Date()
-                // } catch (err) {
-                //     console.error(err)
-                // }
+        const node = nodes.get(nodeName)
+        if (node !== undefined) {
+            if (node.timer !== undefined) {
+                clearTimeout(node.timer)
             }
 
+            setTimeout(() => {
+                logger.info(`Reboot ${nodeName} started.`)
+                Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
+                if (this.dryRun !== true) {
+                    
+                    logger.info(`DryRun is not true reboot enabled.`)
+
+                    // try {
+                    //     const rebooter: Rebooter = new Rebooter(configManager)
+                    //     rebooter.run(nodeName)
+                    //     node.lastRebootedTime = new Date()
+                    // } catch (err) {
+                    //     console.error(err)
+                    // }
+                }
+            }, 60 * 1000)
         }
     }
 
     private setTimerForReboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-        const timeout = 100 * 1000;
+        const timeout = 5 * 60 * 1000;
         const node = nodes.get(nodeName)
 
         const timer = setTimeout(() => {
             if (node !== undefined) {
                 node.timer = undefined
             }
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for 5 minutes and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         }, timeout)
 
