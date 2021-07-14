@@ -6,7 +6,8 @@ import path from 'path'
 import Channel from "./logger/Channel";
 import { K8SEventInformer } from "./watches/K8SEventInformer";
 import { K8SNodeInformer } from "./watches/K8SNodeInformer";
-import {logger} from './logger/Logger'
+import { logger } from './logger/Logger'
+import { TransitGatewayAttachmentAssociation } from "@aws-sdk/client-ec2";
 
 type Config = {
     interval: number;
@@ -23,7 +24,7 @@ export class NodeMonMain {
     private _nodeManager!: Worker;
     private configManager: ConfigManager;
 
-    constructor(private configFile: string, private dryRun?:boolean) {
+    constructor(private configFile: string, private dryRun?: boolean) {
         // command line argument parsing 
         // argument 파싱 에러 발생 시 종료 
         try {
@@ -58,9 +59,9 @@ export class NodeMonMain {
         }
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
-            Channel.sendMessageEventToES({message:`Node monitor started on node ${currentNode}.`, node:currentNode})
+            Channel.sendMessageEventToES({ message: `Node monitor started on node ${currentNode}.`, node: currentNode })
         } else {
-            Channel.sendMessageEventToES({message:`Node monitor started.`, node:"--------"})
+            Channel.sendMessageEventToES({ message: `Node monitor started.`, node: "--------" })
         }
     }
 
@@ -76,7 +77,7 @@ export class NodeMonMain {
             workerData: {
                 aliasModule: path.resolve(__dirname, 'managers/NodeManager.ts'),
                 config: configFile,
-                dryRun: (this.dryRun === undefined)?false:this.dryRun
+                dryRun: (this.dryRun === undefined) ? false : this.dryRun
             }
         })
 
@@ -107,6 +108,18 @@ export class NodeMonMain {
     }
 
     private monitorPrometheus = () => { }
+
+    close = async () => {
+        const currentNode = process.env.NODE_NAME
+        if (currentNode) {
+            Channel.sendMessageEventToES({ message: `Node monitor stoped from node ${currentNode}.`, node: currentNode })
+        } else {
+            Channel.sendMessageEventToES({ message: `Node monitor stopped.`, node: "--------" })
+        }
+
+        await this._esLogger.terminate()
+        await this._nodeManager.terminate()
+    }
 }
 
 const args = parse<IArguments>({
@@ -114,4 +127,14 @@ const args = parse<IArguments>({
     dryRun: { type: Boolean, optional: true }
 })
 const nodeMon = new NodeMonMain(args.configFile, args.dryRun);
+const shutdown = () => {
+    nodeMon.close();
+}
+
+process.on('SIGTERM', function onSigterm() {
+    logger.info('Got SIGTERM. Graceful shutdown start', new Date().toISOString())
+    // start graceul shutdown here
+    shutdown()
+})
+
 nodeMon.run();
