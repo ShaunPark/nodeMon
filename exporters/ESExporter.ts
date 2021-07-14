@@ -4,7 +4,7 @@ import { logger } from '../logger/Logger'
 import { ESLogClient } from "../utils/ESLogClient";
 
 const { workerData, parentPort } = require('worker_threads');
-interface ESLog {
+export interface ESLog {
     node:string,
     message:string
 }
