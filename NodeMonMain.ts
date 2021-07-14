@@ -132,7 +132,7 @@ const shutdown = () => {
 }
 
 process.on('SIGTERM', function onSigterm() {
-    logger.info('Got SIGTERM. Graceful shutdown start', new Date().toISOString())
+    logger.info('Got SIGTERM. Graceful shutdown start')
     // start graceul shutdown here
     shutdown()
 })

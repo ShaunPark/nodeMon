@@ -263,4 +263,8 @@ class NodeManager {
 }
 
 const nodeManager = new NodeManager(workerData?.config, workerData?.dryRun)
+process.on('SIGTERM', function onSigterm() {
+    logger.info('NodeManager - Got SIGTERM.')
+})
+
 nodeManager.run()
