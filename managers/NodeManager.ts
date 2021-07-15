@@ -8,7 +8,8 @@ import { logger } from '../logger/Logger'
 import equal from 'deep-equal'
 import { integer } from "@elastic/elasticsearch/api/types";
 import { Rebooter } from "../utils/Rebooter";
-
+import NodeConditionChanger from "./NodeConditionMgr"
+import { V1NodeCondition } from "@kubernetes/client-node";
 export interface NodeInfo {
     nodeName: string
     nodeIp: string
@@ -32,7 +33,8 @@ export type NodeConditionCache = {
     lastUpdateTime: Date
     status: string,
     timer?: NodeJS.Timeout,
-    lastRebootedTime?: Date
+    lastRebootedTime?: Date,
+    nodeName:string
 }
 
 const { workerData, parentPort } = require('worker_threads');
@@ -48,6 +50,7 @@ class NodeManager {
     private application: express.Application;
     private static nodes = new Map<string, NodeConditionCache>()
     private configManager: ConfigManager;
+    private conditionManager?:NodeConditionChanger
 
     constructor(private configFile: string, private dryRun: boolean) {
         if (parentPort)
@@ -98,7 +101,15 @@ class NodeManager {
             } else {
                 Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
-                const node: NodeConditionCache = { ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
+                const node: NodeConditionCache = { nodeName:nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
+
+                // 노드를 처음으로 모니터링 하기 시작 했으면 kubelet ready시간을 reboot 시간으로 설정
+                nodeCondition.conditions.filter( condition => {
+                    if( condition.type === "Ready" && condition.reason === "KubeletReady" ) {
+                        node.lastRebootedTime = condition.lastTransitionTime
+                    }
+                })
+
                 nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
                 nodes.set(nodeName, node)
             }
@@ -335,13 +346,28 @@ class NodeManager {
 
             if (rebootNode !== undefined) {
                 NodeManager.rebootNode = rebootNode.ipAddress
-                this.rebootNode().then(() => {
-                    setTimeout((twoWeeksAgo) => this.rebootNodeEveryTwoWeek(twoWeeksAgo), 5 * 60 * 1000)
-                })
+                this.setNodeConditionToReboot(rebootNode.nodeName)
             } else {
                 NodeManager.rebootNode = undefined
             }
         }
+    }
+
+    private setNodeConditionToReboot = (nodeName:string) => {
+        if( this.conditionManager === undefined ) {
+            this.conditionManager = new NodeConditionChanger()
+        }
+    
+        const condition:V1NodeCondition = {
+            status:"True", 
+            type:"RebootNode", 
+            lastHeartbeatTime: new Date(), 
+            lastTransitionTime: new Date(), 
+            message:"Reboot requested by nodeMon",
+            reason:"RebootRequested"
+        }
+
+        this.conditionManager.changeNodeCondition(nodeName, condition )
     }
 
     private static rebootNode: string | undefined

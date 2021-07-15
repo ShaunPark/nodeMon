@@ -34,7 +34,8 @@ export class RequestWithFieldSelector extends DefaultRequest {
 
 export class K8SEventInformer {
     // private _k8sApi: k8s.CoreV1Api;
-    private _config?: IConfig;
+    // private _config?: IConfig;
+    
     private _kc: k8s.KubeConfig;
     constructor() {
         this._kc = new k8s.KubeConfig();
