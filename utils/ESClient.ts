@@ -63,11 +63,11 @@ export abstract class ESClient<T> {
       logger.error(
         `ESClient search method, error-message=${error.message}`
       );
-      throw error;
+      return Promise.reject()
     }
   }
 
-  protected async searchId(data: T): Promise<Array<string>> {
+  protected async searchId(data: T): Promise<Array<string>>{
     try {
       const bodyData: RequestParams.Search = {
         index: this.INDEX_NAME,
@@ -91,7 +91,7 @@ export abstract class ESClient<T> {
       logger.error(
         `ESClient search method, error-message=${error.message}`
       );
-      throw error;
+      return Promise.reject()
     }
   }
 
@@ -113,7 +113,7 @@ export abstract class ESClient<T> {
       logger.error(
         `ESClient update method, error-message=${error.message}`
       );
-      throw error;
+      // throw error;
     }
   }
 }
