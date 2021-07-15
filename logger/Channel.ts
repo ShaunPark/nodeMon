@@ -15,11 +15,11 @@ class Channel {
     }
 
     public static sendMessageEventToES(log:ESLog) {
-        Channel.esPort.postMessage({data:log});
+        Channel.esPort.postMessage({data:{log:log, kind:"log"}});
     }
 
     public static sendNodeStatusToES(node:NodeConditionCache) {
-        Channel.esPort.postMessage({data:node});
+        Channel.esPort.postMessage({data:{kind:"status", status:node}});
     }
 
     public static sendEventToNodeManager(event:any) {
