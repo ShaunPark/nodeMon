@@ -1,6 +1,6 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import { ESLogClient } from '../utils/ESLogClient';
+import { ESStatusClient } from '../utils/ESStatusClient';
 import ConfigManager from '../config/ConfigManager';
 import { logger } from '../logger/Logger'
 
@@ -16,31 +16,43 @@ const expect = chai.expect
 describe('ElasticSearch', () => {
 
     const configManager = new ConfigManager("./test/config.yaml");
-    const esClient = new ESLogClient(configManager)
+    const esClient = new ESStatusClient(configManager)
     const uuid = getUUID()
     const message = `message ${uuid}`
 
-    // it('save to es', async function (done) {
+    // it('save to es', async function () {
 
     //     logger.info('test message')
 
-    //     esClient.putLog({ nodeName: uuid, message: message })
-    //     assert.ok(true)
-    //     done()
+    //     try {esClient.putStatus({
+    //         status: "False",
+    //         lastUpdateTime: new Date(),
+    //         lastRebootedTime: new Date(),
+    //         ipAddress: "ip",
+    //         conditions: new Map(),
+    //         timer: undefined,
+    //         nodeName: "test"
+    //     })} catch(err) {
+    //         logger.error(err)
+    //     }
+        
     // });
 
-    // it('load from es', (done) => {
-    //     const prom = new Promise<any[]>((resolve, reject) => {
-    //         setTimeout(async () => {
-    //             resolve(await esClient.searchLog({ nodeName: uuid }) as any[])
-    //         }, 1000)
-    //     })
-
-    //     prom.then(function (result) {
-    //         assert.strictEqual(result[0].message, message)
-    //         done()
-    //     })
-    // })
+    it('update from es', () => {
+        setTimeout(() => {
+            try {esClient.updateStatus({
+                status: "True",
+                lastUpdateTime: new Date(),
+                lastRebootedTime: new Date(),
+                ipAddress: "ipaddress",
+                conditions: new Map(),
+                timer: undefined,
+                nodeName: "test"
+            })} catch(err) {
+                logger.error(err)
+            }
+        }, 1000)
+    })
 
     // it('typetest a', () => {
     //     const a: any = "CordonStatring"

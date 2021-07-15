@@ -3,6 +3,7 @@ import ConfigManager from "../config/ConfigManager";
 import { logger } from '../logger/Logger'
 import { NodeConditionCache } from "../managers/NodeManager";
 import { ESLogClient } from "../utils/ESLogClient";
+import { ESStatusClient } from "../utils/ESStatusClient";
 
 const { workerData, parentPort } = require('worker_threads');
 
@@ -19,10 +20,12 @@ export interface ESLog {
 class ESExporter {
     private configManager
     private esLogger;
+    private esStatus;
     constructor(configFile: string) {
         parentPort.addEventListener("message", this.initMessageHandler)
         this.configManager = new ConfigManager(configFile);
         this.esLogger = new ESLogClient(this.configManager)
+        this.esStatus = new ESStatusClient(this.configManager)
     }
 
     private initMessageHandler = (event: MessageEvent) => {
@@ -35,7 +38,7 @@ class ESExporter {
         if (event.data.kind === "log" && event.data.log) {
             this.esLogger.putLog({ nodeName: event.data.log.node, message: event.data.log.message })
         } else if ( event.data.kind === "status" && event.data.status) {
-            logger.info(`NodeStatus : ${JSON.stringify(event.data.status)}`)
+            this.esStatus.updateStatus(event.data.status)
         }
     }
 

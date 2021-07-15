@@ -17,39 +17,37 @@ export abstract class ESClient<T> {
     }
   }
 
-  protected put(log: T) {
+  protected put(data: T) {
     try {
       const bodyData: RequestParams.Index = {
         index: this.INDEX_NAME,
         body: {
-          ...log,
+          ...data,
           timestamp: new Date()
         }
       };
-      logger.info("[SUCCESS]: ElasticSearchAPILog putLog method");
 
       return this.client.index(bodyData);
     } catch (error) {
-      logger.info(
-        `[ERROR]:  ElasticSearchAPILog putLog method, error-message=${error.message}`
+      logger.error(
+        `ESClient put method, error-message=${error.message}`
       );
       console.error(error)
       return;
     }
   }
 
-  protected async search(log: T): Promise<Array<T>> {
+  protected async search(data: T): Promise<Array<T>> {
     try {
       const bodyData: RequestParams.Search = {
         index: this.INDEX_NAME,
         body: {
           query: {
-            match: log
+            match: data
           }
         }
       };
       logger.info(JSON.stringify(bodyData))
-      logger.info("[SUCCESS]: ElasticSearchAPILog searchLog method");
 
       const { body } = await this.client.search(bodyData);
 
@@ -61,18 +59,60 @@ export abstract class ESClient<T> {
       logger.info(retArr.length)
       return retArr
     } catch (error) {
-      logger.info(
-        `[ERROR]:  ElasticSearchAPILog putLog method, error-message=${error.message}`
+      logger.error(
+        `ESClient search method, error-message=${error.message}`
       );
       throw error;
     }
   }
 
-  public async updateLog(log: T) {
+  protected async searchId(data: T): Promise<Array<string>> {
+    try {
+      const bodyData: RequestParams.Search = {
+        index: this.INDEX_NAME,
+        body: {
+          query: {
+            match: data
+          }
+        }
+      };
+      logger.info(JSON.stringify(bodyData))
+
+      const { body } = await this.client.search(bodyData);
+
+      const retArr = new Array<string>()
+      const arr: any[] = body.hits.hits;
+
+      arr.forEach(item => { retArr.push(item._id) })
+
+      return retArr
+    } catch (error) {
+      logger.error(
+        `ESClient search method, error-message=${error.message}`
+      );
+      throw error;
+    }
+  }
+
+  public async update(id: string, data: T) {
     try {
 
-    } finally {
+      logger.info(id)
 
+      const bodyData: RequestParams.Index = {
+        index: this.INDEX_NAME,
+        id: id,
+        body: {
+          ...data,
+          timestamp: new Date()
+        }
+      }
+      return this.client.index(bodyData);
+    } catch (error) {
+      logger.error(
+        `ESClient update method, error-message=${error.message}`
+      );
+      throw error;
     }
   }
 }
