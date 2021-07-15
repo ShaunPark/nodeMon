@@ -265,17 +265,8 @@ class NodeManager {
 
         // run daily routine
 
-        const ipAddress: string[] = ["10.0.0.13"]
 
-        // const ssh:SSHReboot = new SSHReboot(this.configManager)
-        // ssh.run(ipAddress)
-
-        // const aws:AWSReboot = new AWSReboot(this.configManager)
-        // aws.run(ipAddress)
-
-        //aws.run()
-        //Channel.sendMessageEventToES({message:"messsage from nodemanager"})
-        this.rebootTimer = setInterval(this.rebootNodeEveryTwoWeek, 10 * 60 * 1000)
+        //this.rebootTimer = setInterval(this.rebootNodeEveryTwoWeek, 10 * 60 * 1000)
     }
 
     private async rebootNode(): Promise<void> {
