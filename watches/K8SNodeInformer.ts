@@ -86,14 +86,13 @@ export class K8SNodeInformer {
     private labelMap = new Map<string, { lastUpdateTime: Date, needSend: string }>()
 
     sendNodeCondition = (node: V1Node) => {
-        logger.info(`sendNodeCondition ${node.metadata?.name} `)
         const needSend = this.checkValid(node.metadata?.labels)
         if (needSend && node.metadata && node.status) {
             const { name } = node.metadata;
             const { conditions } = node.status;
             const unschedulable = node.spec?.unschedulable ? true : false;
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
-            logger.info(`retArr ${JSON.stringify(retArr)} `)
+
             if (retArr.length < 1) {
                 console.error(`Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {

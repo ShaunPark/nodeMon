@@ -4,6 +4,7 @@ import { IConfig } from '../types/Type';
 import Logger from "../logger/Channel";
 import request = require('request');
 import { logger } from '../logger/Logger'
+import { EventEmitter } from 'stream';
 
 interface LocalLabel {
     key: string,
@@ -142,10 +143,14 @@ export class K8SEventInformer {
     ]
 
     public checkValid(event: CoreV1Event): boolean {
-        logger.info(`checkValid  ${event.involvedObject.kind}  ${event.reason} `)
+        logger.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason} `)
         // Informer 에 fieldSelector를 적용하여 event의 involvedObject.kind 확인 불필요 
         if (event.reason) {
-            return this.concernedEvents.includes(event.reason)
+            const isValid = this.concernedEvents.includes(event.reason)
+            if( isValid ) {
+                logger.info(JSON.stringify(event))
+            }
+            return isValid
             //return event.involvedObject.kind == "Node" && this.concernedEvents.includes(event.reason)
         }
         return false

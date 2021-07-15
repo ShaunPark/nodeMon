@@ -38,8 +38,8 @@ const { workerData, parentPort } = require('worker_threads');
 export type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted" | "Drained" | "DrainTimeout" | "DrainFailed" | "RebootScheduled" | "NotReady"
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
 
-const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed"]
-type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed"
+const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Starting"]
+type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Starting"
 
 const startTime: Date = new Date()
 class NodeManager {
@@ -179,6 +179,9 @@ class NodeManager {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drain failed and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         },
+        Starting: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} started` })
+        }
     }
 
     private reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
