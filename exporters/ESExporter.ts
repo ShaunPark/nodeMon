@@ -46,8 +46,4 @@ class ESExporter {
 }
 
 const esExporter = new ESExporter(workerData?.config)
-process.on('SIGTERM', function onSigterm() {
-    logger.info('ESExporter - Got SIGTERM.')
-})
-
 esExporter.run()
