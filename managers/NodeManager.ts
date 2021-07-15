@@ -181,6 +181,14 @@ class NodeManager {
         },
         Starting: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} started` })
+            this.setNodeRebootTime(nodeName, nodes)
+        }
+    }
+
+    private setNodeRebootTime(nodeName:string, nodes:Map<string, NodeConditionCache>) {
+        const node = nodes.get(nodeName)
+        if( node ) {
+            node.lastRebootedTime = new Date()
         }
     }
 
