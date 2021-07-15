@@ -1,8 +1,10 @@
 export interface IConfig {
     //interval?: number;
+    rebootDelay: number;
+    rebootThroughSSH?: boolean;
+
     kubernetes?: Ik8s;
     nodeManager?: INodeMgr;
-    rebootThroughSSH?: boolean;
     elasticSearch?: IElasticSearch;
 }
 

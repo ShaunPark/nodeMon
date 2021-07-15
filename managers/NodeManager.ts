@@ -7,6 +7,7 @@ import ConfigManager from "../config/ConfigManager";
 import { logger } from '../logger/Logger'
 import equal from 'deep-equal'
 import { integer } from "@elastic/elasticsearch/api/types";
+import { Rebooter } from "../utils/Rebooter";
 
 export interface NodeInfo {
     nodeName: string
@@ -201,41 +202,68 @@ class NodeManager {
         }
     }
 
+    private static lastRebootTime:Date|undefined
+
     private reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
+        const config = configManager.config;
         const node = nodes.get(nodeName)
         if (node !== undefined) {
             if (node.timer !== undefined) {
                 clearTimeout(node.timer)
             }
 
+            let delay = config.rebootDelay * 1000
+            if (config.rebootDelay <= 0) {
+                delay = 0
+            }
+
+            const now = Date.now()
+            const rebootBuffer = 3
+
+            if(NodeManager.lastRebootTime !== undefined) {
+                const nextRebootAvailable = NodeManager.lastRebootTime.getTime() + (60 * 1000 * rebootBuffer)
+
+                if( nextRebootAvailable > now + delay ) {
+                    delay = nextRebootAvailable - now
+                } else {
+                    delay = delay
+                }
+            }
+
+            const rebootTime = new Date(now + delay)
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot scheduled at ${rebootTime}.` })
+
             setTimeout(() => {
                 logger.info(`Reboot ${nodeName} started.`)
                 Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
+                NodeManager.lastRebootTime = new Date()
+
                 if (this.dryRun !== true) {
 
                     logger.info(`DryRun is not true reboot enabled.`)
 
-                    // try {
-                    //     const rebooter: Rebooter = new Rebooter(configManager)
-                    //     rebooter.run(nodeName)
-                    //     node.lastRebootedTime = new Date()
-                    // } catch (err) {
-                    //     console.error(err)
-                    // }
+                    try {
+                        const rebooter: Rebooter = new Rebooter(configManager)
+                        rebooter.run(nodeName)
+                        node.lastRebootedTime = new Date()
+                    } catch (err) {
+                        console.error(err)
+                    }
                 }
-            }, 60 * 1000)
+            }, delay)
         }
     }
 
     private setTimerForReboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
-        const timeout = 5 * 60 * 1000;
+        const drainBuffer = 10
+        const timeout = drainBuffer * 60 * 1000;
         const node = nodes.get(nodeName)
 
         const timer = setTimeout(() => {
             if (node !== undefined) {
                 node.timer = undefined
             }
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for 5 minutes and will reboot in 1 minute.` })
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         }, timeout)
 
