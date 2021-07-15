@@ -11,40 +11,41 @@ export interface ESNodeStatus {
     status?: string,
     timer?: NodeJS.Timeout,
     lastRebootedTime?: Date,
-    nodeName:string
+    nodeName?: string,
+    UUID: string
 }
 
 export class ESStatusClient extends ESClient<ESNodeStatus> {
-    constructor(configManager:ConfigManager) {
+    constructor(configManager: ConfigManager) {
         const el = configManager.config.elasticSearch;
-        if( el !== undefined) {
-            const {host, port, statusIndex} = el
+        if (el !== undefined) {
+            const { host, port, statusIndex } = el
             super(statusIndex, `http://${host.trim()}:${port}`)
         } else {
             console.error("ElasticSearch connection information is not set in config file.")
         }
     }
 
-    public putStatus(status:ESNodeStatus) {
+    public putStatus(status: ESNodeStatus) {
         super.put(status)
     }
 
-    public async updateStatus(status:ESNodeStatus) {
-        const searchStatus = {nodeName:status.nodeName}
+    public async updateStatus(status: ESNodeStatus) {
+        const searchStatus = { UUID: status.UUID }
         try {
-            const arr  = await super.searchId(searchStatus)
+            const arr = await super.searchId(searchStatus)
             console.log(JSON.stringify(arr))
-            if( arr.length == 0 ) {
+            if (arr.length == 0) {
                 super.put(status)
             } else {
                 super.update(arr[0], status)
             }
-        } catch(err) {
+        } catch (err) {
 
         }
     }
 
-    public async searchStatus(status:ESNodeStatus):Promise<Array<ESNodeStatus>>{
+    public async searchStatus(status: ESNodeStatus): Promise<Array<ESNodeStatus>> {
         return super.search(status)
     }
 }

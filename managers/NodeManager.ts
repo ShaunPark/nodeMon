@@ -34,7 +34,8 @@ export interface NodeConditionCache {
     readonly status: string,
     readonly timer?: NodeJS.Timeout,
     readonly lastRebootedTime?: Date,
-    readonly nodeName:string
+    readonly nodeName:string,
+    readonly UUID:string
 }
 
 const { workerData, parentPort } = require('worker_threads');
@@ -112,12 +113,13 @@ class NodeManager {
                      conditions: node.conditions,
                      timer: node.timer,
                      lastRebootedTime: node.lastRebootedTime,
-                     nodeName: node.nodeName
+                     nodeName: node.nodeName,
+                     UUID: node.UUID
                 })
             } else {
                 Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
-                const node: NodeConditionCache = { nodeName:nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status };
+                const node: NodeConditionCache = { nodeName:nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status, UUID:btoa(nodeName) };
 
                 // 노드를 처음으로 모니터링 하기 시작 했으면 kubelet ready시간을 reboot 시간으로 설정
                 nodeCondition.conditions.filter( condition => {
@@ -130,7 +132,8 @@ class NodeManager {
                             status: node.status,
                             conditions: node.conditions,
                             timer: node.timer,
-                            nodeName: node.nodeName
+                            nodeName: node.nodeName,
+                            UUID: node.UUID
                        })       
                     }
                 })
@@ -159,7 +162,8 @@ class NodeManager {
                         ipAddress: node.ipAddress,
                         conditions: node.conditions,
                         timer: node.timer,
-                        nodeName: node.nodeName
+                        nodeName: node.nodeName,
+                        UUID: node.UUID
                    })       
 
                     if (NodeEventReasonArray.includes(event.reason)) {
@@ -251,7 +255,8 @@ class NodeManager {
                 ipAddress: node.ipAddress,
                 conditions: node.conditions,
                 timer: node.timer,
-                nodeName: node.nodeName
+                nodeName: node.nodeName,
+                UUID: node.UUID
            })  
         }
     }
@@ -308,7 +313,8 @@ class NodeManager {
                             ipAddress: node.ipAddress,
                             conditions: node.conditions,
                             timer: node.timer,
-                            nodeName: node.nodeName
+                            nodeName: node.nodeName,
+                            UUID: node.UUID
                        })              
                     } catch (err) {
                         console.error(err)
@@ -333,7 +339,8 @@ class NodeManager {
                     lastUpdateTime: node.lastUpdateTime,
                     ipAddress: node.ipAddress,
                     conditions: node.conditions,
-                    nodeName: node.nodeName
+                    nodeName: node.nodeName,
+                    UUID: node.UUID
                })              
             }
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.` })
@@ -349,7 +356,8 @@ class NodeManager {
                 lastUpdateTime: node.lastUpdateTime,
                 ipAddress: node.ipAddress,
                 conditions: node.conditions,
-                nodeName: node.nodeName
+                nodeName: node.nodeName,
+                UUID: node.UUID
            })
         }
     }
@@ -454,7 +462,8 @@ class NodeManager {
                     lastUpdateTime: node.lastUpdateTime,
                     ipAddress: node.ipAddress,
                     conditions: node.conditions,
-                    nodeName: node.nodeName
+                    nodeName: node.nodeName,
+                    UUID: node.UUID
                })
             } else {
                 if (node.lastRebootedTime.getTime() < twoWeeksAgo) {

@@ -47,7 +47,8 @@ describe('ElasticSearch', () => {
                 ipAddress: "ipaddress",
                 conditions: new Map(),
                 timer: undefined,
-                nodeName: "test"
+                nodeName: "test",
+                UUID: btoa("test")
             })} catch(err) {
                 logger.error(err)
             }
