@@ -4,7 +4,8 @@ import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import { logger } from '../logger/Logger';
 import { NodeInfo } from '../managers/NodeManager';
-import { IConfig, NodeCondition } from '../types/Type';
+import { NodeCondition } from '../types/Type';
+import { IConfig } from "../types/ConfigType"
 
 interface LocalLabel {
     key: string,

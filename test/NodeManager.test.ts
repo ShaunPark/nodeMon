@@ -3,8 +3,6 @@ import assert from 'assert'
 import { NodeConditionCache, NodeConditionEvent } from '../managers/NodeManager';
 import { K8SNodeInformer } from '../watches/K8SNodeInformer';
 import ConfigManager from '../config/ConfigManager';
-import { IConfig } from '../types/Type';
-
 
 const should = chai.should;
 

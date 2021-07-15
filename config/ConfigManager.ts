@@ -1,6 +1,6 @@
 import yaml from "js-yaml";
 import fs from 'fs'
-import {IConfig} from "../types/Type"
+import {IConfig} from "../types/ConfigType"
 import {logger} from '../logger/Logger'
 
 class ConfigManager {

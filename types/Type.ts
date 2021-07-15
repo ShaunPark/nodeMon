@@ -3,36 +3,6 @@ export interface IArguments {
     dryRun?:boolean;
 }
 
-export interface IConfig {
-    interval?: number;
-    kubernetes?: Ik8s;
-    nodeManager?: INodeMgr;
-    useSSH?:boolean;
-    elasticSearch?: IElasticSearch;
-}
-
-export interface IElasticSearch {
-  host: string
-  port: number
-  logIndex: string
-  statusIndex: string
-
-}
-export interface Ik8s {
-    interval: number;
-    label?: string;
-    labelExpr?: string;
-    nodeSelector?: string
-    conditions?: Array<string>
-    events?: Array<string>
-}
-
-interface INodeMgr {
-    interval: number;
-    awsRegion?: string
-    awsVPC?: string;
-    sshPemFile?: string;
-}
 export interface IEvent {
     type: string;
     message: string;

@@ -1,5 +1,6 @@
 import { parse } from "ts-command-line-args"
-import { IArguments, IConfig } from "./types/Type"
+import { IArguments } from "./types/Type"
+import { IConfig } from "./types/ConfigType"
 import ConfigManager from "./config/ConfigManager";
 import { Worker, MessageChannel } from "worker_threads"
 import path from 'path'
@@ -32,13 +33,13 @@ export class NodeMonMain {
             const config: IConfig = this.configManager.config;
 
             logger.info(`load config from ${configFile}`)
-            logger.info(config.interval)
-            if (config.kubernetes) {
-                const { interval, label } = config.kubernetes;
-                logger.info(` interval ${interval} : ${label}`)
-            } else {
-                logger.info('no kubernetes info')
-            }
+            // logger.info(config.interval)
+            // if (config.kubernetes) {
+            //     const { interval } = config.kubernetes;
+            //     logger.info(` interval ${interval} : ${label}`)
+            // } else {
+            //     logger.info('no kubernetes info')
+            // }
         } catch (err) {
             logger.error(err)
             process.exit(1);

@@ -9,7 +9,7 @@ export class Rebooter {
     public run(ipAddress: string) {
         const config = this.configManager.config
 
-        if (config.useSSH !== undefined && config.useSSH === false) {
+        if (config.rebootThroughSSH !== undefined && config.rebootThroughSSH === false) {
             const aws: AWSReboot = new AWSReboot(this.configManager)
             aws.run([ipAddress])
         } else {

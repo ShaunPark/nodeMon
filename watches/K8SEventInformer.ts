@@ -1,6 +1,6 @@
 import * as k8s from '@kubernetes/client-node';
 import { CoreV1Event, DefaultRequest, RequestInterface, RequestResult } from '@kubernetes/client-node';
-import { IConfig } from '../types/Type';
+import { IConfig } from "../types/ConfigType"
 import Logger from "../logger/Channel";
 import request = require('request');
 import { logger } from '../logger/Logger'
@@ -120,34 +120,37 @@ export class K8SEventInformer {
         }
     }
 
-    private concernedEvents: Array<string> = [
-        "CordonStarting",
-        "CordonSucceeded",
-        "CordonFailed",
-        "UncordonStarting",
-        "UncordonSucceeded",
-        "UncordonFailed",
+    // event - source component pairs
+    private concernedEvents = new Map<string, string[]>([
+        ["CordonStarting", ["draino", "kubelet"]],
+        ["CordonSucceeded",["draino", "kubelet"]],
+        ["CordonFailed", ["draino", "kubelet"]],
+        ["UncordonStarting", ["draino", "kubelet"]],
+        ["UncordonSucceeded", ["draino", "kubelet"]],
+        ["UncordonFailed", ["draino", "kubelet"]],
 
-        "DrainScheduled",
-        "DrainSchedulingFailed",
-        "DrainStarting",
-        "DrainSucceeded",
-        "DrainFailed",
+        ["DrainScheduled", ["draino", "kubelet"]],
+        ["DrainSchedulingFailed", ["draino", "kubelet"]],
+        ["DrainStarting", ["draino", "kubelet"]],
+        ["DrainSucceeded", ["draino", "kubelet"]],
+        ["DrainFailed", ["draino", "kubelet"]],
 
-        // "NodeNotReady",
-        // "Starting",
-        // "Rebooted",
+        ["NodeNotReady",["node-controller"]],
+        //["Starting",""],
+        ["Rebooted", ["kubelet"]],
         // "NodeAllocatableEnforced",
-        // "NodeReady",
+        ["NodeReady", ["kubelet"]],
         // "NodeNotSchedulable"
-    ]
+    ])
 
     public checkValid(event: CoreV1Event): boolean {
         logger.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
-        // Informer 에 fieldSelector를 적용하여 event의 involvedObject.kind 확인 불필요 
+
         if (event.reason) {
-            return this.concernedEvents.includes(event.reason) || ( "Starting" === event.reason && event.source !== undefined && event.source.component == "kubelet")
-            //return event.involvedObject.kind == "Node" && this.concernedEvents.includes(event.reason)
+            const ce = this.concernedEvents.get(event.reason)
+            if( ce !== undefined ) {
+                return ce.includes(event.reason)
+            } 
         }
         return false
     }

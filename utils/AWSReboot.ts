@@ -1,6 +1,6 @@
 import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Filter, StopInstancesCommand, StopInstancesCommandInput, TerminateInstancesCommand, TerminateInstancesCommandInput } from '@aws-sdk/client-ec2';
 import ConfigManager from '../config/ConfigManager';
-import { IConfig } from '../types/Type';
+import { IConfig } from "../types/ConfigType"
 import { logger } from '../logger/Logger'
 
 const jp = require('jsonpath')

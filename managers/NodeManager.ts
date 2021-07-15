@@ -1,7 +1,8 @@
 import { MessagePort } from "worker_threads"
 import Channel from "../logger/Channel";
 import express from "express"
-import { IConfig, NodeCondition, NodeEvent } from "../types/Type";
+import { IConfig } from "../types/ConfigType"
+import { NodeCondition, NodeEvent } from "../types/Type";
 import ConfigManager from "../config/ConfigManager";
 import { logger } from '../logger/Logger'
 import equal from 'deep-equal'
@@ -38,8 +39,8 @@ const { workerData, parentPort } = require('worker_threads');
 export type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted" | "Drained" | "DrainTimeout" | "DrainFailed" | "RebootScheduled" | "NotReady"
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
 
-const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Starting"]
-type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Starting"
+const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
+type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Rebooted" | "NodeNotReady" | "NodeReady"
 
 const startTime: Date = new Date()
 class NodeManager {
@@ -179,15 +180,23 @@ class NodeManager {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drain failed and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         },
-        Starting: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} started` })
+        Rebooted: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} rebooted` })
             this.setNodeRebootTime(nodeName, nodes)
-        }
+        },
+        NodeNotReady: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node status of '${nodeName} is changed to 'NotReady` })
+            this.setNodeRebootTime(nodeName, nodes)
+        },
+        NodeReady: (nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node status of '${nodeName} is changed to 'NotReady` })
+            this.setNodeRebootTime(nodeName, nodes)
+        },
     }
 
-    private setNodeRebootTime(nodeName:string, nodes:Map<string, NodeConditionCache>) {
+    private setNodeRebootTime(nodeName: string, nodes: Map<string, NodeConditionCache>) {
         const node = nodes.get(nodeName)
-        if( node ) {
+        if (node) {
             node.lastRebootedTime = new Date()
         }
     }
