@@ -1,5 +1,6 @@
 import { MessagePort } from "worker_threads";
 import { ESLog } from "../exporters/ESExporter";
+import { NodeConditionCache } from "../managers/NodeManager";
 class Channel {
     private static esPort:MessagePort;
     private static nmPort:MessagePort;
@@ -15,6 +16,10 @@ class Channel {
 
     public static sendMessageEventToES(log:ESLog) {
         Channel.esPort.postMessage({data:log});
+    }
+
+    public static sendNodeStatusToES(node:NodeConditionCache) {
+        Channel.esPort.postMessage({data:node});
     }
 
     public static sendEventToNodeManager(event:any) {

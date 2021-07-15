@@ -9,7 +9,7 @@ import equal from 'deep-equal'
 import { integer } from "@elastic/elasticsearch/api/types";
 import { Rebooter } from "../utils/Rebooter";
 import NodeConditionChanger from "./NodeConditionMgr"
-import { V1NodeCondition } from "@kubernetes/client-node";
+import { V1NodeCondition, V1NodeDaemonEndpoints } from "@kubernetes/client-node";
 export interface NodeInfo {
     nodeName: string
     nodeIp: string
@@ -27,14 +27,14 @@ export interface NodeEventsEvent extends NodeInfo {
     conditions: Array<NodeEvent>
 }
 
-export type NodeConditionCache = {
-    ipAddress: string
-    conditions: Map<string, NodeCondition>
-    lastUpdateTime: Date
-    status: string,
-    timer?: NodeJS.Timeout,
-    lastRebootedTime?: Date,
-    nodeName:string
+export interface NodeConditionCache {
+    readonly ipAddress: string
+    readonly conditions: Map<string, NodeCondition>
+    readonly lastUpdateTime: Date
+    readonly status: string,
+    readonly timer?: NodeJS.Timeout,
+    readonly lastRebootedTime?: Date,
+    readonly nodeName:string
 }
 
 const { workerData, parentPort } = require('worker_threads');
@@ -48,7 +48,7 @@ type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFaile
 const startTime: Date = new Date()
 class NodeManager {
     private application: express.Application;
-    private static nodes = new Map<string, NodeConditionCache>()
+    private static _nodes = new Map<string, NodeConditionCache>()
     private configManager: ConfigManager;
     private conditionManager?:NodeConditionChanger
 
@@ -75,7 +75,16 @@ class NodeManager {
     // Kubernetes 모니터에서 전달된 이벤트 처리
     private onEvent = (event: any) => {
         //수신한 이벤트를 처리
-        this.eventHandlers[event.kind as EventTypes](event, NodeManager.nodes, this.configManager);
+        this.eventHandlers[event.kind as EventTypes](event, NodeManager._nodes, this.configManager);
+    }
+
+    private static getNode(nodeName:string):NodeConditionCache|undefined {
+        return this._nodes.get(nodeName)
+    }
+
+    private static setNode(node:NodeConditionCache) {
+        Channel.sendNodeStatusToES(node);
+        this._nodes.set(node.nodeName, node)
     }
 
     public eventHandlers = {
@@ -95,9 +104,16 @@ class NodeManager {
                     }
                     return true;
                 }).map(condition => node.conditions.set(condition.type, condition))
-                node.ipAddress = nodeCondition.nodeIp
-                node.lastUpdateTime = new Date()
-                node.status = status
+                NodeManager.setNode({    
+                     ipAddress: nodeCondition.nodeIp,
+                     lastUpdateTime: new Date(),
+                     status: status,
+
+                     conditions: node.conditions,
+                     timer: node.timer,
+                     lastRebootedTime: node.lastRebootedTime,
+                     nodeName: node.nodeName
+                })
             } else {
                 Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
@@ -106,7 +122,16 @@ class NodeManager {
                 // 노드를 처음으로 모니터링 하기 시작 했으면 kubelet ready시간을 reboot 시간으로 설정
                 nodeCondition.conditions.filter( condition => {
                     if( condition.type === "Ready" && condition.reason === "KubeletReady" ) {
-                        node.lastRebootedTime = condition.lastTransitionTime
+                        NodeManager.setNode({    
+                            lastRebootedTime: condition.lastTransitionTime,
+
+                            ipAddress: node.ipAddress,
+                            lastUpdateTime: node.lastUpdateTime,
+                            status: node.status,
+                            conditions: node.conditions,
+                            timer: node.timer,
+                            nodeName: node.nodeName
+                       })       
                     }
                 })
 
@@ -126,8 +151,17 @@ class NodeManager {
                 const raisedTime = new Date(eventDate)
 
                 if (startTime.getTime() < eventDate) {
-                    node.status = event.reason;
-                    node.lastUpdateTime = raisedTime
+                    NodeManager.setNode({    
+                        status: event.reason,
+                        lastUpdateTime: raisedTime,
+
+                        lastRebootedTime: node.lastRebootedTime,
+                        ipAddress: node.ipAddress,
+                        conditions: node.conditions,
+                        timer: node.timer,
+                        nodeName: node.nodeName
+                   })       
+
                     if (NodeEventReasonArray.includes(event.reason)) {
                         logger.info(`event.reason '${event.reason}'is NodeEventReasons`)
                         this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName, nodes, configManager)
@@ -137,9 +171,9 @@ class NodeManager {
                 }
             }
         },
-        PrintNode: (nodes: Map<string, NodeConditionCache>) => {
+        PrintNode: () => {
             const arr = new Array<Object>()
-            nodes.forEach((node, key) => {
+            NodeManager._nodes.forEach((node, key) => {
                 arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status, lastRebootedTime: node.lastRebootedTime })
             })
             console.table(arr);
@@ -209,7 +243,16 @@ class NodeManager {
     private setNodeRebootTime(nodeName: string, nodes: Map<string, NodeConditionCache>) {
         const node = nodes.get(nodeName)
         if (node) {
-            node.lastRebootedTime = new Date()
+            NodeManager.setNode({    
+                lastRebootedTime: new Date(),
+
+                status: node.status,
+                lastUpdateTime: node.lastUpdateTime,
+                ipAddress: node.ipAddress,
+                conditions: node.conditions,
+                timer: node.timer,
+                nodeName: node.nodeName
+           })  
         }
     }
 
@@ -256,7 +299,17 @@ class NodeManager {
                     try {
                         const rebooter: Rebooter = new Rebooter(configManager)
                         rebooter.run(nodeName)
-                        node.lastRebootedTime = new Date()
+
+                        NodeManager.setNode({    
+                            lastRebootedTime: new Date(),
+            
+                            status: node.status,
+                            lastUpdateTime: node.lastUpdateTime,
+                            ipAddress: node.ipAddress,
+                            conditions: node.conditions,
+                            timer: node.timer,
+                            nodeName: node.nodeName
+                       })              
                     } catch (err) {
                         console.error(err)
                     }
@@ -272,14 +325,32 @@ class NodeManager {
 
         const timer = setTimeout(() => {
             if (node !== undefined) {
-                node.timer = undefined
+                NodeManager.setNode({    
+                    timer: undefined,
+
+                    lastRebootedTime: node.lastRebootedTime,
+                    status: node.status,
+                    lastUpdateTime: node.lastUpdateTime,
+                    ipAddress: node.ipAddress,
+                    conditions: node.conditions,
+                    nodeName: node.nodeName
+               })              
             }
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         }, timeout)
 
         if (node !== undefined) {
-            node.timer = timer
+            NodeManager.setNode({    
+                timer: timer,
+
+                lastRebootedTime: node.lastRebootedTime,
+                status: node.status,
+                lastUpdateTime: node.lastUpdateTime,
+                ipAddress: node.ipAddress,
+                conditions: node.conditions,
+                nodeName: node.nodeName
+           })
         }
     }
 
@@ -303,7 +374,7 @@ class NodeManager {
         // })
 
         setInterval(() => {
-            this.eventHandlers['PrintNode'](NodeManager.nodes)
+            this.eventHandlers['PrintNode']()
             //eventHandlers['CleanNode'](NodeManager.nodes)
         }, interval)
     }
@@ -337,7 +408,7 @@ class NodeManager {
     private numberOfReboot: integer = 0
 
     private rebootNodeEveryTwoWeek(twoWeeksAgo: number) {
-        this.numberOfReboot = NodeManager.nodes.size * (this.percentOfReboot / 100) + 1
+        this.numberOfReboot = NodeManager._nodes.size * (this.percentOfReboot / 100) + 1
         const now = new Date()
         const hour = now.getHours()
         if (hour > this.fromHourForMaintainous && hour < this.toHourForMaintainous && this.numberOfReboot > 0) {
@@ -373,9 +444,18 @@ class NodeManager {
     private static rebootNode: string | undefined
 
     private findRebootNode(twoWeeksAgo: number): NodeConditionCache | undefined {
-        NodeManager.nodes.forEach(node => {
+        NodeManager._nodes.forEach(node => {
             if (node.lastRebootedTime === undefined) {
-                node.lastRebootedTime = new Date();
+                NodeManager.setNode({   
+                    lastRebootedTime: new Date(),
+
+                    timer: node.timer,
+                    status: node.status,
+                    lastUpdateTime: node.lastUpdateTime,
+                    ipAddress: node.ipAddress,
+                    conditions: node.conditions,
+                    nodeName: node.nodeName
+               })
             } else {
                 if (node.lastRebootedTime.getTime() < twoWeeksAgo) {
                     return node;
