@@ -1,3 +1,4 @@
+import { V1DaemonSetUpdateStrategy } from "@kubernetes/client-node";
 import ConfigManager from "../config/ConfigManager";
 import { ESClient } from "./ESClient";
 

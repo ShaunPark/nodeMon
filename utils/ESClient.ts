@@ -9,6 +9,7 @@ export abstract class ESClient<T> {
   constructor(indexName: string, hostString: string) {
     this.INDEX_NAME = indexName;
     this.client = new Client({ node: hostString })
+    this.createIndex()
   }
 
   public async createIndex() {
