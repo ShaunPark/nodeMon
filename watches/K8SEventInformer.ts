@@ -148,8 +148,10 @@ export class K8SEventInformer {
 
         if (event.reason) {
             const ce = this.concernedEvents.get(event.reason)
-            if( ce !== undefined ) {
-                return ce.includes(event.reason)
+            if( ce !== undefined && event.source && event.source.component) {
+                const isValid = ce.includes(event.source.component)
+
+                return isValid
             } 
         }
         return false
