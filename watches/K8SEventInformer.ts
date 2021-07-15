@@ -134,23 +134,19 @@ export class K8SEventInformer {
         "DrainSucceeded",
         "DrainFailed",
 
-        "NodeNotReady",
-        "Starting",
-        "Rebooted",
-        "NodeAllocatableEnforced",
-        "NodeReady",
-        "NodeNotSchedulable"
+        // "NodeNotReady",
+        // "Starting",
+        // "Rebooted",
+        // "NodeAllocatableEnforced",
+        // "NodeReady",
+        // "NodeNotSchedulable"
     ]
 
     public checkValid(event: CoreV1Event): boolean {
-        logger.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason} `)
+        logger.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
         // Informer 에 fieldSelector를 적용하여 event의 involvedObject.kind 확인 불필요 
         if (event.reason) {
-            const isValid = this.concernedEvents.includes(event.reason)
-            if( isValid ) {
-                logger.info(JSON.stringify(event))
-            }
-            return isValid
+            return this.concernedEvents.includes(event.reason) || ( "Starting" === event.reason && event.source !== undefined && event.source.component == "kubelet")
             //return event.involvedObject.kind == "Node" && this.concernedEvents.includes(event.reason)
         }
         return false
