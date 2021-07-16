@@ -61,7 +61,8 @@ class AWSShutdown {
         const data = await this.ec2.send(command)
         const instanceIds = jp.query(data, jsonPath) as Array<string>
 
-        //this.terminateNode(instanceIds)
+        logger.info(`Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
+        this.terminateNode(instanceIds)
         logger.debug(JSON.stringify(instanceIds))
       } catch (err) {
         logger.error("Error", err.stack);
@@ -86,11 +87,10 @@ class AWSShutdown {
 
     const dryRun: boolean = (instanceIds.length > 1) ? true : false;
     const param: TerminateInstancesCommandInput = { InstanceIds: instanceIds, DryRun: dryRun }
-    logger.info(`Terminate param : ${JSON.stringify(param)}`)
+    logger.debug(`Terminate param : ${JSON.stringify(param)}`)
 
     const data = this.sendAWSCommand(new TerminateInstancesCommand(param))
     logger.info(`Terminate request for ${instanceIds} done ${data}`)
-
   }
 
   private async sendAWSCommand(command: TerminateInstancesCommand | StopInstancesCommand): Promise<any> {
