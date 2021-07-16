@@ -4,8 +4,6 @@ import { IConfig } from "../types/ConfigType"
 import { logger } from '../logger/Logger'
 
 const jp = require('jsonpath')
-
-const JSON_PATH_INSTANCE_ID = '$..Instances[*].InstanceId'
 const REGION_AP_2 = 'ap-northeast-2'
 const PRIVATE_IP_ADDRESS = 'private-ip-address'
 class AWSShutdown {
@@ -40,11 +38,15 @@ class AWSShutdown {
     const vpc = this.configManager?.config?.nodeManager?.awsVPC;
     const filters: Array<Filter> = new Array<Filter>()
 
+    let jsonPath = `$.Reservations[*].Instances[?(@.PrivateIpAddress  == "${ipAddress}")].InstanceId`
+
     // ip 가 지정된 경우에만 
     if( this.checkIfValidIP(ipAddress)) {
       filters.push({ Name: PRIVATE_IP_ADDRESS, Values: [ipAddress] })
+      jsonPath = `$.Reservations[*].Instances[?(@.PrivateIpAddress  == "${ipAddress}")].InstanceId`
     } else {
       filters.push({ Name: "private-dns-name", Values: [ipAddress] })
+      jsonPath = `$.Reservations[*].Instances[?(@.PrivateDnsName == "${ipAddress}")].InstanceId`
     }
 
     if (vpc) {
@@ -57,13 +59,10 @@ class AWSShutdown {
       const command = new DescribeInstancesCommand(cmdParam)
       try {
         const data = await this.ec2.send(command)
-        const instanceIds = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
-        //const ipaddersses = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
+        const instanceIds = jp.query(data, jsonPath) as Array<string>
 
         //this.terminateNode(instanceIds)
-
         logger.info(JSON.stringify(instanceIds))
-        logger.info(JSON.stringify(data))
       } catch (err) {
         logger.info("Error", err.stack);
       }
