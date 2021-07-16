@@ -34,7 +34,7 @@ class ESExporter {
     }
 
     private log = (event: MessageEvent<ESMessage>) => {
-        logger.info(`log in es exporter : ${JSON.stringify(event)}`)
+        // logger.info(`log in es exporter : ${JSON.stringify(event)}`)
         if (event.data.kind === "log" && event.data.log) {
             this.esLogger.putLog({ nodeName: event.data.log.node, message: event.data.log.message })
         } else if ( event.data.kind === "status" && event.data.status) {

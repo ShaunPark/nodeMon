@@ -303,7 +303,7 @@ class NodeManager {
 
                     try {
                         const rebooter: Rebooter = new Rebooter(configManager)
-                        rebooter.run(node.ipAddress)
+                        rebooter.run(node.nodeName)
 
                         NodeManager.setNode({    
                             lastRebootedTime: new Date(),

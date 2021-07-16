@@ -34,7 +34,7 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
         const searchStatus = { UUID: status.UUID }
         try {
             const arr = await super.searchId(searchStatus)
-            console.log(JSON.stringify(arr))
+            // console.log(JSON.stringify(arr))
             if (arr.length == 0) {
                 super.put(status)
             } else {
