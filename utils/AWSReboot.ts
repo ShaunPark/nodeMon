@@ -58,10 +58,12 @@ class AWSShutdown {
       try {
         const data = await this.ec2.send(command)
         const instanceIds = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
+        //const ipaddersses = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
 
         //this.terminateNode(instanceIds)
 
         logger.info(JSON.stringify(instanceIds))
+        logger.info(JSON.stringify(data))
       } catch (err) {
         logger.info("Error", err.stack);
       }
