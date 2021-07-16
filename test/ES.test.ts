@@ -1,6 +1,6 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import { ESStatusClient } from '../utils/ESStatusClient';
+import { ESStatusClient } from '../reboot/ESStatusClient';
 import ConfigManager from '../config/ConfigManager';
 import { logger } from '../logger/Logger'
 

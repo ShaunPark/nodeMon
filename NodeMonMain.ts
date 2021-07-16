@@ -5,8 +5,8 @@ import ConfigManager from "./config/ConfigManager";
 import { Worker, MessageChannel } from "worker_threads"
 import path from 'path'
 import Channel from "./logger/Channel";
-import { K8SEventInformer } from "./watches/K8SEventInformer";
-import { K8SNodeInformer } from "./watches/K8SNodeInformer";
+import { K8SEventInformer } from "./kubernetes/K8SEventInformer";
+import { K8SNodeInformer } from "./kubernetes/K8SNodeInformer";
 import { logger } from './logger/Logger'
 import { TransitGatewayAttachmentAssociation } from "@aws-sdk/client-ec2";
 

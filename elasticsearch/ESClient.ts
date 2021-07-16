@@ -116,4 +116,12 @@ export abstract class ESClient<T> {
       // throw error;
     }
   }
+
+  protected delete(id:string) {
+    const bodyData:RequestParams.Delete = {
+      index: this.INDEX_NAME,
+      id: id
+    }
+    return this.client.delete(bodyData)
+  }
 }

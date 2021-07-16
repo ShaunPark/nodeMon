@@ -1,7 +1,7 @@
 import * as chai from 'chai'
 import assert from 'assert'
 import { NodeConditionCache, NodeConditionEvent } from '../managers/NodeManager';
-import { K8SNodeInformer } from '../watches/K8SNodeInformer';
+import { K8SNodeInformer } from '../kubernetes/K8SNodeInformer';
 import ConfigManager from '../config/ConfigManager';
 
 const should = chai.should;

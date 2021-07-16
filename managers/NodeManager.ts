@@ -7,7 +7,7 @@ import ConfigManager from "../config/ConfigManager";
 import { logger } from '../logger/Logger'
 import equal from 'deep-equal'
 import { integer } from "@elastic/elasticsearch/api/types";
-import { Rebooter } from "../utils/Rebooter";
+import { Rebooter } from "../reboot/Rebooter";
 import NodeConditionChanger from "./NodeConditionMgr"
 import { V1NodeCondition, V1NodeDaemonEndpoints } from "@kubernetes/client-node";
 export interface NodeInfo {
