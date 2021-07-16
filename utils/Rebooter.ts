@@ -11,10 +11,10 @@ export class Rebooter {
 
         if (config.rebootThroughSSH !== undefined && config.rebootThroughSSH === false) {
             const aws: AWSReboot = new AWSReboot(this.configManager)
-            aws.run([ipAddress])
+            aws.run(ipAddress)
         } else {
             const ssh: SSHReboot = new SSHReboot(this.configManager)
-            ssh.run([ipAddress])
+            ssh.run(ipAddress)
         }
     }
 }
