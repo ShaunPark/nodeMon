@@ -33,12 +33,17 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
     public async updateStatus(status: ESNodeStatus) {
         const searchStatus = { UUID: status.UUID }
         try {
-            const arr = await super.searchId(searchStatus)
+            const arr = await super.searchId(searchStatus, "timestamp")
             // console.log(JSON.stringify(arr))
             if (arr.length == 0) {
                 super.put(status)
             } else {
                 super.update(arr[0], status)
+                if (arr.length > 1) {
+                    arr.slice(1).map((id) => {
+                        super.delete(id)
+                    })
+                }
             }
         } catch (err) {
 

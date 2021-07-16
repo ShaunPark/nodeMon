@@ -67,7 +67,7 @@ export abstract class ESClient<T> {
     }
   }
 
-  protected async searchId(data: T): Promise<Array<string>>{
+  protected async searchId(data: T, sort?:string): Promise<Array<string>>{
     try {
       const bodyData: RequestParams.Search = {
         index: this.INDEX_NAME,
@@ -75,7 +75,8 @@ export abstract class ESClient<T> {
           query: {
             match: data
           }
-        }
+        },
+        sort:sort
       };
       logger.debug(JSON.stringify(bodyData))
 
