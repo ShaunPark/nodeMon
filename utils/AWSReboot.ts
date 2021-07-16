@@ -1,4 +1,4 @@
-import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Filter, StopInstancesCommand, StopInstancesCommandInput, TerminateInstancesCommand, TerminateInstancesCommandInput } from '@aws-sdk/client-ec2';
+import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Filter, StopInstancesCommand, TerminateInstancesCommand, TerminateInstancesCommandInput } from '@aws-sdk/client-ec2';
 import ConfigManager from '../config/ConfigManager';
 import { IConfig } from "../types/ConfigType"
 import { logger } from '../logger/Logger'
@@ -7,7 +7,6 @@ const jp = require('jsonpath')
 
 const JSON_PATH_INSTANCE_ID = '$..Instances[*].InstanceId'
 const REGION_AP_2 = 'ap-northeast-2'
-const FILTER = 'Filters'
 const PRIVATE_IP_ADDRESS = 'private-ip-address'
 class AWSShutdown {
   private ec2: EC2Client;
@@ -27,7 +26,14 @@ class AWSShutdown {
     }
   }
 
-  public async run(ipAddress: string[]) {
+  private checkIfValidIP(str:string) {
+    // Regular expression to check if string is a IP address
+    const regexExp = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+  
+    return regexExp.test(str);
+  }
+
+  public async run(ipAddress: string) {
 
     logger.info(`Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
 
@@ -35,31 +41,32 @@ class AWSShutdown {
     const filters: Array<Filter> = new Array<Filter>()
 
     // ip 가 지정된 경우에만 
-    if (ipAddress && ipAddress.length > 0) {
-      filters.push({ Name: PRIVATE_IP_ADDRESS, Values: ipAddress })
+    if( this.checkIfValidIP(ipAddress)) {
+      filters.push({ Name: PRIVATE_IP_ADDRESS, Values: [ipAddress] })
     } else {
-      throw new Error();
+      filters.push({ Name: "private-dns-name", Values: [ipAddress] })
     }
 
     if (vpc) {
       filters.push({ Name: 'vpc-id', Values: [vpc] })
-    }
+      const param: DescribeInstancesCommandInput = { Filters: filters, DryRun: false }
+      logger.info(JSON.stringify(param))
 
-    const param: DescribeInstancesCommandInput = { Filters: filters, DryRun: false }
-    logger.info(JSON.stringify(param))
+      // get instance information filtered by private ip address
+      const cmdParam: DescribeInstancesCommandInput = {}
+      const command = new DescribeInstancesCommand(cmdParam)
+      try {
+        const data = await this.ec2.send(command)
+        const instanceIds = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
 
-    // get instance information filtered by private ip address
-    const cmdParam: DescribeInstancesCommandInput = {}
-    const command = new DescribeInstancesCommand(cmdParam)
-    try {
-      const data = await this.ec2.send(command)
-      const instanceIds = jp.query(data, JSON_PATH_INSTANCE_ID) as Array<string>
+        //this.terminateNode(instanceIds)
 
-      //this.terminateNode(instanceIds)
-
-      logger.info(JSON.stringify(instanceIds))
-    } catch (err) {
-      logger.info("Error", err.stack);
+        logger.info(JSON.stringify(instanceIds))
+      } catch (err) {
+        logger.info("Error", err.stack);
+      }
+    } else {
+      logger.error('VPC is not configured in configfile. Reboot skipped.')
     }
   }
 

@@ -7,8 +7,8 @@ class SSHReboot {
 
     constructor(private configManager: ConfigManager) { }
 
-    public async run(ipAddress: string[]) {
-        ipAddress.forEach(ip => this.reboot(ip))
+    public run(ipAddress: string) {
+        this.reboot(ipAddress)
     }
 
     private reboot(ipAddress: string) {
