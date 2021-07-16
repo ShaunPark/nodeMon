@@ -2,8 +2,8 @@ import { MessagePort } from "worker_threads"
 import ConfigManager from "../config/ConfigManager";
 import { logger } from '../logger/Logger'
 import { NodeConditionCache } from "../managers/NodeManager";
-import { ESLogClient } from "../reboot/ESLogClient";
-import { ESStatusClient } from "../reboot/ESStatusClient";
+import { ESLogClient } from "./ESLogClient";
+import { ESStatusClient } from "./ESStatusClient";
 
 const { workerData, parentPort } = require('worker_threads');
 
