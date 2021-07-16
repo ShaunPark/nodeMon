@@ -15,11 +15,13 @@ class Channel {
     }
 
     public static sendMessageEventToES(log:ESLog) {
-        Channel.esPort.postMessage({data:{log:log, kind:"log"}});
+        const logJSON = JSON.parse(JSON.stringify(log))
+        Channel.esPort.postMessage({data:{log:logJSON, kind:"log"}});
     }
 
     public static sendNodeStatusToES(node:NodeConditionCache) {
-        Channel.esPort.postMessage({data:{kind:"status", status:node}});
+        const nodeJson = JSON.parse(JSON.stringify(node))
+        Channel.esPort.postMessage({data:{kind:"status", status:nodeJson}});
     }
 
     public static sendEventToNodeManager(event:any) {
