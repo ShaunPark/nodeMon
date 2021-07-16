@@ -55,8 +55,7 @@ class AWSShutdown {
       logger.debug(JSON.stringify(param))
 
       // get instance information filtered by private ip address
-      const cmdParam: DescribeInstancesCommandInput = {}
-      const command = new DescribeInstancesCommand(cmdParam)
+      const command = new DescribeInstancesCommand(param)
       try {
         const data = await this.ec2.send(command)
         const instanceIds = jp.query(data, jsonPath) as Array<string>
