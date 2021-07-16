@@ -18,17 +18,17 @@ class SSHReboot {
 
             if (sshFile) {
                 conn.on('ready', () => {
-                    logger.info('Client :: ready');
+                    logger.debug('Client :: ready');
                     conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
                         if (err) throw err;
 
                         stream.on('close', (code: any, signal: any) => {
-                            logger.info('Stream :: close :: code: ' + code + ', signal: ' + signal);
+                            logger.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
                             conn.end();
                         }).on('data', (data: any) => {
-                            logger.info('STDOUT: ' + data);
+                            logger.debug('STDOUT: ' + data);
                         }).stderr.on('data', (data: any) => {
-                            logger.info('STDERR: ' + data);
+                            logger.debug('STDERR: ' + data);
                         });
                     });
                 })

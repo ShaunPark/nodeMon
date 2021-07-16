@@ -48,16 +48,16 @@ export abstract class ESClient<T> {
           }
         }
       };
-      logger.info(JSON.stringify(bodyData))
+      logger.debug(JSON.stringify(bodyData))
 
       const { body } = await this.client.search(bodyData);
 
       const retArr = new Array<T>()
       const arr: any[] = body.hits.hits;
-      logger.info(JSON.stringify(body))
+      logger.debug(JSON.stringify(body))
       arr.forEach(item => { retArr.push(item._source as T) })
 
-      logger.info(retArr.length)
+      logger.debug(retArr.length)
       return retArr
     } catch (error) {
       logger.error(
@@ -77,7 +77,7 @@ export abstract class ESClient<T> {
           }
         }
       };
-      logger.info(JSON.stringify(bodyData))
+      logger.debug(JSON.stringify(bodyData))
 
       const { body } = await this.client.search(bodyData);
 
@@ -98,7 +98,7 @@ export abstract class ESClient<T> {
   public async update(id: string, data: T) {
     try {
 
-      logger.info(id)
+      logger.debug(id)
 
       const bodyData: RequestParams.Index = {
         index: this.INDEX_NAME,

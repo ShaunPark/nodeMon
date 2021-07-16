@@ -52,7 +52,7 @@ class AWSShutdown {
     if (vpc) {
       filters.push({ Name: 'vpc-id', Values: [vpc] })
       const param: DescribeInstancesCommandInput = { Filters: filters, DryRun: false }
-      logger.info(JSON.stringify(param))
+      logger.debug(JSON.stringify(param))
 
       // get instance information filtered by private ip address
       const cmdParam: DescribeInstancesCommandInput = {}
@@ -62,9 +62,9 @@ class AWSShutdown {
         const instanceIds = jp.query(data, jsonPath) as Array<string>
 
         //this.terminateNode(instanceIds)
-        logger.info(JSON.stringify(instanceIds))
+        logger.debug(JSON.stringify(instanceIds))
       } catch (err) {
-        logger.info("Error", err.stack);
+        logger.error("Error", err.stack);
       }
     } else {
       logger.error('VPC is not configured in configfile. Reboot skipped.')
