@@ -439,7 +439,7 @@ class NodeManager {
     
         const condition:V1NodeCondition = {
             status:"True", 
-            type:"RebootRequested", 
+            type:"Warning", 
             lastHeartbeatTime: new Date(), 
             lastTransitionTime: new Date(), 
             message:"Reboot requested by nodeMon",
