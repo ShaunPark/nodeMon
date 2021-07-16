@@ -8,7 +8,6 @@ import Channel from "./logger/Channel";
 import { K8SEventInformer } from "./kubernetes/K8SEventInformer";
 import { K8SNodeInformer } from "./kubernetes/K8SNodeInformer";
 import { logger } from './logger/Logger'
-import { TransitGatewayAttachmentAssociation } from "@aws-sdk/client-ec2";
 
 type Config = {
     interval: number;
@@ -67,9 +66,9 @@ export class NodeMonMain {
     }
 
     private initChannels = (configFile: string) => {
-        this._esLogger = new Worker('./build/exporters/ESExporter.js', {
+        this._esLogger = new Worker('./build/elasticsearch/ESExporter.js', {
             workerData: {
-                aliasModule: path.resolve(__dirname, 'exporter/ESExporter.ts'),
+                aliasModule: path.resolve(__dirname, 'elasticsearch/ESExporter.ts'),
                 config: configFile
             }
         })
