@@ -49,7 +49,7 @@ const startTime: Date = new Date()
 export default class NodeManager {
     private static _nodes = new Map<string, NodeConditionCache>()
     private configManager: ConfigManager;
-    private k8sUtil?: K8SUtil
+    private k8sUtil: K8SUtil
 
     constructor(private configFile: string, private dryRun: boolean) {
         if (parentPort){
@@ -57,6 +57,7 @@ export default class NodeManager {
         }
 
         this.configManager = new ConfigManager(this.configFile);
+        this.k8sUtil = new K8SUtil(this.configManager.config)
     }
 
     // 스레드간 채널 연결 초기화
@@ -565,7 +566,6 @@ export default class NodeManager {
     private getNodeByResourceUsage(allNodes: Array<{ nodeName: string, memory: string }>, rebootNodes: Array<string>): Array<{ nodeName: string, memory: string }> {
         const ret: Array<{ nodeName: string, memory: string }> = []
 
-
         logger.info(JSON.stringify(rebootNodes))
 
         allNodes.filter(node => {
@@ -585,40 +585,24 @@ export default class NodeManager {
     }
 
     private getAllNodes(): Array<{ nodeName: string, memory: string }> {
-        if (this.k8sUtil === undefined) {
-            this.k8sUtil = new K8SUtil(this.configManager.config)
-        }
-
         return this.k8sUtil.getAllNodeAndMemory(this.configManager.config.kubernetes?.nodeSelector)
     }
 
     private cordonNode(nodeName: string) {
-        if (this.k8sUtil === undefined) {
-            this.k8sUtil = new K8SUtil(this.configManager.config)
-        }
         this.k8sUtil.cordonNode(nodeName)
         Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
     }
 
     private uncordonNode(nodeName: string) {
-        if (this.k8sUtil === undefined) {
-            this.k8sUtil = new K8SUtil(this.configManager.config)
-        }
         this.k8sUtil.uncordonNode(nodeName)
         Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
     }
 
     private removeRebootCondition = (nodeName: string) => {
-        if (this.k8sUtil === undefined) {
-            this.k8sUtil = new K8SUtil(this.configManager.config)
-        }
         this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
     }
 
     private setNodeConditionToReboot = (nodeName: string) => {
-        if (this.k8sUtil === undefined) {
-            this.k8sUtil = new K8SUtil(this.configManager.config)
-        }
         this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
         Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
     }
