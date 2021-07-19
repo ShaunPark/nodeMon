@@ -566,17 +566,17 @@ export default class NodeManager {
     private getNodeByResourceUsage(allNodes: Array<{ nodeName: string, memory: string }>, rebootNodes: Array<string>): Array<{ nodeName: string, memory: string }> {
         const ret: Array<{ nodeName: string, memory: string }> = []
 
-        logger.info(JSON.stringify(rebootNodes))
+        logger.debug(JSON.stringify(rebootNodes))
 
         allNodes.filter(node => {
-            logger.info(`${node.nodeName} ${rebootNodes.includes(node.nodeName)}`)
+            logger.debug(`${node.nodeName} ${rebootNodes.includes(node.nodeName)}`)
             return !rebootNodes.includes(node.nodeName)
         }).sort((node1, node2) => {
             const node1Mem = node1.memory
             const node2Mem = node2.memory
             return this.chagneMemToNumber(node2Mem) - this.chagneMemToNumber(node1Mem)
         }).forEach(node => {
-            logger.info(`${node.nodeName} ${node.memory} ${this.chagneMemToNumber(node.memory)} `)
+            logger.debug(`${node.nodeName} ${node.memory} ${this.chagneMemToNumber(node.memory)} `)
             ret.push(node)
         })
 

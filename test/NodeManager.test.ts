@@ -1,6 +1,6 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import { NodeConditionCache, NodeConditionEvent, NodeManager } from '../managers/NodeManager';
+import NodeManager, { NodeConditionCache, NodeConditionEvent} from '../managers/NodeManager';
 import ConfigManager from '../config/ConfigManager';
 import { NodeCondition } from '../types/Type';
 
