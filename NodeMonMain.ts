@@ -100,16 +100,6 @@ export class NodeMonMain {
         }
     }
 
-    // private mainLoop = () => {
-    //     const config: IConfig = this.configManager.config;
-
-    //     logger.info('NodeMon main Loop started')
-
-    //     this.monitorPrometheus()
-    // }
-
-    // private monitorPrometheus = () => { }
-
     close = async () => {
         this._esLogger.postMessage({ type: "shutdown"});
 
