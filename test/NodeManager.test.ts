@@ -1,138 +1,250 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import { NodeConditionCache, NodeConditionEvent } from '../managers/NodeManager';
-import { K8SNodeInformer } from '../kubernetes/K8SNodeInformer';
+import { NodeConditionCache, NodeConditionEvent, NodeManager } from '../managers/NodeManager';
 import ConfigManager from '../config/ConfigManager';
+import { NodeCondition } from '../types/Type';
 
 const should = chai.should;
 
 
+const getList = ():{nodeName:string, memory:string}[] => {
+    const arr = [
+        {nodeName:"ip-10-0-0-1", memory:"500Mi"},
+        // {nodeName:"ip-10-0-0-2", memory:"500Mi"},
+        // {nodeName:"ip-10-0-0-3", memory:"500Mi"},
+        // {nodeName:"ip-10-0-0-4", memory:"500Mi"},
+        // {nodeName:"ip-10-0-0-5", memory:"0.3Gi"},
+        // {nodeName:"ip-10-0-0-6", memory:"5000Mi"},
+        {nodeName:"ip-10-0-0-7", memory:"12800000"},
+        {nodeName:"ip-10-0-0-8", memory:"1G"},
+    ]
+    return  arr
+}
 
 describe('NodeManager', () => {
-    const configManager = new ConfigManager("./test/config.yaml");
 
-    const nodes: Map<string, NodeConditionCache> = new Map()
-    const event1: NodeConditionEvent =
-    {
-        "kind": "NodeCondition",
-        "nodeName": "ip-10-0-0-11",
-        "nodeIp": "",
-        "conditions": [
-            {
-                "lastHeartbeatTime": new Date("2021-07-05T00:11:05.000Z"),
-                "lastTransitionTime": new Date("2021-07-04T23:36:01.000Z"),
-                "message": "kernel has no deadlock",
-                "reason": "KernelHasNoDeadlock",
-                "status": "False",
-                "type": "KernelDeadlock"
-            }],
-        "nodeUnscheduleable": true,
-        status: "Ready"
-    }
+    NodeManager.setNode({
+        lastRebootedTime: new Date("2021-07-18"),
+        status: "Ready",
+        lastUpdateTime: new Date(),
+        ipAddress: "10.0.0.1",
+        conditions: new Map<string,NodeCondition>(),
+        nodeName: "ip-10-0-0-1",
+        UUID: "node.UUID"
+    })
 
-    const nowDt = new Date()
-    const event2: NodeConditionEvent =
-    {
-        "kind": "NodeCondition",
-        "nodeName": "ip-10-0-0-11",
-        "nodeIp": "",
-        "conditions": [
-            {
-                "lastHeartbeatTime": nowDt,
-                "lastTransitionTime": nowDt,
-                "message": "kernel has no deadlock",
-                "reason": "KernelHasNoDeadlock",
-                "status": "True",
-                "type": "KernelDeadlock"
-            }],
-        "nodeUnscheduleable": true,
-        status: "Ready"
-    }
-
-    // it('save events', () => {
-    //     eventHandlers.NodeCondition(event1, nodes, configManager);
-    //     assert.notDeepStrictEqual(nodes.get("ip-10-0-0-11"), event1)
-    // });
-
-    // it('update events', () => {
-    //     eventHandlers.NodeCondition(event2, nodes, configManager);
-    //     const condition = nodes.get("ip-10-0-0-11")?.conditions.get("KernelDeadlock")
-    //     assert.strictEqual(condition?.status, "True")
-    //     assert.strictEqual(condition.lastHeartbeatTime, nowDt)
-    // });
-
-    const event3: NodeConditionEvent =
-    {
-        "kind": "NodeCondition",
-        "nodeName": "ip-10-0-0-11",
-        "nodeIp": "",
-        "conditions": [
-            {
-                "lastHeartbeatTime": new Date("2021-07-05T00:11:05.000Z"),
-                "lastTransitionTime": new Date("2021-07-04T23:36:01.000Z"),
-                "message": "new Event",
-                "reason": "NewEvent",
-                "status": "False",
-                "type": "NewEvent"
-            },
-            {
-                "lastHeartbeatTime": nowDt,
-                "lastTransitionTime": nowDt,
-                "message": "kernel has no deadlock",
-                "reason": "KernelHasNoDeadlock",
-                "status": "True",
-                "type": "KernelDeadlock"
-            }],
-        "nodeUnscheduleable": true,
-        status: "Ready"
-    }
-
-    // it('add condition', () => {
-    //     eventHandlers.NodeCondition(event3, nodes, configManager);
-    //     const condition = nodes.get("ip-10-0-0-11")?.conditions
-    //     assert.strictEqual(condition?.size, 2)
+    // NodeManager.setNode({
+    //     lastRebootedTime: new Date("2021-07-11"),
+    //     status: "Ready",
+    //     lastUpdateTime: new Date(),
+    //     ipAddress: "10.0.0.2",
+    //     conditions: new Map<string,NodeCondition>(),
+    //     nodeName: "ip-10-0-0-2",
+    //     UUID: "node.UUID"
     // })
 
-    const event4: NodeConditionEvent =
-    {
-        "kind": "NodeCondition",
-        "nodeName": "ip-10-0-0-12",
-        "nodeIp": "",
-        "conditions": [
-            {
-                "lastHeartbeatTime": nowDt,
-                "lastTransitionTime": nowDt,
-                "message": "kernel has no deadlock",
-                "reason": "KernelHasNoDeadlock",
-                "status": "True",
-                "type": "KernelDeadlock"
-            }],
-        "nodeUnscheduleable": true,
-        status: "Ready"
-
-    }
-
-    // it('add new Node', () => {
-    //     eventHandlers.NodeCondition(event4, nodes, configManager);
-    //     assert.strictEqual(nodes?.size, 2)
+    // NodeManager.setNode({
+    //     lastRebootedTime: new Date("2021-07-18"),
+    //     status: "Ready",
+    //     lastUpdateTime: new Date(),
+    //     ipAddress: "10.0.0.3",
+    //     conditions: new Map<string,NodeCondition>(),
+    //     nodeName: "ip-10-0-0-3",
+    //     UUID: "node.UUID"
     // })
 
+    // NodeManager.setNode({
+    //     lastRebootedTime: new Date("2021-07-18"),
+    //     status: "Ready",
+    //     lastUpdateTime: new Date(),
+    //     ipAddress: "10.0.0.4",
+    //     conditions: new Map<string,NodeCondition>(),
+    //     nodeName: "ip-10-0-0-4",
+    //     UUID: "node.UUID"
+    // })
 
-    // it('check label in node ', () => {
-    //     const inform = new K8SNodeInformer()
-    //     const labels = {
-    //         "beta.kubernetes.io/arch": "amd64",
-    //         "beta.kubernetes.io/os": "linux",
-    //         "draino-enabled": "true",
-    //         "kubernetes.io/arch": "amd64",
-    //         "kubernetes.io/hostname": "ip-10-0-0-11",
-    //         "kubernetes.io/os": "linux"
-    //     }
-    //     assert.strictEqual(inform.checkValid(labels), true)
-    //     assert.strictEqual(inform.checkValid(labels), true)
-    //     assert.strictEqual(inform.checkValid(labels), false)
-    //     assert.strictEqual(inform.checkValid(labels), true)
-    //     assert.strictEqual(inform.checkValid(labels), false)
+    // NodeManager.setNode({
+    //     lastRebootedTime: new Date("2021-07-18"),
+    //     status: "Ready",
+    //     lastUpdateTime: new Date(),
+    //     ipAddress: "10.0.0.5",
+    //     conditions: new Map<string,NodeCondition>(),
+    //     nodeName: "ip-10-0-0-5",
+    //     UUID: "node.UUID"
+    // })
+
+    // NodeManager.setNode({
+    //     lastRebootedTime: new Date("2021-07-18"),
+    //     status: "Ready",
+    //     lastUpdateTime: new Date(),
+    //     ipAddress: "10.0.0.6",
+    //     conditions: new Map<string,NodeCondition>(),
+    //     nodeName: "ip-10-0-0-6",
+    //     UUID: "node.UUID"
+    // })
+
+    // NodeManager.setNode({
+    //     lastRebootedTime: new Date("2021-07-18"),
+    //     status: "Ready",
+    //     lastUpdateTime: new Date(),
+    //     ipAddress: "10.0.0.7",
+    //     conditions: new Map<string,NodeCondition>(),
+    //     nodeName: "ip-10-0-0-7",
+    //     UUID: "node.UUID"
+    // })
+
+    NodeManager.setNode({
+        lastRebootedTime: new Date("2021-07-18"),
+        status: "Ready",
+        lastUpdateTime: new Date(),
+        ipAddress: "10.0.0.8",
+        conditions: new Map<string,NodeCondition>(),
+        nodeName: "ip-10-0-0-8",
+        UUID: "node.UUID"
+    })
+
+    NodeManager.setNode({
+        lastRebootedTime: new Date("2021-07-18"),
+        status: "Ready",
+        lastUpdateTime: new Date(),
+        ipAddress: "10.0.0.3",
+        conditions: new Map<string,NodeCondition>(),
+        nodeName: "ip-10-0-0-3",
+        UUID: "node.UUID"
+    })
+
+    const mgr = new NodeManager("./test/config.yaml", true)
+
+
+    it('node test', () => {
+        console.log(JSON.stringify(mgr.findRebootNodes(new Date(), getList ))) 
+        assert.ok(true)
+    });
+
+    // const configManager = new ConfigManager("./test/config.yaml");
+
+    // const nodes: Map<string, NodeConditionCache> = new Map()
+    // const event1: NodeConditionEvent =
+    // {
+    //     "kind": "NodeCondition",
+    //     "nodeName": "ip-10-0-0-11",
+    //     "nodeIp": "",
+    //     "conditions": [
+    //         {
+    //             "lastHeartbeatTime": new Date("2021-07-05T00:11:05.000Z"),
+    //             "lastTransitionTime": new Date("2021-07-04T23:36:01.000Z"),
+    //             "message": "kernel has no deadlock",
+    //             "reason": "KernelHasNoDeadlock",
+    //             "status": "False",
+    //             "type": "KernelDeadlock"
+    //         }],
+    //     "nodeUnscheduleable": true,
+    //     status: "Ready"
+    // }
+
+    // const nowDt = new Date()
+    // const event2: NodeConditionEvent =
+    // {
+    //     "kind": "NodeCondition",
+    //     "nodeName": "ip-10-0-0-11",
+    //     "nodeIp": "",
+    //     "conditions": [
+    //         {
+    //             "lastHeartbeatTime": nowDt,
+    //             "lastTransitionTime": nowDt,
+    //             "message": "kernel has no deadlock",
+    //             "reason": "KernelHasNoDeadlock",
+    //             "status": "True",
+    //             "type": "KernelDeadlock"
+    //         }],
+    //     "nodeUnscheduleable": true,
+    //     status: "Ready"
+    // }
+
+    // // it('save events', () => {
+    // //     eventHandlers.NodeCondition(event1, nodes, configManager);
+    // //     assert.notDeepStrictEqual(nodes.get("ip-10-0-0-11"), event1)
+    // // });
+
+    // // it('update events', () => {
+    // //     eventHandlers.NodeCondition(event2, nodes, configManager);
+    // //     const condition = nodes.get("ip-10-0-0-11")?.conditions.get("KernelDeadlock")
+    // //     assert.strictEqual(condition?.status, "True")
+    // //     assert.strictEqual(condition.lastHeartbeatTime, nowDt)
+    // // });
+
+    // const event3: NodeConditionEvent =
+    // {
+    //     "kind": "NodeCondition",
+    //     "nodeName": "ip-10-0-0-11",
+    //     "nodeIp": "",
+    //     "conditions": [
+    //         {
+    //             "lastHeartbeatTime": new Date("2021-07-05T00:11:05.000Z"),
+    //             "lastTransitionTime": new Date("2021-07-04T23:36:01.000Z"),
+    //             "message": "new Event",
+    //             "reason": "NewEvent",
+    //             "status": "False",
+    //             "type": "NewEvent"
+    //         },
+    //         {
+    //             "lastHeartbeatTime": nowDt,
+    //             "lastTransitionTime": nowDt,
+    //             "message": "kernel has no deadlock",
+    //             "reason": "KernelHasNoDeadlock",
+    //             "status": "True",
+    //             "type": "KernelDeadlock"
+    //         }],
+    //     "nodeUnscheduleable": true,
+    //     status: "Ready"
+    // }
+
+    // // it('add condition', () => {
+    // //     eventHandlers.NodeCondition(event3, nodes, configManager);
+    // //     const condition = nodes.get("ip-10-0-0-11")?.conditions
+    // //     assert.strictEqual(condition?.size, 2)
+    // // })
+
+    // const event4: NodeConditionEvent =
+    // {
+    //     "kind": "NodeCondition",
+    //     "nodeName": "ip-10-0-0-12",
+    //     "nodeIp": "",
+    //     "conditions": [
+    //         {
+    //             "lastHeartbeatTime": nowDt,
+    //             "lastTransitionTime": nowDt,
+    //             "message": "kernel has no deadlock",
+    //             "reason": "KernelHasNoDeadlock",
+    //             "status": "True",
+    //             "type": "KernelDeadlock"
+    //         }],
+    //     "nodeUnscheduleable": true,
+    //     status: "Ready"
+
+    // }
+
+    // // it('add new Node', () => {
+    // //     eventHandlers.NodeCondition(event4, nodes, configManager);
+    // //     assert.strictEqual(nodes?.size, 2)
+    // // })
+
+
+    // // it('check label in node ', () => {
+    // //     const inform = new K8SNodeInformer()
+    // //     const labels = {
+    // //         "beta.kubernetes.io/arch": "amd64",
+    // //         "beta.kubernetes.io/os": "linux",
+    // //         "draino-enabled": "true",
+    // //         "kubernetes.io/arch": "amd64",
+    // //         "kubernetes.io/hostname": "ip-10-0-0-11",
+    // //         "kubernetes.io/os": "linux"
+    // //     }
+    // //     assert.strictEqual(inform.checkValid(labels), true)
+    // //     assert.strictEqual(inform.checkValid(labels), true)
+    // //     assert.strictEqual(inform.checkValid(labels), false)
+    // //     assert.strictEqual(inform.checkValid(labels), true)
+    // //     assert.strictEqual(inform.checkValid(labels), false)
 
 
     // })

@@ -1,5 +1,5 @@
 import { Client, RequestParams } from '@elastic/elasticsearch';
-import { logger } from '../logger/Logger'
+import Log from '../logger/Logger'
 
 export abstract class ESClient<T> {
   private client: Client;
@@ -30,7 +30,7 @@ export abstract class ESClient<T> {
 
       return this.client.index(bodyData);
     } catch (error) {
-      logger.error(
+      Log.error(
         `ESClient put method, error-message=${error.message}`
       );
       console.error(error)
@@ -48,19 +48,19 @@ export abstract class ESClient<T> {
           }
         }
       };
-      logger.debug(JSON.stringify(bodyData))
+      Log.debug(JSON.stringify(bodyData))
 
       const { body } = await this.client.search(bodyData);
 
       const retArr = new Array<T>()
       const arr: any[] = body.hits.hits;
-      logger.debug(JSON.stringify(body))
+      Log.debug(JSON.stringify(body))
       arr.forEach(item => { retArr.push(item._source as T) })
 
-      logger.debug(retArr.length)
+      Log.debug(retArr.length)
       return retArr
     } catch (error) {
-      logger.error(
+      Log.error(
         `ESClient search method, error-message=${error.message}`
       );
       return Promise.reject()
@@ -78,7 +78,7 @@ export abstract class ESClient<T> {
         },
         sort:sort
       };
-      logger.debug(JSON.stringify(bodyData))
+      Log.debug(JSON.stringify(bodyData))
 
       const { body } = await this.client.search(bodyData);
 
@@ -89,7 +89,7 @@ export abstract class ESClient<T> {
 
       return retArr
     } catch (error) {
-      logger.error(
+      Log.error(
         `ESClient search method, error-message=${error.message}`
       );
       return Promise.reject()
@@ -99,7 +99,7 @@ export abstract class ESClient<T> {
   public async update(id: string, data: T) {
     try {
 
-      logger.debug(id)
+      Log.debug(id)
 
       const bodyData: RequestParams.Index = {
         index: this.INDEX_NAME,
@@ -111,7 +111,7 @@ export abstract class ESClient<T> {
       }
       return this.client.index(bodyData);
     } catch (error) {
-      logger.error(
+      Log.error(
         `ESClient update method, error-message=${error.message}`
       );
       // throw error;

@@ -2,7 +2,7 @@ import * as chai from 'chai'
 import assert from 'assert'
 import { ESStatusClient } from '../elasticsearch/ESStatusClient';
 import ConfigManager from '../config/ConfigManager';
-import { logger } from '../logger/Logger'
+import logger from '../logger/Logger'
 
 const getUUID = () => {
     function s4() {

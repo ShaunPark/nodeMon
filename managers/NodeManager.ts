@@ -1,15 +1,17 @@
-import { MessagePort } from "worker_threads"
 import Channel from "../logger/Channel";
-import express from "express"
-import { IConfig } from "../types/ConfigType"
-import { NodeCondition, NodeEvent } from "../types/Type";
 import ConfigManager from "../config/ConfigManager";
-import { logger } from '../logger/Logger'
+import IConfig from "../types/ConfigType"
+
+import { MessagePort } from "worker_threads"
+
+import { NodeCondition, NodeEvent } from "../types/Type";
+import Log from '../logger/Logger'
 import equal from 'deep-equal'
-import { integer } from "@elastic/elasticsearch/api/types";
-import { Rebooter } from "../reboot/Rebooter";
-import NodeConditionChanger from "./NodeConditionMgr"
-import { V1NodeCondition, V1NodeDaemonEndpoints } from "@kubernetes/client-node";
+import Rebooter from "../reboot/Rebooter";
+import K8SUtil from "../kubernetes/K8SUtil"
+import logger from "../logger/Logger";
+
+const { workerData, parentPort } = require('worker_threads');
 export interface NodeInfo {
     nodeName: string
     nodeIp: string
@@ -22,9 +24,9 @@ export interface NodeConditionEvent extends NodeInfo {
     conditions: Array<NodeCondition>
 }
 
-export interface NodeEventsEvent extends NodeInfo {
-    kind: string,
-    conditions: Array<NodeEvent>
+interface RebootNode {
+    nodeName: string;
+    rebootTime: Date;
 }
 
 export interface NodeConditionCache {
@@ -34,29 +36,26 @@ export interface NodeConditionCache {
     readonly status: string,
     readonly timer?: NodeJS.Timeout,
     readonly lastRebootedTime?: Date,
-    readonly nodeName:string,
-    readonly UUID:string
+    readonly nodeName: string,
+    readonly UUID: string
 }
 
-const { workerData, parentPort } = require('worker_threads');
-
-export type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted" | "Drained" | "DrainTimeout" | "DrainFailed" | "RebootScheduled" | "NotReady"
+// type NodeStatus = "Ready" | "Cordoned" | "DrainScheduled" | "DrainStarted" | "Drained" | "DrainTimeout" | "DrainFailed" | "RebootScheduled" | "NotReady"
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
-
-const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
 type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Rebooted" | "NodeNotReady" | "NodeReady"
 
+const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
 const startTime: Date = new Date()
-class NodeManager {
-    private application: express.Application;
+export class NodeManager {
     private static _nodes = new Map<string, NodeConditionCache>()
     private configManager: ConfigManager;
-    private conditionManager?:NodeConditionChanger
+    private k8sUtil?: K8SUtil
 
     constructor(private configFile: string, private dryRun: boolean) {
-        if (parentPort)
+        if (parentPort){
             parentPort.addEventListener("message", this.initMessageHandler)
-        this.application = express();
+        }
+
         this.configManager = new ConfigManager(this.configFile);
     }
 
@@ -67,7 +66,7 @@ class NodeManager {
         if (event.data.type === "parent") {
             ePort.addListener("message", this.onEvent);
         } else if (event.data.type === "shutdown") {
-            logger.info(`Shutdown NodeManager`)
+            Log.info(`Shutdown NodeManager`)
         } else {
             Channel.initLoggerForNodeManager(ePort);
         }
@@ -79,21 +78,21 @@ class NodeManager {
         this.eventHandlers[event.kind as EventTypes](event, NodeManager._nodes, this.configManager);
     }
 
-    private static getNode(nodeName:string):NodeConditionCache|undefined {
-        return this._nodes.get(nodeName)
-    }
+    // private static getNode(nodeName: string): NodeConditionCache | undefined {
+    //     return this._nodes.get(nodeName)
+    // }
 
-    private static setNode(node:NodeConditionCache) {
+    public static setNode(node: NodeConditionCache) {
         Channel.sendNodeStatusToES(node);
         this._nodes.set(node.nodeName, node)
     }
 
-    public eventHandlers = {
+    private eventHandlers = {
         NodeCondition: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
             const nodeName = event.nodeName;
             const nodeCondition = event as NodeConditionEvent
             const node = nodes.get(nodeCondition.nodeName)
-            logger.info(`receive node condition : ${nodeName}`)
+            Log.info(`receive node condition : ${nodeName}`)
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
 
@@ -105,26 +104,26 @@ class NodeManager {
                     }
                     return true;
                 }).map(condition => node.conditions.set(condition.type, condition))
-                NodeManager.setNode({    
-                     ipAddress: nodeCondition.nodeIp,
-                     lastUpdateTime: new Date(),
-                     status: status,
+                NodeManager.setNode({
+                    ipAddress: nodeCondition.nodeIp,
+                    lastUpdateTime: new Date(),
+                    status: status,
 
-                     conditions: node.conditions,
-                     timer: node.timer,
-                     lastRebootedTime: node.lastRebootedTime,
-                     nodeName: node.nodeName,
-                     UUID: node.UUID
+                    conditions: node.conditions,
+                    timer: node.timer,
+                    lastRebootedTime: node.lastRebootedTime,
+                    nodeName: node.nodeName,
+                    UUID: node.UUID
                 })
             } else {
                 Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
-                const node: NodeConditionCache = { nodeName:nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status, UUID:btoa(nodeName) };
+                const node: NodeConditionCache = { nodeName: nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status, UUID: btoa(nodeName) };
 
                 // 노드를 처음으로 모니터링 하기 시작 했으면 kubelet ready시간을 reboot 시간으로 설정
-                nodeCondition.conditions.filter( condition => {
-                    if( condition.type === "Ready" && condition.reason === "KubeletReady" ) {
-                        NodeManager.setNode({    
+                nodeCondition.conditions.filter(condition => {
+                    if (condition.type === "Ready" && condition.reason === "KubeletReady") {
+                        NodeManager.setNode({
                             lastRebootedTime: condition.lastTransitionTime,
 
                             ipAddress: node.ipAddress,
@@ -134,7 +133,7 @@ class NodeManager {
                             timer: node.timer,
                             nodeName: node.nodeName,
                             UUID: node.UUID
-                       })       
+                        })
                     }
                 })
 
@@ -144,17 +143,17 @@ class NodeManager {
         },
         NodeEvent: (event: any, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) => {
             const nodeName = event.nodeName;
-            logger.info(`receive events : ${nodeName}`)
+            Log.info(`receive events : ${nodeName}`)
             const node = nodes.get(nodeName)
             if (node == undefined) {
-                logger.info(`Node ${nodeName} does not exist in list. Ignore`)
+                Log.info(`Node ${nodeName} does not exist in list. Ignore`)
             } else {
                 // 모니터 시작전 발생한 old 이벤트는 무시
                 const eventDate = Date.parse(event.lastTimestamp)
                 const raisedTime = new Date(eventDate)
 
                 if (startTime.getTime() < eventDate) {
-                    NodeManager.setNode({    
+                    NodeManager.setNode({
                         status: event.reason,
                         lastUpdateTime: raisedTime,
 
@@ -164,14 +163,14 @@ class NodeManager {
                         timer: node.timer,
                         nodeName: node.nodeName,
                         UUID: node.UUID
-                   })       
+                    })
 
                     if (NodeEventReasonArray.includes(event.reason)) {
-                        logger.info(`event.reason '${event.reason}'is NodeEventReasons`)
+                        Log.info(`event.reason '${event.reason}'is NodeEventReasons`)
                         this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName, nodes, configManager)
                     }
                 } else {
-                    logger.info(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
+                    Log.info(`Event raised at ${raisedTime}. Ignore old event.${startTime}`)
                 }
             }
         },
@@ -183,7 +182,7 @@ class NodeManager {
             console.table(arr);
         },
         DeleteNode: (event: any, nodes: Map<string, NodeConditionCache>) => {
-            logger.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
+            Log.info(`Node '${event.nodeName} removed from moritoring list. delete it.`)
             Channel.sendMessageEventToES({ node: event.nodeName, message: `Node '${event.nodeName} removed from moritoring list.` })
 
             nodes.delete(event.nodeName)
@@ -247,7 +246,7 @@ class NodeManager {
     private setNodeRebootTime(nodeName: string, nodes: Map<string, NodeConditionCache>) {
         const node = nodes.get(nodeName)
         if (node) {
-            NodeManager.setNode({    
+            NodeManager.setNode({
                 lastRebootedTime: new Date(),
 
                 status: node.status,
@@ -257,11 +256,11 @@ class NodeManager {
                 timer: node.timer,
                 nodeName: node.nodeName,
                 UUID: node.UUID
-           })  
+            })
         }
     }
 
-    private static lastRebootTime:Date|undefined
+    private static lastRebootTime: Date | undefined
 
     private reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
         const config = configManager.config;
@@ -279,10 +278,10 @@ class NodeManager {
             const now = Date.now()
             const rebootBuffer = 3
 
-            if(NodeManager.lastRebootTime !== undefined) {
+            if (NodeManager.lastRebootTime !== undefined) {
                 const nextRebootAvailable = NodeManager.lastRebootTime.getTime() + (60 * 1000 * rebootBuffer)
 
-                if( nextRebootAvailable > now + delay ) {
+                if (nextRebootAvailable > now + delay) {
                     delay = nextRebootAvailable - now
                 } else {
                     delay = delay
@@ -293,21 +292,21 @@ class NodeManager {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot scheduled at ${rebootTime}.` })
 
             setTimeout(() => {
-                logger.info(`Reboot ${nodeName} started.`)
+                Log.info(`Reboot ${nodeName} started.`)
                 Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
                 NodeManager.lastRebootTime = new Date()
 
                 if (this.dryRun !== true) {
 
-                    logger.info(`DryRun is not true reboot enabled.`)
+                    Log.info(`DryRun is not true reboot enabled.`)
 
                     try {
                         const rebooter: Rebooter = new Rebooter(configManager)
                         rebooter.run(node.nodeName)
 
-                        NodeManager.setNode({    
+                        NodeManager.setNode({
                             lastRebootedTime: new Date(),
-            
+
                             status: node.status,
                             lastUpdateTime: node.lastUpdateTime,
                             ipAddress: node.ipAddress,
@@ -315,7 +314,7 @@ class NodeManager {
                             timer: node.timer,
                             nodeName: node.nodeName,
                             UUID: node.UUID
-                       })              
+                        })
                     } catch (err) {
                         console.error(err)
                     }
@@ -331,7 +330,7 @@ class NodeManager {
 
         const timer = setTimeout(() => {
             if (node !== undefined) {
-                NodeManager.setNode({    
+                NodeManager.setNode({
                     timer: undefined,
 
                     lastRebootedTime: node.lastRebootedTime,
@@ -341,14 +340,14 @@ class NodeManager {
                     conditions: node.conditions,
                     nodeName: node.nodeName,
                     UUID: node.UUID
-               })              
+                })
             }
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.` })
             this.reboot(nodeName, nodes, configManager)
         }, timeout)
 
         if (node !== undefined) {
-            NodeManager.setNode({    
+            NodeManager.setNode({
                 timer: timer,
 
                 lastRebootedTime: node.lastRebootedTime,
@@ -358,7 +357,7 @@ class NodeManager {
                 conditions: node.conditions,
                 nodeName: node.nodeName,
                 UUID: node.UUID
-           })
+            })
         }
     }
 
@@ -369,92 +368,133 @@ class NodeManager {
         if (config.nodeManager && config.nodeManager.interval) {
             interval = config.nodeManager.interval
         }
-        //setInterval(this.checkNodeStatus, interval)
 
         setTimeout(this.checkNodeStatus, interval);
-
-        // this.application.get('/', (request, response) => {
-        //     response.send(NodeManager.nodes)
-        // })
-
-        // this.application.listen(8880, () => {
-        //     logger.info("express started")
-        // })
-
         setInterval(() => {
             this.eventHandlers['PrintNode']()
             //eventHandlers['CleanNode'](NodeManager.nodes)
         }, interval)
     }
 
-    private checkNodeStatus = () => {
-        // logger.info("Node status !!! ") 
-        // this.nodes.forEach( (node, nodeName) => {
-        //     logger.info(`${nodeName}`)
-        //     node.forEach( (condition, type) => {
-        //         logger.info(`${type} : ${condition.status} : ${condition.reason}`)
-        //     })
-        // })
-
-        // run routine 
-
-        // run daily routine
-
-
-        //this.rebootTimer = setInterval(this.rebootNodeEveryTwoWeek, 10 * 60 * 1000)
+    private isCordonTime(now: Date): boolean {
+        const currentHour = now.getHours()
+        return this.cordonStartHour < currentHour && this.cordonEndHour > currentHour
     }
 
-    private async rebootNode(): Promise<void> {
-
+    private isRebootTime(now: Date): boolean {
+        const currentHour = now.getHours()
+        return this.rebootStartHour < currentHour && this.rebootEndHoure > currentHour
     }
 
-    private rebootTimer: number | undefined
+    private cordonStartHour = 8
+    private cordonEndHour = 9
+    private rebootStartHour = 3
+    private rebootEndHoure = 5
 
-    private fromHourForMaintainous: integer = 2
-    private toHourForMaintainous: integer = 2
-    private percentOfReboot: integer = 30
-    private numberOfReboot: integer = 0
+    private cordoned = false
+    private rebootScheduled = false
 
-    private rebootNodeEveryTwoWeek(twoWeeksAgo: number) {
-        this.numberOfReboot = NodeManager._nodes.size * (this.percentOfReboot / 100) + 1
-        const now = new Date()
-        const hour = now.getHours()
-        if (hour > this.fromHourForMaintainous && hour < this.toHourForMaintainous && this.numberOfReboot > 0) {
-            // const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000)
-            const rebootNode = this.findRebootNode(twoWeeksAgo)
+    private percentOfReboot = 30
+    private rebootList: Array<RebootNode> = []
+    private maxRebootDay = 10
+    private delay = 15
 
-            if (rebootNode !== undefined) {
-                NodeManager.rebootNode = rebootNode.ipAddress
-                this.setNodeConditionToReboot(rebootNode.nodeName)
-            } else {
-                NodeManager.rebootNode = undefined
+    private reloadConfigValues() {
+        if (this.configManager.config.maintenance) {
+            const maint = this.configManager.config.maintenance
+
+            this.cordonStartHour = maint.cordonStartHour;
+            if (this.cordonStartHour < 19 || this.cordonStartHour > 22) {
+                this.cordonStartHour = 20
+            }
+
+            this.cordonEndHour = maint.cordonEndHour;
+            if (this.cordonEndHour < 20 || this.cordonEndHour > 23) {
+                this.cordonEndHour = 21
+            }
+
+            if (this.cordonStartHour + 1 < this.cordonEndHour) {
+                this.cordonEndHour = this.cordonStartHour + 1
+            }
+
+            this.rebootStartHour = maint.startHour;
+            if (this.rebootStartHour < 0 || this.rebootStartHour > 21) {
+                this.rebootStartHour = 3
+            }
+
+            this.rebootEndHoure = maint.endHour;
+            if (this.rebootEndHoure < 2 || this.rebootEndHoure > 23) {
+                this.rebootEndHoure = 5
+            }
+
+            if (this.rebootStartHour + 2 < this.rebootEndHoure) {
+                this.rebootEndHoure = this.rebootStartHour + 2
+            }
+
+            this.percentOfReboot = maint.ratio
+            if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
+                this.percentOfReboot = 20
+            }
+
+            this.delay = maint.duration
+            if (this.delay < 5 || this.delay > 30) {
+                this.delay = 15
+            }
+
+            this.maxRebootDay = maint.maintenanceDay
+            if (this.maxRebootDay < 7 || this.maxRebootDay > 28) {
+                this.maxRebootDay = 14
             }
         }
     }
 
-    private setNodeConditionToReboot = (nodeName:string) => {
-        if( this.conditionManager === undefined ) {
-            this.conditionManager = new NodeConditionChanger()
-        }
-    
-        const condition:V1NodeCondition = {
-            status:"True", 
-            type:"Warning", 
-            lastHeartbeatTime: new Date(), 
-            lastTransitionTime: new Date(), 
-            message:"Reboot requested by nodeMon",
-            reason:"RebootRequested"
+    private checkNodeStatus = () => {
+        this.reloadConfigValues()
+        const now = new Date()
+
+        if (this.isCordonTime(now)) {
+            if (this.cordoned === false) {
+                this.rebootList = new Array<RebootNode>();
+                const arr = this.findRebootNodes(now, this.getAllNodes)
+
+                const tomorrow = new Date(now)
+                tomorrow.setDate(tomorrow.getDate() + 1)
+
+                arr.forEach((node: string, index: number) => {
+                    tomorrow.setHours(this.rebootStartHour, this.delay * index, 0, 0)
+                    this.cordonNode(node)
+                    this.rebootList.push({ nodeName: node, rebootTime: tomorrow })
+                })
+                this.cordoned = true
+            }
+        } else {
+            this.cordoned = false;
         }
 
-        this.conditionManager.changeNodeCondition(nodeName, condition )
+        if (this.isRebootTime(now)) {
+            if (this.rebootScheduled === false) {
+                this.rebootList.forEach(item => setTimeout(() => this.setNodeConditionToReboot(item.nodeName), item.rebootTime.getTime() - now.getTime()))
+                this.rebootScheduled = true
+            }
+        } else {
+            // reboot 시간이 끝나면 reboot 대상 노드들을 uncordon
+            if (this.rebootScheduled === true) {
+                this.rebootList.forEach(item => {
+                    this.uncordonNode(item.nodeName)
+                    this.removeRebootCondition(item.nodeName)
+                })
+            }
+            this.rebootScheduled = false
+        }
     }
 
-    private static rebootNode: string | undefined
+    public findRebootNodes(now: Date, getList: () => Array<{ nodeName: string, memory: string }>): Array<string> {
+        const arr: Array<string> = []
+        const rebootTime = now.getTime() - (this.maxRebootDay * 24 * 60 * 60 * 1000)
 
-    private findRebootNode(twoWeeksAgo: number): NodeConditionCache | undefined {
         NodeManager._nodes.forEach(node => {
             if (node.lastRebootedTime === undefined) {
-                NodeManager.setNode({   
+                NodeManager.setNode({
                     lastRebootedTime: new Date(),
 
                     timer: node.timer,
@@ -464,28 +504,125 @@ class NodeManager {
                     conditions: node.conditions,
                     nodeName: node.nodeName,
                     UUID: node.UUID
-               })
+                })
             } else {
-                if (node.lastRebootedTime.getTime() < twoWeeksAgo) {
-                    return node;
+                if (node.lastRebootedTime.getTime() < rebootTime) {
+                    arr.push(node.nodeName)
                 }
             }
         })
-        return undefined
-    }
-    private dayCheckStartTime: Date = new Date();
-    private lastDay: Date = new Date();
 
-    private dailyRoutine() {
-        if (this.isFirstTimeOfDay()) {
-            this.lastDay = new Date();
+        Log.info(`nubmer of reboot by max liveness : ${arr.length}`)
+
+        const allNodes = getList()
+
+        Log.info(`totol nubmer of reboot : ${allNodes.length}`)
+
+        const numberOfReboot = Math.ceil(allNodes.length * (this.percentOfReboot / 100))
+
+        Log.info(`nubmer of reboot : ${numberOfReboot}`)
+
+        if (numberOfReboot > arr.length) {
+            this.getNodeByResourceUsage(allNodes, arr).forEach(node => arr.push(node.nodeName))
         }
+
+        Log.info(`number of final result: ${arr.length}`)
+        return arr.slice(0, numberOfReboot)
     }
 
-    private isFirstTimeOfDay(): boolean {
-        return false;
+    private chagneMemToNumber(usage: string): number {
+        if (usage.endsWith("Ki")) {
+            const index = usage.indexOf("Ki")
+            return parseFloat(usage.substr(0, index)) * 1024
+        } else if (usage.endsWith("Mi")) {
+            const index = usage.indexOf("Mi")
+            return parseFloat(usage.substr(0, index)) * 1048576
+        } else if (usage.endsWith("Gi")) {
+            const index = usage.indexOf("Gi")
+            return parseFloat(usage.substr(0, index)) * 1073741824
+        } else if (usage.endsWith("Ti")) {
+            const index = usage.indexOf("Ti")
+            return parseFloat(usage.substr(0, index)) * 1099511627776
+        } else if (usage.endsWith("K")) {
+            const index = usage.indexOf("K")
+            return parseFloat(usage.substr(0, index)) * 1000
+        } else if (usage.endsWith("M")) {
+            const index = usage.indexOf("M")
+            return parseFloat(usage.substr(0, index)) * 1000000
+        } else if (usage.endsWith("G")) {
+            const index = usage.indexOf("G")
+            return parseFloat(usage.substr(0, index)) * 1000000000
+        } else if (usage.endsWith("T")) {
+            const index = usage.indexOf("T")
+            return parseFloat(usage.substr(0, index)) * 1000000000000
+        } else if (usage.indexOf("e") >= 0) {
+            const arr = usage.split("e")
+            return parseFloat(arr[0]) * Math.pow(10, parseInt(arr[1]))
+        }
+        return parseFloat(usage)
+    }
+
+    private getNodeByResourceUsage(allNodes: Array<{ nodeName: string, memory: string }>, rebootNodes: Array<string>): Array<{ nodeName: string, memory: string }> {
+        const ret: Array<{ nodeName: string, memory: string }> = []
+
+
+        logger.info(JSON.stringify(rebootNodes))
+
+        allNodes.filter(node => {
+            logger.info(`${node.nodeName} ${rebootNodes.includes(node.nodeName)}`)
+            return !rebootNodes.includes(node.nodeName)
+        }).sort((node1, node2) => {
+            const node1Mem = node1.memory
+            const node2Mem = node2.memory
+            return this.chagneMemToNumber(node2Mem) - this.chagneMemToNumber(node1Mem)
+        }).forEach(node => {
+            logger.info(`${node.nodeName} ${node.memory} ${this.chagneMemToNumber(node.memory)} `)
+            ret.push(node)
+        })
+
+        logger.info(`return length : ${ret.length}`)
+        return ret
+    }
+
+    private getAllNodes(): Array<{ nodeName: string, memory: string }> {
+        if (this.k8sUtil === undefined) {
+            this.k8sUtil = new K8SUtil(this.configManager.config)
+        }
+
+        return this.k8sUtil.getAllNodeAndMemory(this.configManager.config.kubernetes?.nodeSelector)
+    }
+
+    private cordonNode(nodeName: string) {
+        if (this.k8sUtil === undefined) {
+            this.k8sUtil = new K8SUtil(this.configManager.config)
+        }
+        this.k8sUtil.cordonNode(nodeName)
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
+    }
+
+    private uncordonNode(nodeName: string) {
+        if (this.k8sUtil === undefined) {
+            this.k8sUtil = new K8SUtil(this.configManager.config)
+        }
+        this.k8sUtil.uncordonNode(nodeName)
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
+    }
+
+    private removeRebootCondition = (nodeName: string) => {
+        if (this.k8sUtil === undefined) {
+            this.k8sUtil = new K8SUtil(this.configManager.config)
+        }
+        this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
+    }
+
+    private setNodeConditionToReboot = (nodeName: string) => {
+        if (this.k8sUtil === undefined) {
+            this.k8sUtil = new K8SUtil(this.configManager.config)
+        }
+        this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
     }
 }
 
-const nodeManager = new NodeManager(workerData?.config, workerData?.dryRun)
-nodeManager.run()
+// const nodeManager = new NodeManager(workerData?.config, workerData?.dryRun)
+// nodeManager.run()

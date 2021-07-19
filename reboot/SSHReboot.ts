@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { Client } from 'ssh2';
 import ConfigManager from '../config/ConfigManager';
-import { logger } from '../logger/Logger'
+import Log from '../logger/Logger'
 
 class SSHReboot {
 
@@ -18,17 +18,17 @@ class SSHReboot {
 
             if (sshFile) {
                 conn.on('ready', () => {
-                    logger.debug('Client :: ready');
+                    Log.debug('Client :: ready');
                     conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
                         if (err) throw err;
 
                         stream.on('close', (code: any, signal: any) => {
-                            logger.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
+                            Log.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
                             conn.end();
                         }).on('data', (data: any) => {
-                            logger.debug('STDOUT: ' + data);
+                            Log.debug('STDOUT: ' + data);
                         }).stderr.on('data', (data: any) => {
-                            logger.debug('STDERR: ' + data);
+                            Log.debug('STDERR: ' + data);
                         });
                     });
                 })
@@ -39,7 +39,7 @@ class SSHReboot {
                         privateKey: readFileSync(sshFile)
                     });
             } else {
-                logger.info(`cert file for ssh path is not defined in config file.`)
+                Log.info(`cert file for ssh path is not defined in config file.`)
             }
         } catch (err) {
             console.error(`Fail to reboot ${ipAddress}.`, err)

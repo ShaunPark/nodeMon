@@ -1,4 +1,4 @@
-export interface IConfig {
+export default interface IConfig {
     //interval?: number;
     rebootDelay: number;
     rebootThroughSSH?: boolean;
@@ -9,22 +9,23 @@ export interface IConfig {
     maintenance?: IMaintenance
 }
 
-export interface IMaintenance {
+interface IMaintenance {
     maintenanceDay: number // 0 - Sunday, 1 - Monday ....
     startHour: number // 2 - 2AM, 
     endHour: number   // 4 - 4AM
     duration: number // 10 - 10 days
     ratio: number // 30 percent
+    cordonStartHour:number
+    cordonEndHour:number
 }
-
-export interface IElasticSearch {
+interface IElasticSearch {
     host: string
     port: number
     logIndex: string
     statusIndex: string
 
 }
-export interface Ik8s {
+interface Ik8s {
     nodeSelector?: string
     conditions?: Array<string>
 }

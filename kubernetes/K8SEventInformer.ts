@@ -1,21 +1,20 @@
 import * as k8s from '@kubernetes/client-node';
 import { CoreV1Event, DefaultRequest, RequestInterface, RequestResult } from '@kubernetes/client-node';
-import { IConfig } from "../types/ConfigType"
+import IConfig from "../types/ConfigType"
 import Logger from "../logger/Channel";
 import request = require('request');
-import { logger } from '../logger/Logger'
-import { EventEmitter } from 'stream';
+import Log from '../logger/Logger'
+import K8SInformer from './K8SClient';
 
 interface LocalLabel {
     key: string,
     value: any
 }
 
-let k8sApi: k8s.CoreV1Api;
 
 // Kubernetes client library 0.15.0 까지는 Informer생성 시 fieldSelector사용 불가
 // fieldSelector을 위해 Request를 새롭게 구현하고 webRequest 직전에 fieldSelector를 queryparam에 추가하도록 함
-export class RequestWithFieldSelector extends DefaultRequest {
+class RequestWithFieldSelector extends DefaultRequest {
     constructor(requestImpl?: (opts: request.OptionsWithUri) => request.Request, private fieldSelector?: string) {
         super(requestImpl)
     }
@@ -32,23 +31,10 @@ export class RequestWithFieldSelector extends DefaultRequest {
     }
 }
 
-export class K8SEventInformer {
+export default class K8SEventInformer extends K8SInformer{
     // private _k8sApi: k8s.CoreV1Api;
     // private _config?: IConfig;
     
-    private _kc: k8s.KubeConfig;
-    constructor() {
-        this._kc = new k8s.KubeConfig();
-        this._kc.loadFromDefault();
-        k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
-    }
-
-    private reInit() {
-        this._kc = new k8s.KubeConfig();
-        this._kc.loadFromDefault();
-        k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
-    }
-
     public stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
         if (str == undefined) {
             return undefined
@@ -64,7 +50,7 @@ export class K8SEventInformer {
 
     createAndStartInformer = (config: IConfig) => {
         const labelSelector = config?.kubernetes?.nodeSelector;
-        const listFn = () => k8sApi.listEventForAllNamespaces(
+        const listFn = () => this.k8sApi.listEventForAllNamespaces(
             true,
             undefined,
             'involvedObject.kind=Node'
@@ -73,12 +59,12 @@ export class K8SEventInformer {
         // 기본 makeInformer를 대신하여 커스텀 request를 사용하여 informer를 생성하도록 수정
         // fieldSelector를 통해 Node에서 발생한 event만 수신하도록 함.
         const requestImpl = new RequestWithFieldSelector(undefined, 'involvedObject.kind=Node');
-        const watch = new k8s.Watch(this._kc, requestImpl);
+        const watch = new k8s.Watch(this.kubeConfig, requestImpl);
         const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);
 
         const labelMap = this.stringsToArray(labelSelector)
 
-        logger.info(JSON.stringify(labelMap))
+        Log.info(JSON.stringify(labelMap))
 
         informer.on('add', (evt: k8s.CoreV1Event) => {
             // logger.info('Event added !!!', JSON.stringify(evt.involvedObject.kind))
@@ -145,7 +131,7 @@ export class K8SEventInformer {
     ])
 
     public checkValid(event: CoreV1Event): boolean {
-        logger.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
+        Log.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
 
         if (event.reason) {
             const ce = this.concernedEvents.get(event.reason)

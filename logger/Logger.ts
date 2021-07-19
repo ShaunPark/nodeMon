@@ -2,7 +2,7 @@ import { createLogger, format, transports } from "winston"
 
 const env = process.env.NODE_ENV || "development"
 
-export const logger = createLogger({
+const logger = createLogger({
   level: env === "development" ? "debug" : "info",
   format: format.combine(
     format.timestamp({
@@ -22,3 +22,5 @@ export const logger = createLogger({
     }),
   ]
 })
+
+export default logger

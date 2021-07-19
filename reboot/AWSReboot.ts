@@ -1,7 +1,7 @@
 import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Filter, StopInstancesCommand, TerminateInstancesCommand, TerminateInstancesCommandInput } from '@aws-sdk/client-ec2';
 import ConfigManager from '../config/ConfigManager';
-import { IConfig } from "../types/ConfigType"
-import { logger } from '../logger/Logger'
+import IConfig from "../types/ConfigType"
+import Log from '../logger/Logger'
 
 const jp = require('jsonpath')
 const REGION_AP_2 = 'ap-northeast-2'
@@ -33,7 +33,7 @@ class AWSShutdown {
 
   public async run(ipAddress: string) {
 
-    logger.info(`Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
+    Log.info(`Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
 
     const vpc = this.configManager?.config?.nodeManager?.awsVPC;
     const filters: Array<Filter> = new Array<Filter>()
@@ -52,7 +52,7 @@ class AWSShutdown {
     if (vpc) {
       filters.push({ Name: 'vpc-id', Values: [vpc] })
       const param: DescribeInstancesCommandInput = { Filters: filters, DryRun: false }
-      logger.debug(JSON.stringify(param))
+      Log.debug(JSON.stringify(param))
 
       // get instance information filtered by private ip address
       const command = new DescribeInstancesCommand(param)
@@ -60,14 +60,14 @@ class AWSShutdown {
         const data = await this.ec2.send(command)
         const instanceIds = jp.query(data, jsonPath) as Array<string>
 
-        logger.info(`Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
+        Log.info(`Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
         this.terminateNode(instanceIds)
-        logger.debug(JSON.stringify(instanceIds))
+        Log.debug(JSON.stringify(instanceIds))
       } catch (err) {
-        logger.error("Error", err.stack);
+        Log.error("Error", err.stack);
       }
     } else {
-      logger.error('VPC is not configured in configfile. Reboot skipped.')
+      Log.error('VPC is not configured in configfile. Reboot skipped.')
     }
   }
 
@@ -86,10 +86,10 @@ class AWSShutdown {
 
     const dryRun: boolean = (instanceIds.length > 1) ? true : false;
     const param: TerminateInstancesCommandInput = { InstanceIds: instanceIds, DryRun: dryRun }
-    logger.debug(`Terminate param : ${JSON.stringify(param)}`)
+    Log.debug(`Terminate param : ${JSON.stringify(param)}`)
 
     const data = this.sendAWSCommand(new TerminateInstancesCommand(param))
-    logger.info(`Terminate request for ${instanceIds} done ${data}`)
+    Log.info(`Terminate request for ${instanceIds} done ${data}`)
   }
 
   private async sendAWSCommand(command: TerminateInstancesCommand | StopInstancesCommand): Promise<any> {

@@ -1,9 +1,9 @@
-export interface IArguments {
+export default interface IArguments {
     configFile: string;
     dryRun?:boolean;
 }
 
-export interface IEvent {
+interface IEvent {
     type: string;
     message: string;
 }
@@ -54,12 +54,11 @@ export interface NodeEvent  {
     type?: string;
 }
 
-export interface InvolvedObject {
+ interface InvolvedObject {
     kind?: string,
     name?: string,
     uid?: string
 }
-
 export interface NodeCondition {
     lastHeartbeatTime?: Date;
     lastTransitionTime?: Date;

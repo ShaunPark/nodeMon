@@ -1,5 +1,4 @@
 import ConfigManager from "../config/ConfigManager";
-import { NodeConditionCache } from "../managers/NodeManager";
 import { NodeCondition } from "../types/Type";
 import { ESClient } from "./ESClient";
 

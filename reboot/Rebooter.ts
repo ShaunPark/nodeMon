@@ -2,8 +2,7 @@ import ConfigManager from "../config/ConfigManager";
 import AWSReboot from "./AWSReboot";
 import SSHReboot from "./SSHReboot";
 
-
-export class Rebooter {
+export default class Rebooter {
     constructor(private configManager:ConfigManager){}
     
     public run(ipAddress: string) {

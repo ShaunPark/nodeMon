@@ -1,11 +1,11 @@
 import * as k8s from '@kubernetes/client-node';
-import { V1Node } from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
-import { logger } from '../logger/Logger';
+import Log from '../logger/Logger';
 import { NodeInfo } from '../managers/NodeManager';
 import { NodeCondition } from '../types/Type';
-import { IConfig } from "../types/ConfigType"
+import IConfig from "../types/ConfigType"
+import K8SInformer from './K8SClient';
 
 interface LocalLabel {
     key: string,
@@ -15,24 +15,10 @@ interface LocalLabel {
 type Label = {
     [key: string]: string
 }
-export class K8SNodeInformer {
-    private _k8sApi: k8s.CoreV1Api;
+export default class K8SNodeInformer extends K8SInformer {
     private _config?: IConfig;
-    private _kc: k8s.KubeConfig;
-    constructor() {
-        this._kc = new k8s.KubeConfig();
-        this._kc.loadFromDefault();
-        this._k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
-    }
 
-    private reInit() {
-        this._kc = new k8s.KubeConfig();
-        this._kc.loadFromDefault();
-        this._k8sApi = this._kc.makeApiClient(k8s.CoreV1Api);
-    }
-
-
-    public stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
+    private stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
         if (str == undefined) {
             return undefined
         }
@@ -46,9 +32,12 @@ export class K8SNodeInformer {
     }
 
     private labelSelectors?: Array<LocalLabel>;
-    createAndStartInformer = (config: IConfig) => {
+
+    public createAndStartInformer = (config: IConfig) => {
+        this._config = config
         const labelSelector = config?.kubernetes?.nodeSelector;
-        const listFn = () => this._k8sApi.listNode(
+
+        const listFn = () => this.k8sApi.listNode(
             undefined,
             true,
             undefined,
@@ -57,7 +46,7 @@ export class K8SNodeInformer {
         );
 
         const informer = k8s.makeInformer(
-            this._kc,
+            this.kubeConfig,
             '/api/v1/nodes',
             listFn,
             labelSelector
@@ -69,7 +58,7 @@ export class K8SNodeInformer {
         informer.on('update', this.sendNodeCondition);
         informer.on('delete', (node) => {
             const nodeName = node.metadata?.name
-            logger.info(`Node ${nodeName}deleted from cluster`)
+            Log.info(`Node ${nodeName}deleted from cluster`)
             Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
         });
 
@@ -86,7 +75,7 @@ export class K8SNodeInformer {
 
     private labelMap = new Map<string, { lastUpdateTime: Date, needSend: string }>()
 
-    sendNodeCondition = (node: V1Node) => {
+    private sendNodeCondition = (node: k8s.V1Node) => {
         const needSend = this.checkValid(node.metadata?.labels)
         if (needSend && node.metadata && node.status) {
             const { name } = node.metadata;
@@ -138,7 +127,7 @@ export class K8SNodeInformer {
         Logger.sendEventToNodeManager({ kind: "NodeCondition", status: status, conditions: newArr, ...node })
     }
 
-    public checkValid(labels?: { [key: string]: string; }): boolean {
+    private checkValid(labels?: { [key: string]: string; }): boolean {
         const labelMap = this.labelSelectors
         if (labelMap && labels) {
             let hasAllLabel: boolean = true;

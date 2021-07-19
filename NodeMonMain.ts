@@ -1,13 +1,14 @@
 import { parse } from "ts-command-line-args"
-import { IArguments } from "./types/Type"
-import { IConfig } from "./types/ConfigType"
-import ConfigManager from "./config/ConfigManager";
 import { Worker, MessageChannel } from "worker_threads"
+
+import IArguments from "./types/Type"
+import IConfig from "./types/ConfigType"
+import ConfigManager from "./config/ConfigManager";
 import path from 'path'
 import Channel from "./logger/Channel";
-import { K8SEventInformer } from "./kubernetes/K8SEventInformer";
-import { K8SNodeInformer } from "./kubernetes/K8SNodeInformer";
-import { logger } from './logger/Logger'
+import K8SEventInformer from "./kubernetes/K8SEventInformer";
+import K8SNodeInformer from "./kubernetes/K8SNodeInformer";
+import Log from './logger/Logger'
 
 type Config = {
     interval: number;
@@ -31,7 +32,7 @@ export class NodeMonMain {
             this.configManager = new ConfigManager(configFile);
             const config: IConfig = this.configManager.config;
 
-            logger.info(`load config from ${configFile}`)
+            Log.info(`load config from ${configFile}`)
             // logger.info(config.interval)
             // if (config.kubernetes) {
             //     const { interval } = config.kubernetes;
@@ -40,7 +41,7 @@ export class NodeMonMain {
             //     logger.info('no kubernetes info')
             // }
         } catch (err) {
-            logger.error(err)
+            Log.error(err)
             process.exit(1);
         }
     }
@@ -48,7 +49,7 @@ export class NodeMonMain {
     public run = (): void => {
         const config: IConfig = this.configManager.config;
 
-        logger.info(`NodeMon started`)
+        Log.info(`NodeMon started`)
         this.initChannels(this.configFile);
 
         if (config.kubernetes) {
@@ -94,7 +95,7 @@ export class NodeMonMain {
             this._esLogger.postMessage({ type: "parent", port: mainToesChannel.port2 }, [mainToesChannel.port2]);
             this._esLogger.postMessage({ type: "nm", port: nmToEsChannel.port1 }, [nmToEsChannel.port1]);
         } catch (err) {
-            logger.error(err)
+            Log.error(err)
             throw err;
         }
     }
@@ -133,7 +134,7 @@ const args = parse<IArguments>({
 const nodeMon = new NodeMonMain(args.configFile, args.dryRun);
 
 process.on('SIGTERM', function onSigterm() {
-    logger.info('Got SIGTERM. Graceful shutdown start')
+    Log.info('Got SIGTERM. Graceful shutdown start')
 
     nodeMon.close();
 })

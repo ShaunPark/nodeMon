@@ -18,3 +18,12 @@ elasticSearch:
   port: 9200
   logIndex: log
   statusIndex: status
+maintenance:
+  maintenanceDay: 7
+  startHour: 3
+  endHour: 5
+  duration: 10
+  ratio: 20
+  cordonStartHour: 20
+  cordonEndHour: 21
+
