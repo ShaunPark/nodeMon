@@ -74,9 +74,9 @@ export class NodeMonMain {
             }
         })
 
-        this._nodeManager = new Worker('./build/managers/NodeManager.js', {
+        this._nodeManager = new Worker('./build/managers/NodeManagerRun.js', {
             workerData: {
-                aliasModule: path.resolve(__dirname, 'managers/NodeManager.ts'),
+                aliasModule: path.resolve(__dirname, 'managers/NodeManagerRun.ts'),
                 config: configFile,
                 dryRun: (this.dryRun === undefined) ? false : this.dryRun
             }

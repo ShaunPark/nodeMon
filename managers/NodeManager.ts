@@ -11,7 +11,7 @@ import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
 import logger from "../logger/Logger";
 
-const { workerData, parentPort } = require('worker_threads');
+const { parentPort } = require('worker_threads');
 export interface NodeInfo {
     nodeName: string
     nodeIp: string
@@ -46,7 +46,7 @@ type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFaile
 
 const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
 const startTime: Date = new Date()
-export class NodeManager {
+export default class NodeManager {
     private static _nodes = new Map<string, NodeConditionCache>()
     private configManager: ConfigManager;
     private k8sUtil?: K8SUtil
@@ -623,6 +623,3 @@ export class NodeManager {
         Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
     }
 }
-
-// const nodeManager = new NodeManager(workerData?.config, workerData?.dryRun)
-// nodeManager.run()
