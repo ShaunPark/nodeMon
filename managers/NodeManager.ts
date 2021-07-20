@@ -374,8 +374,9 @@ export default class NodeManager {
             interval = config.nodeManager.interval
         }
 
-        setTimeout(this.checkNodeStatus, interval);
+        // setTimeout(this.checkNodeStatus, interval);
         setInterval(() => {
+            this.checkNodeStatus
             this.eventHandlers['PrintNode']()
             //eventHandlers['CleanNode'](NodeManager.nodes)
         }, interval)
