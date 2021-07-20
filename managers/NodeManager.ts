@@ -490,11 +490,15 @@ export default class NodeManager {
 
         if (this.isCordonTime(now)) {
             if (this.cordoned === false) {
+                Log.info("Time to cordon check")
+
                 this.rebootList = new Array<RebootNode>();
                 const arr = this.findRebootNodes(now, this.getAllNodes)
 
                 const tomorrow = new Date(now)
                 tomorrow.setDate(tomorrow.getDate() + 1)
+
+                Log.info(`Reboot Schedule nodes : ${JSON.stringify(arr)}`)
 
                 arr.forEach((node: string, index: number) => {
                     tomorrow.setHours(this.rebootStartHour.getHours(), this.rebootStartHour.getMinutes() + this.delay * index, 0, 0)
@@ -502,19 +506,30 @@ export default class NodeManager {
                     this.rebootList.push({ nodeName: node, rebootTime: tomorrow })
                 })
                 this.cordoned = true
+            } else {
+                Log.info("Time to cordon check but already done")
             }
         } else {
+            if( this.cordoned == true ) {
+                Log.info("End ofcordon check")
+            }
             this.cordoned = false;
         }
 
         if (this.isRebootTime(now)) {
             if (this.rebootScheduled === false) {
+                Log.info("Time to reboot check")
+
                 this.rebootList.forEach(item => setTimeout(() => this.setNodeConditionToReboot(item.nodeName), item.rebootTime.getTime() - now.getTime()))
                 this.rebootScheduled = true
+            } else {
+                Log.info("Time to reboot check but already done")
             }
         } else {
             // reboot 시간이 끝나면 reboot 대상 노드들을 uncordon
             if (this.rebootScheduled === true) {
+                Log.info("End of reboot check")
+
                 this.rebootList.forEach(item => {
                     this.uncordonNode(item.nodeName)
                     this.removeRebootCondition(item.nodeName)
