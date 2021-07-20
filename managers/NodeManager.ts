@@ -181,8 +181,8 @@ export default class NodeManager {
             NodeManager._nodes.forEach((node, key) => {
                 let rebootNode: { nodeName: string, rebootTime: string } = { nodeName: node.nodeName, rebootTime: "NO" }
                 this.rebootList.forEach(rb => {
-                    if (rb.nodeName == node.nodeName) {
-                        rebootNode = { nodeName: rb.nodeName, rebootTime: rb.rebootTime.toISOString() }
+                    if (rb == node.nodeName) {
+                        rebootNode = { nodeName: rb, rebootTime: "YES"}
                     }
                 })
                 arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status, lastRebootedTime: node.lastRebootedTime, rebootSchedule: rebootNode.rebootTime })
@@ -421,7 +421,7 @@ export default class NodeManager {
     private rebootScheduled = false
 
     private percentOfReboot = 30
-    private rebootList: Array<RebootNode> = []
+    private rebootList: Array<string> = []
     private maxRebootDay = 10
     private delay = 15
 
@@ -484,18 +484,14 @@ export default class NodeManager {
             if (this.cordoned === false) {
                 Log.info("Time to cordon check")
 
-                this.rebootList = new Array<RebootNode>();
+                this.rebootList = new Array<string>();
                 const arr = await this.findRebootNodes(now)
-
-                const tomorrow = new Date(now)
-                tomorrow.setDate(tomorrow.getDate() + 1)
 
                 Log.info(`Reboot Schedule nodes : ${JSON.stringify(arr)}`)
 
                 arr.forEach((node: string, index: number) => {
-                    tomorrow.setHours(this.rebootStartHour.getHours(), this.rebootStartHour.getMinutes() + this.delay * index, 0, 0)
                     this.cordonNode(node)
-                    this.rebootList.push({ nodeName: node, rebootTime: tomorrow })
+                    this.rebootList.push(node)
                 })
                 this.cordoned = true
             } else {
@@ -512,10 +508,11 @@ export default class NodeManager {
             if (this.rebootScheduled === false) {
                 Log.info("Time to reboot check")
 
-                this.rebootList.forEach(item => {
-                    const delay = item.rebootTime.getTime() - now.getTime()
-                    Log.debug(`Set timer for reboot '${item.nodeName} ${delay}`)
-                    setTimeout(() => this.setNodeConditionToReboot(item.nodeName), (delay < 0) ? 0 : delay)
+                const now = new Date()
+                this.rebootList.forEach((item, index) => {
+                    const delay = index * (15 * 60) * 1000 + 1000
+                    Log.debug(`Set timer for reboot '${item} ${delay}`)
+                    setTimeout(() => this.setNodeConditionToReboot(item), (delay < 0) ? 0 : delay)
                 })
                 this.rebootScheduled = true
             } else {
@@ -527,8 +524,8 @@ export default class NodeManager {
                 Log.info("End of reboot check")
 
                 this.rebootList.forEach(item => {
-                    this.uncordonNode(item.nodeName)
-                    this.removeRebootCondition(item.nodeName)
+                    this.uncordonNode(item)
+                    this.removeRebootCondition(item)
                 })
             }
             this.rebootScheduled = false
