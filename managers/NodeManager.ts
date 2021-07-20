@@ -497,7 +497,7 @@ export default class NodeManager {
                 Log.info("Time to cordon check")
 
                 this.rebootList = new Array<RebootNode>();
-                const arr = this.findRebootNodes(now, this.getAllNodes)
+                const arr = this.findRebootNodes(now, this.getAllNodes.bind(this))
 
                 const tomorrow = new Date(now)
                 tomorrow.setDate(tomorrow.getDate() + 1)
