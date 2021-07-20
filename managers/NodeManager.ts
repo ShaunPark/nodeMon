@@ -179,7 +179,13 @@ export default class NodeManager {
         PrintNode: () => {
             const arr = new Array<Object>()
             NodeManager._nodes.forEach((node, key) => {
-                arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status, lastRebootedTime: node.lastRebootedTime })
+                let rebootNode: { nodeName: string, rebootTime: string } = { nodeName: node.nodeName, rebootTime: "NO" }
+                this.rebootList.forEach(rb => {
+                    if (rb.nodeName == node.nodeName) {
+                        rebootNode = { nodeName: rb.nodeName, rebootTime: rb.rebootTime.toISOString() }
+                    }
+                })
+                arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status, lastRebootedTime: node.lastRebootedTime, rebootSchedule: rebootNode.rebootTime })
             })
             console.table(arr);
         },
