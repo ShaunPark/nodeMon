@@ -426,7 +426,10 @@ export default class NodeManager {
     private delay = 15
 
     private parseTimeStr(str: string): Date {
-        return new Date("2021-01-01T" + str.trim())
+        const tempDt = new Date("2021-07-20T" + str.trim())
+        const dt = new Date()
+        dt.setHours(tempDt.getHours(), tempDt.getMinutes(),0,0)
+        return dt
     }
 
     private timeStrToDate(timeStr: string, def: string): Date {
