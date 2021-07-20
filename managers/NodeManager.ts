@@ -383,12 +383,16 @@ export default class NodeManager {
     }
 
     private betweenTimes(target: Date, from: Date, to: Date): boolean {
-        const stTime = new Date(target)
+        const timeZoneOffset = target.getTimezoneOffset()
+        const targetTime = target.getTime() + ((timeZoneOffset + 9 * 60) * 60 * 1000)
+        const newtarget = new Date(targetTime)
+        const stTime = new Date(newtarget)
         stTime.setHours(from.getHours(), from.getMinutes(), 0, 0)
-        const edTime = new Date(target)
+        const edTime = new Date(newtarget)
         edTime.setHours(to.getHours(), to.getMinutes(), 0, 0)
 
         Log.debug(target)
+        Log.debug(newtarget)
         Log.debug(stTime)
         Log.debug(edTime)
 
