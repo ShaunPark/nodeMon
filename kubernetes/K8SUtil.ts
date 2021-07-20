@@ -1,5 +1,5 @@
 import * as k8s from "@kubernetes/client-node"
-import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus, V1PodList } from "@kubernetes/client-node";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
 import K8SClient from "./K8SClient";
@@ -110,7 +110,14 @@ export default class NodeConditionChanger extends K8SClient {
             }
         })
 
+        await this.getPodInNode(undefined)
+        
         Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
         return Promise.resolve(retArr)
+    }
+
+    public async getPodInNode(labelSelector: string | undefined) {
+        const { body } = await this.k8sApi.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector)
+        console.log(JSON.stringify(body))
     }
 }

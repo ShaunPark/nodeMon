@@ -4,13 +4,12 @@ import IConfig from "../types/ConfigType"
 
 import { MessagePort } from "worker_threads"
 
-import { NodeCondition, NodeEvent } from "../types/Type";
+import { NodeCondition } from "../types/Type";
 import Log from '../logger/Logger'
 import equal from 'deep-equal'
 import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
 import logger from "../logger/Logger";
-import { config } from "winston";
 
 const { parentPort } = require('worker_threads');
 export interface NodeInfo {
@@ -485,7 +484,7 @@ export default class NodeManager {
                 Log.info("Time to cordon check")
 
                 this.rebootList = new Array<string>();
-                const arr = await this.findRebootNodes(now)
+                const arr = this.findOldNodes(now)
 
                 Log.info(`Reboot Schedule nodes : ${JSON.stringify(arr)}`)
 
@@ -508,7 +507,8 @@ export default class NodeManager {
             if (this.rebootScheduled === false) {
                 Log.info("Time to reboot check")
 
-                const now = new Date()
+                const arr = await this.findRebootNodes()
+
                 this.rebootList.forEach((item, index) => {
                     const delay = index * (15 * 60) * 1000 + 1000
                     Log.debug(`Set timer for reboot '${item} ${delay}`)
@@ -527,12 +527,13 @@ export default class NodeManager {
                     this.uncordonNode(item)
                     this.removeRebootCondition(item)
                 })
+                this.rebootList = new Array<string>()
             }
             this.rebootScheduled = false
         }
     }
 
-    private findRebootNodes = async (now: Date): Promise<Array<string>> => {
+    private findOldNodes = (now: Date): Array<string> => {
         const arr: Array<string> = []
         const rebootTime = now.getTime() - (this.maxRebootDay * 24 * 60 * 60 * 1000)
 
@@ -555,6 +556,12 @@ export default class NodeManager {
                 }
             }
         })
+        return arr;
+    }
+
+
+    private findRebootNodes = async (): Promise<Array<string>> => {
+        const arr: Array<string> = this.rebootList
 
         Log.info(`nubmer of reboot by max liveness : ${arr.length}`)
 
@@ -663,7 +670,7 @@ export default class NodeManager {
         } else {
             this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
         }
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node ${nodeName} reboot starting.` })
     }
 
     //// Test fundtions

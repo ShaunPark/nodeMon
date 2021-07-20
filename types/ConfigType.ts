@@ -11,6 +11,7 @@ export default interface IConfig {
 }
 
 interface IMaintenance {
+    testMode: boolean
     maintenanceDay: number // 0 - Sunday, 1 - Monday ....
     startHour: string // 2 - 2AM, 
     endHour: string   // 4 - 4AM
