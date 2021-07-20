@@ -105,12 +105,11 @@ export default class NodeConditionChanger extends K8SClient {
         const arr = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
 
         arr.body.items.forEach(node => {
-            Log.debug(JSON.stringify(node))
             if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
                 retArr.push({ nodeName: node.metadata.name, memory: node.status.allocatable.memory })
             }
         })
-        
+
         Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
         return Promise.resolve(retArr)
     }

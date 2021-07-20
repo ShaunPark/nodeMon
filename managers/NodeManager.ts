@@ -397,11 +397,6 @@ export default class NodeManager {
         const edTime = new Date(newtarget)
         edTime.setHours(to.getHours(), to.getMinutes(), 0, 0)
 
-        Log.debug(target)
-        Log.debug(newtarget)
-        Log.debug(stTime)
-        Log.debug(edTime)
-
         return stTime.getTime() < newtarget.getTime() && edTime.getTime() > newtarget.getTime()
     }
 
@@ -414,7 +409,7 @@ export default class NodeManager {
     private isRebootTime = (now: Date): boolean => {
         const ret = this.betweenTimes(now, this.rebootStartHour, this.rebootEndHoure)
         Log.debug(`isRebootTime : ${ret}`)
-        return ret 
+        return ret
     }
 
     private cordonStartHour: Date = new Date('Thu, 01 Jan 1970 20:00:00')
@@ -497,7 +492,7 @@ export default class NodeManager {
                 Log.info("Time to cordon check")
 
                 this.rebootList = new Array<RebootNode>();
-                const arr =  await this.findRebootNodes(now)
+                const arr = await this.findRebootNodes(now)
 
                 const tomorrow = new Date(now)
                 tomorrow.setDate(tomorrow.getDate() + 1)
@@ -514,7 +509,7 @@ export default class NodeManager {
                 Log.info("Time to cordon check but already done")
             }
         } else {
-            if( this.cordoned == true ) {
+            if (this.cordoned == true) {
                 Log.info("End ofcordon check")
             }
             this.cordoned = false;
@@ -524,7 +519,11 @@ export default class NodeManager {
             if (this.rebootScheduled === false) {
                 Log.info("Time to reboot check")
 
-                this.rebootList.forEach(item => setTimeout(() => this.setNodeConditionToReboot(item.nodeName), item.rebootTime.getTime() - now.getTime()))
+                this.rebootList.forEach(item => {
+                    const delay = item.rebootTime.getTime() - now.getTime()
+                    Log.debug(`Set timer for reboot '${item.nodeName} ${delay}`)
+                    setTimeout(() => this.setNodeConditionToReboot(item.nodeName), (delay < 0) ? 0 : delay)
+                })
                 this.rebootScheduled = true
             } else {
                 Log.info("Time to reboot check but already done")
