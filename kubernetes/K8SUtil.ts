@@ -5,9 +5,9 @@ import IConfig from "../types/ConfigType";
 import K8SClient from "./K8SClient";
 
 export default class NodeConditionChanger extends K8SClient {
-    protected config:IConfig;
+    protected config: IConfig;
 
-    constructor(config:IConfig) {
+    constructor(config: IConfig) {
         super()
         this.config = config
     }
@@ -98,18 +98,19 @@ export default class NodeConditionChanger extends K8SClient {
         }
     }
 
-    public getAllNodeAndMemory(labelSelector: string | undefined): Array<{nodeName:string, memory:string}> {
-        const retArr = new Array<{nodeName:string, memory:string}>()
+    public getAllNodeAndMemory(labelSelector: string | undefined): Array<{ nodeName: string, memory: string }> {
+        const retArr = new Array<{ nodeName: string, memory: string }>()
 
+        Log.debug(`getAllNodeAndMemory : ${labelSelector}`)
         this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
             .then(value => {
                 value.body.items.forEach(node => {
                     if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
-                        retArr.push({nodeName:node.metadata.name, memory:node.status.allocatable.memory})
+                        retArr.push({ nodeName: node.metadata.name, memory: node.status.allocatable.memory })
                     }
                 })
             })
-
+        Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
         return retArr
     }
 }
