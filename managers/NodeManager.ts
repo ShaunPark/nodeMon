@@ -10,6 +10,7 @@ import equal from 'deep-equal'
 import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
 import logger from "../logger/Logger";
+import { config } from "winston";
 
 const { parentPort } = require('worker_threads');
 export interface NodeInfo {
@@ -52,7 +53,7 @@ export default class NodeManager {
     private k8sUtil: K8SUtil
 
     constructor(private configFile: string, private dryRun: boolean) {
-        if (parentPort){
+        if (parentPort) {
             parentPort.addEventListener("message", this.initMessageHandler)
         }
 
@@ -266,6 +267,9 @@ export default class NodeManager {
     private reboot(nodeName: string, nodes: Map<string, NodeConditionCache>, configManager: ConfigManager) {
         const config = configManager.config;
         const node = nodes.get(nodeName)
+        const isReboot: boolean = config.rebootThroughSSH === undefined || config.rebootThroughSSH === true
+        const rebootStr = (isReboot) ? "Reboot" : "Termination"
+
         if (node !== undefined) {
             if (node.timer !== undefined) {
                 clearTimeout(node.timer)
@@ -290,16 +294,16 @@ export default class NodeManager {
             }
 
             const rebootTime = new Date(now + delay)
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot scheduled at ${rebootTime}.` })
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} ${rebootStr} is scheduled at ${rebootTime}.` })
 
             setTimeout(() => {
-                Log.info(`Reboot ${nodeName} started.`)
-                Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} reboot now.` })
+                Log.info(`${(isReboot) ? "Reboot" : "Termination"} ${nodeName} started.`)
+                Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} ${rebootStr} now.` })
                 NodeManager.lastRebootTime = new Date()
 
                 if (this.dryRun !== true) {
 
-                    Log.info(`DryRun is not true reboot enabled.`)
+                    Log.info(`DryRun is not true. ${rebootStr} is enabled.`)
 
                     try {
                         const rebooter: Rebooter = new Rebooter(configManager)
@@ -377,20 +381,31 @@ export default class NodeManager {
         }, interval)
     }
 
-    private isCordonTime(now: Date): boolean {
-        const currentHour = now.getHours()
-        return this.cordonStartHour < currentHour && this.cordonEndHour > currentHour
+    private betweenTimes(target: Date, from: Date, to: Date): boolean {
+        const stTime = new Date(target)
+        stTime.setHours(from.getHours(), from.getMinutes(), 0, 0)
+        const edTime = new Date(target)
+        edTime.setHours(to.getHours(), to.getMinutes(), 0, 0)
+
+        Log.debug(target)
+        Log.debug(stTime)
+        Log.debug(edTime)
+
+        return stTime.getTime() < target.getTime() && edTime.getTime() > target.getTime()
     }
 
-    private isRebootTime(now: Date): boolean {
-        const currentHour = now.getHours()
-        return this.rebootStartHour < currentHour && this.rebootEndHoure > currentHour
+    private isCordonTime = (now: Date): boolean => {
+        return this.betweenTimes(now, this.cordonStartHour, this.cordonEndHour)
     }
 
-    private cordonStartHour = 8
-    private cordonEndHour = 9
-    private rebootStartHour = 3
-    private rebootEndHoure = 5
+    private isRebootTime = (now: Date): boolean => {
+        return this.betweenTimes(now, this.rebootStartHour, this.rebootEndHoure)
+    }
+
+    private cordonStartHour: Date = new Date('Thu, 01 Jan 1970 20:00:00')
+    private cordonEndHour: Date = new Date('Thu, 01 Jan 1970 21:00:00')
+    private rebootStartHour: Date = new Date('Thu, 01 Jan 1970 03:00:00')
+    private rebootEndHoure: Date = new Date('Thu, 01 Jan 1970 05:00:00')
 
     private cordoned = false
     private rebootScheduled = false
@@ -400,36 +415,45 @@ export default class NodeManager {
     private maxRebootDay = 10
     private delay = 15
 
-    private reloadConfigValues() {
+    private parseTimeStr(str: string): Date {
+        const strArr = str.split(":")
+
+        const dt = new Date()
+        dt.setHours(parseInt(strArr[0]), 0, 0)
+        if (strArr.length > 1) {
+            dt.setMinutes(parseInt(strArr[1]))
+        } else {
+            dt.setMinutes(0)
+        }
+
+        return dt
+    }
+
+    private timeStrToDate(timeStr: string, def: string): Date {
+        try {
+            return this.parseTimeStr(timeStr)
+        } catch (err) {
+            Log.error(err)
+            return this.parseTimeStr(def)
+        }
+    }
+
+    private reloadConfigValues = () => {
         if (this.configManager.config.maintenance) {
             const maint = this.configManager.config.maintenance
 
-            this.cordonStartHour = maint.cordonStartHour;
-            if (this.cordonStartHour < 19 || this.cordonStartHour > 22) {
-                this.cordonStartHour = 20
+            this.cordonStartHour = this.timeStrToDate(maint.cordonStartHour, "20:00")
+            this.cordonEndHour = this.timeStrToDate(maint.cordonEndHour, "21:00")
+
+            if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
+                this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
             }
 
-            this.cordonEndHour = maint.cordonEndHour;
-            if (this.cordonEndHour < 20 || this.cordonEndHour > 23) {
-                this.cordonEndHour = 21
-            }
+            this.rebootStartHour = this.timeStrToDate(maint.startHour, "03:00")
+            this.rebootEndHoure = this.timeStrToDate(maint.endHour, "04:00")
 
-            if (this.cordonStartHour + 1 < this.cordonEndHour) {
-                this.cordonEndHour = this.cordonStartHour + 1
-            }
-
-            this.rebootStartHour = maint.startHour;
-            if (this.rebootStartHour < 0 || this.rebootStartHour > 21) {
-                this.rebootStartHour = 3
-            }
-
-            this.rebootEndHoure = maint.endHour;
-            if (this.rebootEndHoure < 2 || this.rebootEndHoure > 23) {
-                this.rebootEndHoure = 5
-            }
-
-            if (this.rebootStartHour + 2 < this.rebootEndHoure) {
-                this.rebootEndHoure = this.rebootStartHour + 2
+            if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
+                this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
             }
 
             this.percentOfReboot = maint.ratio
@@ -462,7 +486,7 @@ export default class NodeManager {
                 tomorrow.setDate(tomorrow.getDate() + 1)
 
                 arr.forEach((node: string, index: number) => {
-                    tomorrow.setHours(this.rebootStartHour, this.delay * index, 0, 0)
+                    tomorrow.setHours(this.rebootStartHour.getHours(), this.rebootStartHour.getMinutes() + this.delay * index, 0, 0)
                     this.cordonNode(node)
                     this.rebootList.push({ nodeName: node, rebootTime: tomorrow })
                 })
@@ -489,7 +513,7 @@ export default class NodeManager {
         }
     }
 
-    public findRebootNodes(now: Date, getList: () => Array<{ nodeName: string, memory: string }>): Array<string> {
+    private findRebootNodes = (now: Date, getList: () => Array<{ nodeName: string, memory: string }>): Array<string> => {
         const arr: Array<string> = []
         const rebootTime = now.getTime() - (this.maxRebootDay * 24 * 60 * 60 * 1000)
 
@@ -589,21 +613,58 @@ export default class NodeManager {
     }
 
     private cordonNode(nodeName: string) {
-        this.k8sUtil.cordonNode(nodeName)
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
+        if (this.configManager.config.dryRun) {
+            Log.debug(`Node ${nodeName} cordoned`)
+        } else {
+            this.k8sUtil.cordonNode(nodeName)
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
+        }
     }
 
     private uncordonNode(nodeName: string) {
-        this.k8sUtil.uncordonNode(nodeName)
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
+        if (this.configManager.config.dryRun) {
+            Log.debug(`Node ${nodeName} unCordoned`)
+        } else {
+            this.k8sUtil.uncordonNode(nodeName)
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
+        }
     }
 
     private removeRebootCondition = (nodeName: string) => {
-        this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
+        if (this.configManager.config.dryRun) {
+            Log.debug(`Node ${nodeName} RebootRequested`)
+        } else {
+            this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
+        }
     }
 
     private setNodeConditionToReboot = (nodeName: string) => {
-        this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
+        if (this.configManager.config.dryRun) {
+            Log.debug(`Node ${nodeName} is scheduled for reboot`)
+        } else {
+            this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
+        }
+    }
+
+    //// Test fundtions
+    public timeStrToTest(): (timeStr: string, def: string) => Date {
+        return this.timeStrToDate
+    }
+
+    public getIscordonTime(): (now: Date) => boolean {
+        return this.isCordonTime
+    }
+
+    public getIsRebootTime(): (now: Date) => boolean {
+        return this.isRebootTime
+    }
+
+    public getFindRebootNodes(): (now: Date, getList: () => Array<{ nodeName: string, memory: string }>) => Array<string> {
+        return this.findRebootNodes
+    }
+
+    public getReloadConfigValues(): () => void {
+        return this.reloadConfigValues.bind(this)
     }
 }

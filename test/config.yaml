@@ -1,4 +1,5 @@
 interval: 3000
+dryRun: true
 kubernetes:
   interval: 3000
   label: "draino-enabled=true"
@@ -19,11 +20,11 @@ elasticSearch:
   logIndex: log
   statusIndex: status
 maintenance:
-  maintenanceDay: 7
-  startHour: 3
-  endHour: 5
+  maxRebootDay: 7
+  startHour: "09:20"
+  endHour: "09:40"
   duration: 10
   ratio: 20
-  cordonStartHour: 20
-  cordonEndHour: 21
+  cordonStartHour: "09:50"
+  cordonEndHour: "10:00"
 

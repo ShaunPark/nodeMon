@@ -117,8 +117,24 @@ describe('NodeManager', () => {
 
 
     it('node test', () => {
-        console.log(JSON.stringify(mgr.findRebootNodes(new Date(), getList ))) 
+        console.log(JSON.stringify(mgr.getFindRebootNodes()(new Date(), getList ))) 
         assert.ok(true)
+    });
+
+    it('time test', () => {
+        mgr.getReloadConfigValues()()
+
+        const now = new Date()
+        now.setHours(9, 45, 0)
+        assert.strictEqual(mgr.getIscordonTime()(now), false)
+        assert.strictEqual(mgr.getIsRebootTime()(now), false)
+
+
+        const now2 = new Date()
+        now2.setHours(9, 25, 0)
+        assert.strictEqual(mgr.getIscordonTime()(now2), false)
+        assert.strictEqual(mgr.getIsRebootTime()(now2), true)
+
     });
 
     // const configManager = new ConfigManager("./test/config.yaml");

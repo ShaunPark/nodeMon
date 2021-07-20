@@ -1,4 +1,5 @@
 export default interface IConfig {
+    dryRun:boolean
     //interval?: number;
     rebootDelay: number;
     rebootThroughSSH?: boolean;
@@ -11,12 +12,12 @@ export default interface IConfig {
 
 interface IMaintenance {
     maintenanceDay: number // 0 - Sunday, 1 - Monday ....
-    startHour: number // 2 - 2AM, 
-    endHour: number   // 4 - 4AM
+    startHour: string // 2 - 2AM, 
+    endHour: string   // 4 - 4AM
     duration: number // 10 - 10 days
     ratio: number // 30 percent
-    cordonStartHour:number
-    cordonEndHour:number
+    cordonStartHour:string
+    cordonEndHour:string
 }
 interface IElasticSearch {
     host: string
