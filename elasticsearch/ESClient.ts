@@ -12,9 +12,10 @@ export abstract class ESClient<T> {
     this.createIndex()
   }
 
-  public async createIndex() {
+  public createIndex() {
+    Log.info(`Create Index : ${this.INDEX_NAME}`)
     if (!this.client.indices.exists({ index: this.INDEX_NAME })) {
-      await this.client.indices.create({ index: this.INDEX_NAME });
+      this.client.indices.create({ index: this.INDEX_NAME });
     }
   }
 
