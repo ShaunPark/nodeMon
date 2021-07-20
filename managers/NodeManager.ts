@@ -389,15 +389,15 @@ export default class NodeManager {
     }
 
     private betweenTimes(target: Date, from: Date, to: Date): boolean {
-        const timeZoneOffset = target.getTimezoneOffset()
-        const targetTime = target.getTime() + ((timeZoneOffset + 9 * 60) * 60 * 1000)
-        const newtarget = new Date(targetTime)
-        const stTime = new Date(newtarget)
+        // const timeZoneOffset = target.getTimezoneOffset()
+        // const targetTime = target.getTime() + ((timeZoneOffset + 9 * 60) * 60 * 1000)
+        // const newtarget = new Date(targetTime)
+        const stTime = new Date(target)
         stTime.setHours(from.getHours(), from.getMinutes(), 0, 0)
-        const edTime = new Date(newtarget)
+        const edTime = new Date(target)
         edTime.setHours(to.getHours(), to.getMinutes(), 0, 0)
 
-        return stTime.getTime() < newtarget.getTime() && edTime.getTime() > newtarget.getTime()
+        return stTime.getTime() < target.getTime() && edTime.getTime() > target.getTime()
     }
 
     private isCordonTime = (now: Date): boolean => {
