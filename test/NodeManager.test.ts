@@ -116,10 +116,10 @@ describe('NodeManager', () => {
     const mgr = new NodeManager("./test/config.yaml", true)
 
 
-    it('node test', () => {
-        console.log(JSON.stringify(mgr.getFindRebootNodes()(new Date(), getList ))) 
-        assert.ok(true)
-    });
+    // it('node test', () => {
+    //     console.log(JSON.stringify(mgr.getFindRebootNodes()(new Date(), getList ))) 
+    //     assert.ok(true)
+    // });
 
     it('time test', () => {
         mgr.getReloadConfigValues()()

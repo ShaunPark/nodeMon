@@ -98,20 +98,20 @@ export default class NodeConditionChanger extends K8SClient {
         }
     }
 
-    public getAllNodeAndMemory(labelSelector: string | undefined): Array<{ nodeName: string, memory: string }> {
+    public async getAllNodeAndMemory(labelSelector: string | undefined): Promise<Array<{ nodeName: string, memory: string }>> {
         const retArr = new Array<{ nodeName: string, memory: string }>()
 
         Log.debug(`getAllNodeAndMemory : ${labelSelector}`)
-        this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
-            .then(value => {
-                value.body.items.forEach(node => {
-                    Log.debug(JSON.stringify(node))
-                    if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
-                        retArr.push({ nodeName: node.metadata.name, memory: node.status.allocatable.memory })
-                    } 
-                })
-            })
+        const arr = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
+
+        arr.body.items.forEach(node => {
+            Log.debug(JSON.stringify(node))
+            if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
+                retArr.push({ nodeName: node.metadata.name, memory: node.status.allocatable.memory })
+            }
+        })
+        
         Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
-        return retArr
+        return Promise.resolve(retArr)
     }
 }

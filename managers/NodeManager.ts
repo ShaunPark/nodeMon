@@ -488,7 +488,7 @@ export default class NodeManager {
         }
     }
 
-    private checkNodeStatus = () => {
+    private checkNodeStatus = async () => {
         this.reloadConfigValues()
         const now = new Date()
 
@@ -497,7 +497,7 @@ export default class NodeManager {
                 Log.info("Time to cordon check")
 
                 this.rebootList = new Array<RebootNode>();
-                const arr = this.findRebootNodes(now, this.getAllNodes.bind(this))
+                const arr =  await this.findRebootNodes(now)
 
                 const tomorrow = new Date(now)
                 tomorrow.setDate(tomorrow.getDate() + 1)
@@ -543,7 +543,7 @@ export default class NodeManager {
         }
     }
 
-    private findRebootNodes = (now: Date, getList: () => Array<{ nodeName: string, memory: string }>): Array<string> => {
+    private findRebootNodes = async (now: Date): Promise<Array<string>> => {
         const arr: Array<string> = []
         const rebootTime = now.getTime() - (this.maxRebootDay * 24 * 60 * 60 * 1000)
 
@@ -569,7 +569,7 @@ export default class NodeManager {
 
         Log.info(`nubmer of reboot by max liveness : ${arr.length}`)
 
-        const allNodes = getList()
+        const allNodes = await this.getAllNodes()
 
         Log.info(`totol nubmer of reboot : ${allNodes.length}`)
 
@@ -582,7 +582,7 @@ export default class NodeManager {
         }
 
         Log.info(`number of final result: ${arr.length}`)
-        return arr.slice(0, numberOfReboot)
+        return Promise.resolve(arr.slice(0, numberOfReboot))
     }
 
     private chagneMemToNumber(usage: string): number {
@@ -638,8 +638,8 @@ export default class NodeManager {
         return ret
     }
 
-    private getAllNodes(): Array<{ nodeName: string, memory: string }> {
-        return this.k8sUtil.getAllNodeAndMemory(this.configManager.config.kubernetes?.nodeSelector)
+    private async getAllNodes(): Promise<Array<{ nodeName: string, memory: string }>> {
+        return await this.k8sUtil.getAllNodeAndMemory(this.configManager.config.kubernetes?.nodeSelector)
     }
 
     private cordonNode(nodeName: string) {
@@ -690,9 +690,9 @@ export default class NodeManager {
         return this.isRebootTime
     }
 
-    public getFindRebootNodes(): (now: Date, getList: () => Array<{ nodeName: string, memory: string }>) => Array<string> {
-        return this.findRebootNodes
-    }
+    // public getFindRebootNodes(): (now: Date, getList: () => Array<{ nodeName: string, memory: string }>) => Array<string> {
+    //     return this.findRebootNodes
+    // }
 
     public getReloadConfigValues(): () => void {
         return this.reloadConfigValues.bind(this)
