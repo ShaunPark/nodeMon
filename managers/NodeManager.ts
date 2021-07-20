@@ -617,8 +617,8 @@ export default class NodeManager {
             Log.debug(`Node ${nodeName} cordoned`)
         } else {
             this.k8sUtil.cordonNode(nodeName)
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
         }
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
     }
 
     private uncordonNode(nodeName: string) {
@@ -626,8 +626,8 @@ export default class NodeManager {
             Log.debug(`Node ${nodeName} unCordoned`)
         } else {
             this.k8sUtil.uncordonNode(nodeName)
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
         }
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
     }
 
     private removeRebootCondition = (nodeName: string) => {
@@ -643,8 +643,8 @@ export default class NodeManager {
             Log.debug(`Node ${nodeName} is scheduled for reboot`)
         } else {
             this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
         }
+        Channel.sendMessageEventToES({ node: nodeName, message: `Node is scheduled for reboot.` })
     }
 
     //// Test fundtions
