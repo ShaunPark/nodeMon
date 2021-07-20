@@ -12,7 +12,7 @@ class ConfigManager {
     // 읽은지 1분이 넘었으면 새로 설정파일을 읽어와서 반영함.
     get config():IConfig {
         if( this._lastReadTime ) {
-            Log.info(`config loaded at ${this._lastReadTime.getTime()}  now ${Date.now()} `)
+            Log.debug(`config loaded at ${this._lastReadTime.getTime()}  now ${Date.now()} `)
         }
 
         if( !this._config || !this._lastReadTime || (this._lastReadTime && (Date.now() - this._lastReadTime.getTime()) > 60000) ) {

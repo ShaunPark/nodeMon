@@ -402,15 +402,19 @@ export default class NodeManager {
         Log.debug(stTime)
         Log.debug(edTime)
 
-        return stTime.getTime() < target.getTime() && edTime.getTime() > target.getTime()
+        return stTime.getTime() < newtarget.getTime() && edTime.getTime() > newtarget.getTime()
     }
 
     private isCordonTime = (now: Date): boolean => {
-        return this.betweenTimes(now, this.cordonStartHour, this.cordonEndHour)
+        const ret = this.betweenTimes(now, this.cordonStartHour, this.cordonEndHour)
+        Log.debug(`isCordonTime : ${ret}`)
+        return ret
     }
 
     private isRebootTime = (now: Date): boolean => {
-        return this.betweenTimes(now, this.rebootStartHour, this.rebootEndHoure)
+        const ret = this.betweenTimes(now, this.rebootStartHour, this.rebootEndHoure)
+        Log.debug(`isRebootTime : ${ret}`)
+        return ret 
     }
 
     private cordonStartHour: Date = new Date('Thu, 01 Jan 1970 20:00:00')
