@@ -426,17 +426,7 @@ export default class NodeManager {
     private delay = 15
 
     private parseTimeStr(str: string): Date {
-        const strArr = str.split(":")
-
-        const dt = new Date()
-        dt.setHours(parseInt(strArr[0]), 0, 0)
-        if (strArr.length > 1) {
-            dt.setMinutes(parseInt(strArr[1]))
-        } else {
-            dt.setMinutes(0)
-        }
-
-        return dt
+        return new Date("2021-01-01T" + str.trim())
     }
 
     private timeStrToDate(timeStr: string, def: string): Date {
@@ -452,15 +442,15 @@ export default class NodeManager {
         if (this.configManager.config.maintenance) {
             const maint = this.configManager.config.maintenance
 
-            this.cordonStartHour = this.timeStrToDate(maint.cordonStartHour, "20:00")
-            this.cordonEndHour = this.timeStrToDate(maint.cordonEndHour, "21:00")
+            this.cordonStartHour = this.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
+            this.cordonEndHour = this.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
 
             if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
                 this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
             }
 
-            this.rebootStartHour = this.timeStrToDate(maint.startHour, "03:00")
-            this.rebootEndHoure = this.timeStrToDate(maint.endHour, "04:00")
+            this.rebootStartHour = this.timeStrToDate(maint.startHour, "03:00+09:00")
+            this.rebootEndHoure = this.timeStrToDate(maint.endHour, "04:00+09:00")
 
             if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
                 this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
