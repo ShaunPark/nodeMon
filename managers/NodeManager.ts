@@ -479,6 +479,9 @@ export default class NodeManager {
         this.reloadConfigValues()
         const now = new Date()
 
+
+        const arr = await this.findRebootNodes()
+
         if (this.isCordonTime(now)) {
             if (this.cordoned === false) {
                 Log.info("Time to cordon check")
@@ -507,7 +510,6 @@ export default class NodeManager {
             if (this.rebootScheduled === false) {
                 Log.info("Time to reboot check")
 
-                const arr = await this.findRebootNodes()
 
                 this.rebootList.forEach((item, index) => {
                     const delay = index * (15 * 60) * 1000 + 1000
