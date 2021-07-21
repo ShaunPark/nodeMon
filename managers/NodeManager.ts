@@ -342,9 +342,7 @@ export default class NodeManager {
                 if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
                     this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
                 }
-    
             }
-
 
             this.percentOfReboot = maint.ratio
             if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
@@ -359,7 +357,6 @@ export default class NodeManager {
     }
 
     private checkNodeStatus = async () => {
-
         const maint = this.cmg.config.maintenance
 
         if (maint && maint.runMaintenance) {
@@ -452,10 +449,12 @@ export default class NodeManager {
     }
 
     private scheduleRebootNodes(list: string[]) {
-        list.forEach((item, index) => {
+        list.forEach((nodeName, index) => {
             const delay = index * (15 * 60) * 1000 + 1000
-            Log.debug(`Set timer for reboot '${item} ${delay}`)
-            setTimeout(() => this.setNodeConditionToReboot(item), (delay < 0) ? 0 : delay)
+            Log.debug(`Set timer for reboot '${nodeName} ${delay}`)
+            const scheduledTime = new Date(Date.now() + delay)
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node reboot is scheduled at ${scheduledTime}` })
+            setTimeout(() => this.setNodeConditionToReboot(nodeName), (delay < 0) ? 0 : delay)
         })
     }
 
