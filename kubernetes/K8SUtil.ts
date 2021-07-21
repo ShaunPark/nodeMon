@@ -53,17 +53,20 @@ export default class NodeConditionChanger extends K8SClient {
 
     async removeNodeCondition(nodeName: string, conditionType: string) {
         Log.info(`remove node status of condition '${conditionType}'`)
+        try {
+            const status = await this.getNodeConditions(nodeName)
 
-        const status = await this.getNodeConditions(nodeName)
-
-        Log.info(`remove node status of '${nodeName}'`)
-        if (status.conditions) {
-            status.conditions = status.conditions.filter(condition => condition.type != conditionType)
-
-            Log.debug(JSON.stringify(status))
-
-            // condition 변경작업 수행 
-            await this.changeNodeStatus(nodeName, status)
+            Log.info(`remove node status of '${nodeName}'`)
+            if (status.conditions) {
+                status.conditions = status.conditions.filter(condition => condition.type != conditionType)
+    
+                Log.debug(JSON.stringify(status))
+    
+                // condition 변경작업 수행 
+                await this.changeNodeStatus(nodeName, status)
+            }
+        } catch(err) {
+            Log.error(err)
         }
     }
 
@@ -76,10 +79,9 @@ export default class NodeConditionChanger extends K8SClient {
             console.log('Job finished successfully.')
             return Promise.resolve(ret)
         } catch (err) {
-            console.error(err)
+            Log.error(err)
         }
         return Promise.reject()
-
     }
 
 
