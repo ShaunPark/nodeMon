@@ -322,20 +322,29 @@ export default class NodeManager {
     private reloadConfigValues = () => {
         const maint = this.cmg.config.maintenance
         if (maint !== undefined) {
-
-            this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
-            this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
-
-            if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
-                this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
+            if( maint.testMode === true ){
+                Log.info("TEST Mode !!!!!!!!!!!!!")
+                this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
+                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (1 * 60 * 1000))
+                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (2 * 60 * 1000))
+                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (3 * 60 * 1000))
+            } else {
+                this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
+                this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
+    
+                if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
+                    this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
+                }
+    
+                this.rebootStartHour = util.timeStrToDate(maint.startHour, "03:00+09:00")
+                this.rebootEndHoure = util.timeStrToDate(maint.endHour, "04:00+09:00")
+    
+                if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
+                    this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
+                }
+    
             }
 
-            this.rebootStartHour = util.timeStrToDate(maint.startHour, "03:00+09:00")
-            this.rebootEndHoure = util.timeStrToDate(maint.endHour, "04:00+09:00")
-
-            if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
-                this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
-            }
 
             this.percentOfReboot = maint.ratio
             if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
