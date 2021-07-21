@@ -44,11 +44,9 @@ export default class NodeConditionChanger extends K8SClient {
                 return Promise.resolve(ret.body.status)
             } else {
                 console.error(JSON.stringify(ret))
-                return Promise.reject()
             }
         } catch (err) {
             console.error(err.response.body.message)
-            return Promise.reject()
         }
     }
 
@@ -57,25 +55,31 @@ export default class NodeConditionChanger extends K8SClient {
 
         const status = await this.getNodeConditions(nodeName)
 
+        console.log(`remove node status of condition '${nodeName}'`)
         if (status.conditions) {
             status.conditions = status.conditions.filter(condition => condition.type != conditionType)
 
-            Log.debug(JSON.stringify(status))
+            console.log(JSON.stringify(status))
 
             // condition 변경작업 수행 
-            try {
-                //const status: V1NodeStatus = { conditions: conditions }
-                const body = { status: status }
-                const header = { headers: { "Content-Type": "application/merge-patch+json" } }
-                const ret = await this.k8sApi.patchNodeStatus(nodeName, body, undefined, undefined, undefined, undefined, header)
-                Log.info('Job finished successfully.')
-                return Promise.resolve(ret)
-            } catch (err) {
-                Log.error(err)
-                throw err
-            }
+            await this.changeNodeStatus(nodeName, status)
         }
     }
+
+    private async changeNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
+        try {
+            //const status: V1NodeStatus = { conditions: conditions }
+            const body = { status: status }
+            const header = { headers: { "Content-Type": "application/merge-patch+json" } }
+            const ret = await this.k8sApi.patchNodeStatus(nodeName, body, undefined, undefined, undefined, undefined, header)
+            console.log('Job finished successfully.')
+            return Promise.resolve(ret)
+        } catch (err) {
+            console.error(err)
+            throw err
+        }
+    }
+
 
     public async cordonNode(nodeName: string): Promise<Object> {
         try {
