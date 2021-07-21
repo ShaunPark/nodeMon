@@ -1,5 +1,5 @@
-import * as k8s from "@kubernetes/client-node"
-import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus, V1PodList } from "@kubernetes/client-node";
+import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
 import K8SClient from "./K8SClient";
@@ -98,26 +98,25 @@ export default class NodeConditionChanger extends K8SClient {
         }
     }
 
-    public async getAllNodeAndMemory(labelSelector: string | undefined): Promise<Array<{ nodeName: string, memory: string }>> {
-        const retArr = new Array<{ nodeName: string, memory: string }>()
+    // public async getAllNodeAndMemory(labelSelector: string | undefined): Promise<Array<string>> {
+    //     const retArr = new Array<string>()
 
-        Log.debug(`getAllNodeAndMemory : ${labelSelector}`)
-        const arr = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
+    //     Log.debug(`getAllNodeAndMemory : ${labelSelector}`)
+    //     const arr = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
 
-        arr.body.items.forEach(node => {
-            if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
-                retArr.push({ nodeName: node.metadata.name, memory: node.status.allocatable.memory })
-            }
-        })
+    //     arr.body.items.forEach(node => {
+    //         if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
+    //             retArr.push(node.metadata.name)
+    //         }
+    //     })
 
-        await this.getPodInNode(undefined)
-        
-        Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
-        return Promise.resolve(retArr)
-    }
+    //     Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
+    //     return Promise.resolve(retArr)
+    // }
 
-    public async getPodInNode(labelSelector: string | undefined) {
-        const { body } = await this.k8sApi.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector)
-        console.log(JSON.stringify(body))
+    public async getNodeListOfPods(fieldSelector: string | undefined = undefined, labelSelector: string | undefined = undefined):Promise<string[]> {
+        const { body } = await this.k8sApi.listPodForAllNamespaces(undefined, undefined, fieldSelector, labelSelector)
+        const nodeList = jsonpath.query(body, '$.items[*].spec.nodeName') as string[]
+        return Promise.resolve(nodeList)
     }
 }

@@ -1,37 +1,38 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import NodeManager, { NodeConditionCache, NodeConditionEvent} from '../managers/NodeManager';
+import NodeManager, { NodeConditionCache, NodeConditionEvent } from '../managers/NodeManager';
 import ConfigManager from '../config/ConfigManager';
 import { NodeCondition } from '../types/Type';
 
 const should = chai.should;
 
 
-const getList = ():{nodeName:string, memory:string}[] => {
+const getList = (): { nodeName: string, memory: string }[] => {
     const arr = [
-        {nodeName:"ip-10-0-0-1", memory:"500Mi"},
+        { nodeName: "ip-10-0-0-1", memory: "500Mi" },
         // {nodeName:"ip-10-0-0-2", memory:"500Mi"},
         // {nodeName:"ip-10-0-0-3", memory:"500Mi"},
         // {nodeName:"ip-10-0-0-4", memory:"500Mi"},
         // {nodeName:"ip-10-0-0-5", memory:"0.3Gi"},
         // {nodeName:"ip-10-0-0-6", memory:"5000Mi"},
-        {nodeName:"ip-10-0-0-7", memory:"12800000"},
-        {nodeName:"ip-10-0-0-8", memory:"1G"},
+        { nodeName: "ip-10-0-0-7", memory: "12800000" },
+        { nodeName: "ip-10-0-0-8", memory: "1G" },
     ]
-    return  arr
+    return arr
 }
 
 describe('NodeManager', () => {
-
-    NodeManager.setNode({
+    const node: NodeConditionCache = {
         lastRebootedTime: new Date("2021-07-18"),
         status: "Ready",
         lastUpdateTime: new Date(),
         ipAddress: "10.0.0.1",
-        conditions: new Map<string,NodeCondition>(),
+        conditions: new Map<string, NodeCondition>(),
         nodeName: "ip-10-0-0-1",
         UUID: "node.UUID"
-    })
+    }
+
+    NodeManager.setNode(node, {})
 
     // NodeManager.setNode({
     //     lastRebootedTime: new Date("2021-07-11"),
@@ -93,22 +94,22 @@ describe('NodeManager', () => {
     //     UUID: "node.UUID"
     // })
 
-    NodeManager.setNode({
+    NodeManager.setNode(node, {
         lastRebootedTime: new Date("2021-07-18"),
         status: "Ready",
         lastUpdateTime: new Date(),
         ipAddress: "10.0.0.8",
-        conditions: new Map<string,NodeCondition>(),
+        conditions: new Map<string, NodeCondition>(),
         nodeName: "ip-10-0-0-8",
         UUID: "node.UUID"
     })
 
-    NodeManager.setNode({
+    NodeManager.setNode(node, {
         lastRebootedTime: new Date("2021-07-18"),
         status: "Ready",
         lastUpdateTime: new Date(),
         ipAddress: "10.0.0.3",
-        conditions: new Map<string,NodeCondition>(),
+        conditions: new Map<string, NodeCondition>(),
         nodeName: "ip-10-0-0-3",
         UUID: "node.UUID"
     })

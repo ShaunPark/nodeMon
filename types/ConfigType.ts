@@ -30,6 +30,8 @@ interface IElasticSearch {
 interface Ik8s {
     nodeSelector?: string
     conditions?: Array<string>
+    podFieldSelector?: string
+    podLabelSelector?: string
 }
 
 interface INodeMgr {
