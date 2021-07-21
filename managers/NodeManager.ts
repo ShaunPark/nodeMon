@@ -187,7 +187,6 @@ export default class NodeManager {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} rebooted` })
             if (this.rebootedList.includes(nodeName)) {
                 setTimeout(() => {
-                    this.uncordonNode(nodeName)
                     this.removeRebootCondition(nodeName)
                 }, 30 * 1000)
             }
@@ -489,20 +488,14 @@ export default class NodeManager {
         Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
     }
 
-    private uncordonNode(nodeName: string) {
-        Log.info(`Node ${nodeName} unCordoned`)
-
-        if (!this.cmg.config.dryRun) {
-            this.k8sUtil.uncordonNode(nodeName)
-        }
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
-    }
-
-    private removeRebootCondition = (nodeName: string) => {
+    private removeRebootCondition = async (nodeName: string) => {
         Log.debug(`Node ${nodeName} RebootRequested`)
         this.rebootedList = this.rebootedList.filter(node => node != nodeName)
         if (!this.cmg.config.dryRun) {
-            this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
+            await this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
+            Log.info(`Node ${nodeName} unCordoned`)
+            this.k8sUtil.uncordonNode(nodeName)
+            Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
         }
     }
 
