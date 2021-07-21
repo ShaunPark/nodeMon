@@ -19,19 +19,23 @@ class SSHReboot {
             if (sshFile) {
                 conn.on('ready', () => {
                     Log.debug('Client :: ready');
-                    conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
-                        //if (err) throw err;
-                        Log.error(err)
-
-                        stream.on('close', (code: any, signal: any) => {
-                            Log.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
-                            conn.end();
-                        }).on('data', (data: any) => {
-                            Log.debug('STDOUT: ' + data);
-                        }).stderr.on('data', (data: any) => {
-                            Log.debug('STDERR: ' + data);
+                    try {
+                        conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
+                            //if (err) throw err;
+                            Log.error(err)
+    
+                            stream.on('close', (code: any, signal: any) => {
+                                Log.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
+                                conn.end();
+                            // }).on('data', (data: any) => {
+                            //     Log.debug('STDOUT: ' + data);
+                            // }).stderr.on('data', (data: any) => {
+                            //     Log.debug('STDERR: ' + data);
+                            });
                         });
-                    });
+                    } catch(err) {
+                        Log.error(err)
+                    }
                 })
                     .connect({
                         host: ipAddress,
