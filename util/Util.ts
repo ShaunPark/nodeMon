@@ -34,13 +34,13 @@ export function chagneMemToNumber  (usage: string): number {
 
 export function betweenTimes(target: Date, from: Date, to: Date): boolean {
     const stTime = new Date(target)
-    stTime.setHours(from.getHours(), from.getMinutes(), 0, 0)
+    stTime.setHours(from.getHours(), from.getMinutes(), from.getSeconds(), 0)
     const edTime = new Date(target)
-    edTime.setHours(to.getHours(), to.getMinutes(), 0, 0)
+    edTime.setHours(to.getHours(), to.getMinutes(), to.getSeconds(), 0)
 
     Log.debug( `Target: ${target}`)
-    Log.debug( `from  : ${from}`)
-    Log.debug( `to    : ${to}`)
+    Log.debug( `from  : ${stTime}`)
+    Log.debug( `to    : ${edTime}`)
     return stTime.getTime() < target.getTime() && edTime.getTime() > target.getTime()
 }
 
