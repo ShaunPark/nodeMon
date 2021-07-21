@@ -20,7 +20,8 @@ class SSHReboot {
                 conn.on('ready', () => {
                     Log.debug('Client :: ready');
                     conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
-                        if (err) throw err;
+                        //if (err) throw err;
+                        Log.error(err)
 
                         stream.on('close', (code: any, signal: any) => {
                             Log.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
