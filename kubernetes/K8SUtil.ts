@@ -48,6 +48,7 @@ export default class NodeConditionChanger extends K8SClient {
         } catch (err) {
             console.error(err.response.body.message)
         }
+        return Promise.reject()
     }
 
     async removeNodeCondition(nodeName: string, conditionType: string) {
