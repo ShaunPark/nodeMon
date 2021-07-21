@@ -185,6 +185,12 @@ export default class NodeManager {
         },
         Rebooted: (nodeName: string, nodes: Map<string, NodeConditionCache>, cmg: ConfigManager) => {
             Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} rebooted` })
+            if (this.rebootedList.includes(nodeName)) {
+                setTimeout(() => {
+                    this.uncordonNode(nodeName)
+                    this.removeRebootCondition(nodeName)
+                }, 30 * 1000)
+            }
             this.setNodeRebootTime(nodeName, nodes)
         },
         NodeNotReady: (nodeName: string, nodes: Map<string, NodeConditionCache>) => {
@@ -317,12 +323,11 @@ export default class NodeManager {
     private percentOfReboot = 30
     private rebootList: Array<string> = []
     private maxLivenessDays = 10
-    private delay = 15
 
     private reloadConfigValues = () => {
         const maint = this.cmg.config.maintenance
         if (maint !== undefined) {
-            if( maint.testMode === true ){
+            if (maint.testMode === true) {
                 Log.info("TEST Mode !!!!!!!!!!!!!")
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
                 this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (30 * 1000))
@@ -331,14 +336,14 @@ export default class NodeManager {
             } else {
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
                 this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
-    
+
                 if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
                     this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
                 }
-    
+
                 this.rebootStartHour = util.timeStrToDate(maint.startHour, "03:00+09:00")
                 this.rebootEndHoure = util.timeStrToDate(maint.endHour, "04:00+09:00")
-    
+
                 if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
                     this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
                 }
@@ -391,11 +396,12 @@ export default class NodeManager {
 
             if (this.isRebootTime(now)) {
                 if (this.rebootScheduled === false) {
+                    this.rebootedList = []
+
                     Log.info("Time to reboot check")
                     Log.info(`nubmer of reboot by max liveness : ${this.rebootList.length}`)
                     const numberOfReboot = Math.ceil(NodeManager._nodes.size * (this.percentOfReboot / 100))
                     Log.info(`nubmer of reboot : ${numberOfReboot}`)
-
 
                     if (numberOfReboot > this.rebootList.length) {
                         const nodeList = await this.filterRebootNode()
@@ -414,10 +420,10 @@ export default class NodeManager {
                 if (this.rebootScheduled === true) {
                     Log.info("End of reboot check")
 
-                    this.rebootList.forEach(item => {
-                        this.uncordonNode(item)
-                        this.removeRebootCondition(item)
-                    })
+                    // this.rebootList.forEach(item => {
+                    //     this.uncordonNode(item)
+                    //     this.removeRebootCondition(item)
+                    // })
                     this.rebootList = new Array<string>()
                 }
                 this.rebootScheduled = false
@@ -494,15 +500,18 @@ export default class NodeManager {
 
     private removeRebootCondition = (nodeName: string) => {
         Log.debug(`Node ${nodeName} RebootRequested`)
-
+        this.rebootedList = this.rebootedList.filter(node => node != nodeName)
         if (!this.cmg.config.dryRun) {
             this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
         }
     }
 
+    private rebootedList: string[] = []
+
     private setNodeConditionToReboot = (nodeName: string) => {
         Log.debug(`Node ${nodeName} is scheduled for reboot`)
 
+        this.rebootedList.push(nodeName)
         if (!this.cmg.config.dryRun) {
             this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
         }
