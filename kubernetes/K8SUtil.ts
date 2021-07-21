@@ -43,10 +43,10 @@ export default class NodeConditionChanger extends K8SClient {
             if (ret.response.statusCode == 200 && ret.body.status && ret.body.status.conditions) {
                 return Promise.resolve(ret.body.status)
             } else {
-                console.error(JSON.stringify(ret))
+                Log.error(JSON.stringify(ret))
             }
         } catch (err) {
-            console.error(err.response.body.message)
+            Log.error(err.response.body.message)
         }
         return Promise.reject()
     }
@@ -56,11 +56,11 @@ export default class NodeConditionChanger extends K8SClient {
 
         const status = await this.getNodeConditions(nodeName)
 
-        console.log(`remove node status of condition '${nodeName}'`)
+        Log.info(`remove node status of '${nodeName}'`)
         if (status.conditions) {
             status.conditions = status.conditions.filter(condition => condition.type != conditionType)
 
-            console.log(JSON.stringify(status))
+            Log.debug(JSON.stringify(status))
 
             // condition 변경작업 수행 
             await this.changeNodeStatus(nodeName, status)
@@ -77,8 +77,9 @@ export default class NodeConditionChanger extends K8SClient {
             return Promise.resolve(ret)
         } catch (err) {
             console.error(err)
-            throw err
         }
+        return Promise.reject()
+
     }
 
 
