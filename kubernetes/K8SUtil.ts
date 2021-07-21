@@ -53,13 +53,14 @@ export default class NodeConditionChanger extends K8SClient {
     }
 
     async removeNodeCondition(nodeName: string, conditionType: string) {
+        Log.info(`remove node status of condition '${conditionType}'`)
+
         const status = await this.getNodeConditions(nodeName)
 
-        console.log(`remove node status of condition '${conditionType}'`)
         if (status.conditions) {
             status.conditions = status.conditions.filter(condition => condition.type != conditionType)
 
-            console.log(JSON.stringify(status))
+            Log.debug(JSON.stringify(status))
 
             // condition 변경작업 수행 
             try {
@@ -67,10 +68,10 @@ export default class NodeConditionChanger extends K8SClient {
                 const body = { status: status }
                 const header = { headers: { "Content-Type": "application/merge-patch+json" } }
                 const ret = await this.k8sApi.patchNodeStatus(nodeName, body, undefined, undefined, undefined, undefined, header)
-                console.log('Job finished successfully.')
+                Log.info('Job finished successfully.')
                 return Promise.resolve(ret)
             } catch (err) {
-                console.error(err)
+                Log.error(err)
                 throw err
             }
         }

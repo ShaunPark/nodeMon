@@ -475,35 +475,35 @@ export default class NodeManager {
     }
 
     private cordonNode(nodeName: string) {
-        if (this.cmg.config.dryRun) {
-            Log.debug(`Node ${nodeName} cordoned`)
-        } else {
+        Log.debug(`Node ${nodeName} cordoned`)
+
+        if (!this.cmg.config.dryRun) {
             this.k8sUtil.cordonNode(nodeName)
         }
         Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned` })
     }
 
     private uncordonNode(nodeName: string) {
-        if (this.cmg.config.dryRun) {
-            Log.debug(`Node ${nodeName} unCordoned`)
-        } else {
+        Log.info(`Node ${nodeName} unCordoned`)
+
+        if (!this.cmg.config.dryRun) {
             this.k8sUtil.uncordonNode(nodeName)
         }
         Channel.sendMessageEventToES({ node: nodeName, message: `Node unCordoned` })
     }
 
     private removeRebootCondition = (nodeName: string) => {
-        if (this.cmg.config.dryRun) {
-            Log.debug(`Node ${nodeName} RebootRequested`)
-        } else {
+        Log.debug(`Node ${nodeName} RebootRequested`)
+
+        if (!this.cmg.config.dryRun) {
             this.k8sUtil.removeNodeCondition(nodeName, "RebootRequested")
         }
     }
 
     private setNodeConditionToReboot = (nodeName: string) => {
-        if (this.cmg.config.dryRun) {
-            Log.debug(`Node ${nodeName} is scheduled for reboot`)
-        } else {
+        Log.debug(`Node ${nodeName} is scheduled for reboot`)
+
+        if (!this.cmg.config.dryRun) {
             this.k8sUtil.changeNodeCondition(nodeName, "RebootRequested")
         }
         Channel.sendMessageEventToES({ node: nodeName, message: `Node ${nodeName} reboot starting.` })
