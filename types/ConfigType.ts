@@ -11,12 +11,12 @@ export default interface IConfig {
 }
 
 interface IMaintenance {
+    maxLivenessDays: 14
     runMaintenance: boolean
     testMode: boolean
-    maintenanceDay: number // 0 - Sunday, 1 - Monday ....
     startHour: string // 2 - 2AM, 
     endHour: string   // 4 - 4AM
-    duration: number // 10 - 10 days
+    // duration: number // 10 - 10 days
     ratio: number // 30 percent
     cordonStartHour:string
     cordonEndHour:string
@@ -26,7 +26,6 @@ interface IElasticSearch {
     port: number
     logIndex: string
     statusIndex: string
-
 }
 interface Ik8s {
     nodeSelector?: string

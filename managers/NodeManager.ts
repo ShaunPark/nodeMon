@@ -316,7 +316,7 @@ export default class NodeManager {
 
     private percentOfReboot = 30
     private rebootList: Array<string> = []
-    private maxRebootDay = 10
+    private maxLivenessDays = 10
     private delay = 15
 
     private reloadConfigValues = () => {
@@ -342,14 +342,14 @@ export default class NodeManager {
                 this.percentOfReboot = 20
             }
 
-            this.delay = maint.duration
-            if (this.delay < 5 || this.delay > 30) {
-                this.delay = 15
-            }
+            // this.delay = maint.duration
+            // if (this.delay < 5 || this.delay > 30) {
+            //     this.delay = 15
+            // }
 
-            this.maxRebootDay = maint.maintenanceDay
-            if (this.maxRebootDay < 7 || this.maxRebootDay > 28) {
-                this.maxRebootDay = 14
+            this.maxLivenessDays = maint.maxLivenessDays
+            if (this.maxLivenessDays < 7 || this.maxLivenessDays > 28) {
+                this.maxLivenessDays = 14
             }
         }
     }
@@ -457,7 +457,7 @@ export default class NodeManager {
 
     private findOldNodes = (now: Date): Array<string> => {
         const arr: Array<string> = []
-        const rebootTime = now.getTime() - (this.maxRebootDay * 24 * 60 * 60 * 1000)
+        const rebootTime = now.getTime() - (this.maxLivenessDays * 24 * 60 * 60 * 1000)
 
         NodeManager._nodes.forEach(node => {
             if (node.lastRebootedTime === undefined) {
