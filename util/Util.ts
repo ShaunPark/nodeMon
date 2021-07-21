@@ -38,6 +38,9 @@ export function betweenTimes(target: Date, from: Date, to: Date): boolean {
     const edTime = new Date(target)
     edTime.setHours(to.getHours(), to.getMinutes(), 0, 0)
 
+    Log.debug( `Target: ${target}`)
+    Log.debug( `from  : ${from}`)
+    Log.debug( `to    : ${to}`)
     return stTime.getTime() < target.getTime() && edTime.getTime() > target.getTime()
 }
 
