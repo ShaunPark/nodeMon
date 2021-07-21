@@ -321,7 +321,7 @@ export default class NodeManager {
 
     private reloadConfigValues = () => {
         const maint = this.cmg.config.maintenance
-        if (maint) {
+        if (maint !== undefined) {
 
             this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
             this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
@@ -355,72 +355,80 @@ export default class NodeManager {
     }
 
     private checkNodeStatus = async () => {
-        this.reloadConfigValues()
-        const now = new Date()
 
-        if (this.isCordonTime(now)) {
-            if (this.cordoned === false) {
-                Log.info("Time to cordon check")
+        const maint = this.cmg.config.maintenance
 
-                this.rebootList = new Array<string>();
-                const arr = this.findOldNodes(now)
-
-                Log.info(`Reboot Schedule nodes : ${JSON.stringify(arr)}`)
-
-                arr.forEach((node: string, index: number) => {
-                    this.cordonNode(node)
-                    this.rebootList.push(node)
-                })
-                this.cordoned = true
-            } else {
-                Log.info("Time to cordon check but already done")
+        if (maint && maint.runMaintenance) {
+            if (!this.cordoned && !this.rebootScheduled) {
+                this.reloadConfigValues()
             }
-        } else {
-            if (this.cordoned == true) {
-                Log.info("End ofcordon check")
-            }
-            this.cordoned = false;
-        }
+            const now = new Date()
 
-        if (this.isRebootTime(now)) {
-            if (this.rebootScheduled === false) {
-                Log.info("Time to reboot check")
-                Log.info(`nubmer of reboot by max liveness : ${this.rebootList.length}`)
-                const numberOfReboot = Math.ceil(NodeManager._nodes.size * (this.percentOfReboot / 100))
-                Log.info(`nubmer of reboot : ${numberOfReboot}`)
+            if (this.isCordonTime(now)) {
+                if (this.cordoned === false) {
+                    Log.info("Time to cordon check")
 
+                    this.rebootList = new Array<string>();
+                    const arr = this.findOldNodes(now)
 
-                if (numberOfReboot > this.rebootList.length) {
-                    const nodeList = await this.filterRebootNode()
-                    this.rebootList = [...this.rebootList, ...nodeList]
+                    Log.info(`Reboot Schedule nodes : ${JSON.stringify(arr)}`)
+
+                    arr.forEach((node: string, index: number) => {
+                        this.cordonNode(node)
+                        this.rebootList.push(node)
+                    })
+                    this.cordoned = true
+                } else {
+                    Log.info("Time to cordon check but already done")
                 }
-
-                this.rebootList = this.rebootList.slice(0, numberOfReboot)
-
-                this.scheduleRebootNodes(this.rebootList)
-                this.rebootScheduled = true
             } else {
-                Log.info("Time to reboot check but already done")
+                if (this.cordoned == true) {
+                    Log.info("End ofcordon check")
+                }
+                this.cordoned = false;
             }
-        } else {
-            // reboot 시간이 끝나면 reboot 대상 노드들을 uncordon
-            if (this.rebootScheduled === true) {
-                Log.info("End of reboot check")
 
-                this.rebootList.forEach(item => {
-                    this.uncordonNode(item)
-                    this.removeRebootCondition(item)
-                })
-                this.rebootList = new Array<string>()
+            if (this.isRebootTime(now)) {
+                if (this.rebootScheduled === false) {
+                    Log.info("Time to reboot check")
+                    Log.info(`nubmer of reboot by max liveness : ${this.rebootList.length}`)
+                    const numberOfReboot = Math.ceil(NodeManager._nodes.size * (this.percentOfReboot / 100))
+                    Log.info(`nubmer of reboot : ${numberOfReboot}`)
+
+
+                    if (numberOfReboot > this.rebootList.length) {
+                        const nodeList = await this.filterRebootNode()
+                        this.rebootList = [...this.rebootList, ...nodeList]
+                    }
+
+                    this.rebootList = this.rebootList.slice(0, numberOfReboot)
+
+                    this.scheduleRebootNodes(this.rebootList)
+                    this.rebootScheduled = true
+                } else {
+                    Log.info("Time to reboot check but already done")
+                }
+            } else {
+                // reboot 시간이 끝나면 reboot 대상 노드들을 uncordon
+                if (this.rebootScheduled === true) {
+                    Log.info("End of reboot check")
+
+                    this.rebootList.forEach(item => {
+                        this.uncordonNode(item)
+                        this.removeRebootCondition(item)
+                    })
+                    this.rebootList = new Array<string>()
+                }
+                this.rebootScheduled = false
             }
-            this.rebootScheduled = false
         }
     }
 
-    private async filterRebootNode():Promise<string[]> {
+    private async filterRebootNode(): Promise<string[]> {
         const nodesHasWorker = await this.getNodeHasWorker()
-        const array = Array.from(NodeManager._nodes)
-            .map(([_, value]) => value)
+        Log.debug(`Node has workder ${JSON.stringify(nodesHasWorker)}`)
+        const filteredNodes = Array.from(NodeManager._nodes)
+            .map(([_, node]) => node)
             .filter((node) => !nodesHasWorker.includes(node.nodeName))
             .sort((node1, node2) => {
                 const time1 = (node1.lastRebootedTime) ? node1.lastRebootedTime.getTime() : 0
@@ -429,7 +437,8 @@ export default class NodeManager {
             })
             .map(node => node.nodeName)
 
-        return Promise.resolve(array)
+        Log.debug(`Filtered nodes ${JSON.stringify(filteredNodes)}`)
+        return Promise.resolve(filteredNodes)
     }
 
     private async getNodeHasWorker(): Promise<string[]> {
