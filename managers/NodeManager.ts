@@ -342,11 +342,6 @@ export default class NodeManager {
                 this.percentOfReboot = 20
             }
 
-            // this.delay = maint.duration
-            // if (this.delay < 5 || this.delay > 30) {
-            //     this.delay = 15
-            // }
-
             this.maxLivenessDays = maint.maxLivenessDays
             if (this.maxLivenessDays < 7 || this.maxLivenessDays > 28) {
                 this.maxLivenessDays = 14
