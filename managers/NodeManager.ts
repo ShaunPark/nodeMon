@@ -325,9 +325,9 @@ export default class NodeManager {
             if( maint.testMode === true ){
                 Log.info("TEST Mode !!!!!!!!!!!!!")
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
-                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (1 * 60 * 1000))
-                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (2 * 60 * 1000))
-                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (3 * 60 * 1000))
+                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (30 * 1000))
+                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60 * 1000))
+                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (90 * 1000))
             } else {
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
                 this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
