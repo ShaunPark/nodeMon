@@ -128,7 +128,7 @@ export default class NodeManager {
                 }
                 NodeManager.setNode(node, { ipAddress: nodeCondition.nodeIp, lastUpdateTime: new Date(), status: status, lastRebootedTime: lastRebootedTime })
             } else {
-                Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.`, logType: "Info" })
+                Channel.info(nodeName, 'Node added to monitoring list.')
                 const newMap = new Map<string, NodeCondition>();
 
                 let lastRebootedTime = undefined
@@ -140,7 +140,15 @@ export default class NodeManager {
                 })
                 nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
 
-                const node: NodeConditionCache = { nodeName: nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status, UUID: btoa(nodeName), lastRebootedTime: lastRebootedTime };
+                const node: NodeConditionCache = {
+                    nodeName: nodeName,
+                    ipAddress: nodeCondition.nodeIp,
+                    conditions: newMap,
+                    lastUpdateTime: new Date(),
+                    status: status,
+                    UUID: btoa(nodeName),
+                    lastRebootedTime: lastRebootedTime
+                };
 
                 NodeManager.setNode(node)
             }
@@ -188,7 +196,7 @@ export default class NodeManager {
         },
         DeleteNode: (event: any) => {
             Log.info(`[NodeManager.eventHandlers] Node '${event.nodeName} removed from moritoring list. delete it.`)
-            Channel.sendMessageEventToES({ node: event.nodeName, message: `Node '${event.nodeName} removed from moritoring list.`, logType: "Info" })
+            Channel.info(event.nodeName, `Node removed from moritoring list.`)
             NodeManager.deleteNode(event.nodeName)
         }
     }
@@ -197,31 +205,31 @@ export default class NodeManager {
         CordonStarting: () => { },
         CordonSucceeded: () => { },
         CordonFailed: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} failed to cordon and will reboot in 1 minute.`, logType: "Warning" })
+            Channel.warn(nodeName, `Failed to cordon node and a reboot process will start immediately.`)
             this.reboot(nodeName)
         },
         UncordonStarting: () => { },
         UncordonSucceeded: () => { },
         UncordonFailed: () => { },
         DrainScheduled: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining is scheduled.`, logType: "Info" })
+            Channel.info(nodeName, `Node draining is scheduled.`)
             this.setTimerForReboot(nodeName)
         },
         DrainSchedulingFailed: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} failed to schedule for draining and will reboot in 1 minute.`, logType: "Warning" })
+            Channel.warn(nodeName, `Failed to schedule a node drain and a reboot process will start immediately.`)
             this.reboot(nodeName)
         },
         DrainStarting: () => { },
         DrainSucceeded: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drained and will reboot in 1 minute.`, logType: "Info" })
+            Channel.info(nodeName, `Node drained and a reboot process will start immediately.`)
             this.reboot(nodeName)
         },
         DrainFailed: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} drain failed and will reboot in 1 minute.`, logType: "Warning" })
+            Channel.warn(nodeName, `Failed to drain the node and a reboot process will start immediately.`)
             this.reboot(nodeName)
         },
         Rebooted: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} rebooted`, logType: "Info" })
+            Channel.info(nodeName, `Node rebooted`)
             if (this.rebootedList.includes(nodeName)) {
                 setTimeout(() => {
                     this.removeRebootCondition(nodeName)
@@ -230,11 +238,11 @@ export default class NodeManager {
             this.setNodeRebootTime(nodeName)
         },
         NodeNotReady: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node status of '${nodeName} is changed to 'NodeNotReady`, logType: "Info" })
+            Channel.info(nodeName, `Node stopped. (received 'NodeNotReady' event)`)
             this.setNodeRebootTime(nodeName)
         },
         NodeReady: (nodeName: string) => {
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node status of '${nodeName} is changed to 'NodeReady`, logType: "Info" })
+            Channel.info(nodeName, `Node is ready now (receive 'NodeReady' event)`)
             this.setNodeRebootTime(nodeName)
         },
     }
@@ -276,11 +284,11 @@ export default class NodeManager {
             }
 
             const rebootTime = new Date(now + delay)
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} ${rebootStr} is scheduled at ${rebootTime}.`, logType: "Info" })
+            Channel.info(nodeName, `Node ${rebootStr} process will start at ${rebootTime.toLocaleString()}.`)
 
             setTimeout(() => {
                 Log.info(`[NodeManager.reboot] ${(isReboot) ? "Reboot" : "Termination"} ${nodeName} started.`)
-                Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} ${rebootStr} now.`, logType: "Info" })
+                Channel.info(nodeName, `Node '${nodeName} ${rebootStr} now.`)
                 NodeManager.lastRebootTime = new Date()
 
                 if (this.dryRun !== true) {
@@ -293,7 +301,7 @@ export default class NodeManager {
 
                         NodeManager.setNode(node, { lastRebootedTime: new Date() })
                     } catch (err) {
-                        Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} ${rebootStr} is failed ${rebootTime}.`, logType: "Error" })
+                        Channel.error(nodeName, `Node '${nodeName} ${rebootStr} is failed ${rebootTime}.`)
                         Log.error(`[NodeManager.reboot] ${err}`)
                     }
                 }
@@ -310,7 +318,7 @@ export default class NodeManager {
             if (node !== undefined) {
                 NodeManager.setNode(node, { timer: undefined })
             }
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.`, logType: "Warning" })
+            Channel.warn(nodeName, `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.`)
             this.reboot(nodeName)
         }, timeout)
 
@@ -364,9 +372,9 @@ export default class NodeManager {
             if (maint.testMode === true) {
                 Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
-                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (30 * 1000))
-                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60 * 1000))
-                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (90 * 1000))
+                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (30000))
+                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000))
+                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (90000))
             } else {
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
                 this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
@@ -488,7 +496,7 @@ export default class NodeManager {
             const delay = index * (15 * 60) * 1000 + 1000
             Log.debug(`[NodeManager.scheduleRebootNodes] Set timer for reboot '${nodeName} ${delay}`)
             const scheduledTime = new Date(Date.now() + delay)
-            Channel.sendMessageEventToES({ node: nodeName, message: `Node reboot is scheduled at ${scheduledTime}`, logType: "Info" })
+            Channel.info(nodeName, `Node reboot is scheduled at ${scheduledTime.toLocaleString()}`)
             setTimeout(() => this.setNodeConditionToReboot(nodeName), (delay < 0) ? 0 : delay)
         })
     }
@@ -515,7 +523,7 @@ export default class NodeManager {
         if (!this.cmg.config.dryRun) {
             this.k8sUtil.cordonNode(nodeName)
         }
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node cordoned`, logType: "Info" })
+        Channel.info(nodeName, `Node cordoned`)
     }
 
     private removeRebootCondition = async (nodeName: string) => {
@@ -525,7 +533,7 @@ export default class NodeManager {
             await this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "False")
             // Log.info(`Node ${nodeName} unCordoned`)
             // this.k8sUtil.uncordonNode(nodeName)
-            Channel.sendMessageEventToES({ node: nodeName, message: `Reset RebootRequested condition to "False"`, logType: "Info" })
+            Channel.info(nodeName, `Node reboot process finished.`)
 
             setTimeout(() => {
                 this.k8sUtil.removeNodeCondition(nodeName, RebootRequested)
@@ -540,7 +548,7 @@ export default class NodeManager {
         if (!this.cmg.config.dryRun) {
             this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "True")
         }
-        Channel.sendMessageEventToES({ node: nodeName, message: `Node ${nodeName} reboot starting.`, logType: "Info" })
+        Channel.info(nodeName, `Node reboot process started.`)
     }
 
     //// Test fundtions
@@ -551,10 +559,6 @@ export default class NodeManager {
     public getIsRebootTime(): (now: Date) => boolean {
         return this.isRebootTime
     }
-
-    // public getFindRebootNodes(): (now: Date, getList: () => Array<{ nodeName: string, memory: string }>) => Array<string> {
-    //     return this.findRebootNodes
-    // }
 
     public getReloadConfigValues(): () => void {
         return this.reloadConfigValues.bind(this)

@@ -15,7 +15,19 @@ class Channel {
         Channel.esPort = esPort;
     }
 
-    public static sendMessageEventToES(log: ESLog) {
+    public static info(nodeName: string, message: string) {
+        this.sendMessageEventToES({ logType: "Info", node: nodeName, message: message })
+    }
+
+    public static warn(nodeName: string, message: string) {
+        this.sendMessageEventToES({ logType: "Warning", node: nodeName, message: message })
+    }
+
+    public static error(nodeName: string, message: string) {
+        this.sendMessageEventToES({ logType: "Error", node: nodeName, message: message })
+    }
+
+    private static sendMessageEventToES(log: ESLog) {
         if (Channel.esPort === undefined) {
             logger.info(`${log.node} : ${log.message}`)
         } else {
