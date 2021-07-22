@@ -11,7 +11,7 @@ class AWSShutdown {
 
   constructor(private configManager: ConfigManager) {
     const config: IConfig = this.configManager.config;
-    const region: string | undefined = config.nodeManager?.awsRegion;
+    const region: string | undefined = config.nodeManager.awsRegion;
     try {
       if (region) {
         this.ec2 = new EC2Client({ region: region });
@@ -35,7 +35,7 @@ class AWSShutdown {
 
     Log.info(`Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
 
-    const vpc = this.configManager?.config?.nodeManager?.awsVPC;
+    const vpc = this.configManager?.config.nodeManager.awsVPC;
     const filters: Array<Filter> = new Array<Filter>()
 
     let jsonPath = `$.Reservations[*].Instances[?(@.PrivateIpAddress  == "${ipAddress}")].InstanceId`

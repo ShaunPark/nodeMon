@@ -46,11 +46,11 @@ export default class NodeManager {
     private k8sUtil: K8SUtil
 
     /// static methods 
-    public static getNode(nodeName:string) {
+    public static getNode(nodeName: string) {
         return this.nodeStatusCache.get(nodeName)
     }
 
-    public static deleteNode(nodeName:string) {
+    public static deleteNode(nodeName: string) {
         this.nodeStatusCache.delete(nodeName)
     }
 
@@ -123,7 +123,7 @@ export default class NodeManager {
                 })
 
                 nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
-                NodeManager.setNode(node, {conditions: newMap})
+                NodeManager.setNode(node, { conditions: newMap })
             }
         },
         NodeEvent: (event: any) => {
@@ -300,7 +300,7 @@ export default class NodeManager {
         const config: IConfig = this.cmg.config;
 
         let interval: number = 10000;
-        if (config.nodeManager && config.nodeManager.interval) {
+        if (config.nodeManager.interval) {
             interval = config.nodeManager.interval
         }
 
@@ -461,8 +461,8 @@ export default class NodeManager {
     }
 
     private async getNodeHasWorker(): Promise<string[]> {
-        const fieldSelector = this.cmg.config.kubernetes?.podFieldSelector
-        const labelSelector = this.cmg.config.kubernetes?.podLabelSelector
+        const fieldSelector = this.cmg.config.kubernetes.podFieldSelector
+        const labelSelector = this.cmg.config.kubernetes.podLabelSelector
         return this.k8sUtil.getNodeListOfPods(fieldSelector, labelSelector)
     }
 
@@ -510,7 +510,7 @@ export default class NodeManager {
             // this.k8sUtil.uncordonNode(nodeName)
             Channel.sendMessageEventToES({ node: nodeName, message: `Reset RebootRequested condition to "False"` })
 
-            setTimeout(()=> {
+            setTimeout(() => {
                 this.k8sUtil.removeNodeCondition(nodeName, RebootRequested)
             }, 30 * 1000)
         }

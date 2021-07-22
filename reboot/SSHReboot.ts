@@ -13,7 +13,7 @@ class SSHReboot {
 
     private reboot(ipAddress: string) {
         try {
-            const sshFile = this.configManager.config.nodeManager?.sshPemFile;
+            const sshFile = this.configManager.config.nodeManager.sshPemFile;
             const conn = new Client();
 
             if (sshFile) {

@@ -52,12 +52,11 @@ export class NodeMonMain {
         Log.info(`NodeMon started`)
         this.initChannels(this.configFile);
 
-        if (config.kubernetes) {
-            const nodeInformer = new K8SNodeInformer()
-            nodeInformer.createAndStartInformer(this.configManager.config)
-            const eventInformer = new K8SEventInformer()
-            eventInformer.createAndStartInformer(this.configManager.config)
-        }
+        const nodeInformer = new K8SNodeInformer()
+        nodeInformer.createAndStartInformer(this.configManager.config)
+        const eventInformer = new K8SEventInformer()
+        eventInformer.createAndStartInformer(this.configManager.config)
+        
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
             Channel.sendMessageEventToES({ message: `Node monitor started on node ${currentNode}.`, node: currentNode })
@@ -101,7 +100,7 @@ export class NodeMonMain {
     }
 
     close = async () => {
-        this._esLogger.postMessage({ type: "shutdown"});
+        this._esLogger.postMessage({ type: "shutdown" });
 
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
@@ -110,7 +109,7 @@ export class NodeMonMain {
             Channel.sendMessageEventToES({ message: `Node monitor stopped.`, node: "--------" })
         }
 
-        setTimeout( () => {
+        setTimeout(() => {
             this._esLogger.terminate()
             this._nodeManager.terminate()
         }, 1000)

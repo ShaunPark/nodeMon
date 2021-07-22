@@ -49,7 +49,7 @@ export default class K8SEventInformer extends K8SInformer{
     }
 
     createAndStartInformer = (config: IConfig) => {
-        const labelSelector = config?.kubernetes?.nodeSelector;
+        const labelSelector = config.kubernetes.nodeSelector;
         const listFn = () => this.k8sApi.listEventForAllNamespaces(
             true,
             undefined,

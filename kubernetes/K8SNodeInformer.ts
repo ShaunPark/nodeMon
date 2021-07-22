@@ -35,7 +35,7 @@ export default class K8SNodeInformer extends K8SInformer {
 
     public createAndStartInformer = (config: IConfig) => {
         this._config = config
-        const labelSelector = config?.kubernetes?.nodeSelector;
+        const labelSelector = config.kubernetes.nodeSelector;
 
         const listFn = () => this.k8sApi.listNode(
             undefined,
@@ -111,7 +111,7 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private sendNodeConditionsToManager(node: NodeInfo, nodeConditions: Array<k8s.V1NodeCondition>, status: string) {
         // 모니터링 대상 condition만 처리 그 외는 무시
-        const targetConditions = this._config?.kubernetes?.conditions;
+        const targetConditions = this._config?.kubernetes.conditions;
 
         const newArr: Array<NodeCondition> = []
         //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송

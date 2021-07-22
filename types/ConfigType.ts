@@ -4,9 +4,9 @@ export default interface IConfig {
     rebootDelay: number;
     rebootThroughSSH?: boolean;
 
-    kubernetes?: Ik8s;
-    nodeManager?: INodeMgr;
-    elasticSearch?: IElasticSearch;
+    kubernetes: Ik8s;
+    nodeManager: INodeMgr;
+    elasticSearch: IElasticSearch;
     maintenance?: IMaintenance
 }
 
