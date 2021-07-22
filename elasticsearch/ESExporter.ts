@@ -44,7 +44,7 @@ class ESExporter {
     }
 }
 
-const esExporter = new ESExporter(workerData?.config)
+new ESExporter(workerData?.config)
 process.on('SIGTERM', function onSigterm() {
-    Log.info('Got SIGTERM in ESExporter. Graceful shutdown start')
+    Log.info('[ESExporter.onSigterm]Got SIGTERM in ESExporter. Graceful shutdown start')
 })

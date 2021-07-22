@@ -1,6 +1,6 @@
 import Log from '../logger/Logger'
 
-export function chagneMemToNumber  (usage: string): number {
+export function chagneMemToNumber(usage: string): number {
     if (usage.endsWith("Ki")) {
         const index = usage.indexOf("Ki")
         return parseFloat(usage.substr(0, index)) * 1024
@@ -38,16 +38,14 @@ export function betweenTimes(target: Date, from: Date, to: Date): boolean {
     const edTime = new Date(target)
     edTime.setHours(to.getHours(), to.getMinutes(), to.getSeconds(), 0)
 
-    Log.debug( `Target: ${target}`)
-    Log.debug( `from  : ${stTime}`)
-    Log.debug( `to    : ${edTime}`)
+    Log.debug(`[Utils.betweenTimes] target: ${target.toLocaleDateString()}, from: ${stTime.toLocaleDateString()}, to: ${edTime.toLocaleDateString()}`)
     return stTime.getTime() < target.getTime() && edTime.getTime() > target.getTime()
 }
 
 export function parseTimeStr(str: string): Date {
     const tempDt = new Date("2021-07-20T" + str.trim())
     const dt = new Date()
-    dt.setHours(tempDt.getHours(), tempDt.getMinutes(),0,0)
+    dt.setHours(tempDt.getHours(), tempDt.getMinutes(), 0, 0)
     return dt
 }
 

@@ -14,27 +14,21 @@ class SSHReboot {
     private reboot(ipAddress: string) {
         try {
             const sshFile = this.configManager.config.nodeManager.sshPemFile;
+            const sshUser = this.configManager.config.nodeManager.sshUser;
             const conn = new Client();
 
             if (sshFile) {
                 conn
                 .on('error', (err) => {  Log.error(err) })
-                .on('end', () => {  Log.info("Connection ended") })
-                .on('close', () => {  Log.error("Connection closed") })
+                .on('end', () => {  Log.info("[SSHReboot.reboot] Connection ended") })
+                .on('close', () => {  Log.error("[SSHReboot.reboot] Connection closed") })
                 .on('ready', () => {
-                        Log.debug('Client :: ready');
+                        Log.debug('[SSHReboot.reboot] SShClient ready');
                         try {
                             conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
-                                //if (err) throw err;
                                 Log.error(err)
-
                                 stream.on('close', (code: any, signal: any) => {
-                                    Log.debug('Stream :: close :: code: ' + code + ', signal: ' + signal);
                                     conn.end();
-                                    // }).on('data', (data: any) => {
-                                    //     Log.debug('STDOUT: ' + data);
-                                    // }).stderr.on('data', (data: any) => {
-                                    //     Log.debug('STDERR: ' + data);
                                 });
                             });
                         } catch (err) {
@@ -44,15 +38,15 @@ class SSHReboot {
                     .connect({
                         host: ipAddress,
                         port: 22,
-                        username: 'ubuntu',
+                        username: sshUser,
                         privateKey: readFileSync(sshFile)
                     });
 
             } else {
-                Log.info(`cert file for ssh path is not defined in config file.`)
+                Log.info(`[SSHReboot.reboot]cert file for ssh path is not defined in config file.`)
             }
         } catch (err) {
-            console.error(`Fail to reboot ${ipAddress}.`, err)
+            console.error(`[SSHReboot.reboot]Fail to reboot ${ipAddress}.`, err)
         }
     }
 }

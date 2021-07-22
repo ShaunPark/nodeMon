@@ -45,7 +45,7 @@ export default class K8SNodeInformer extends K8SInformer {
         this.informer.on('update', this.sendNodeCondition);
         this.informer.on('delete', (node) => {
             const nodeName = node.metadata?.name
-            Log.info(`Node ${nodeName}deleted from cluster`)
+            Log.info(`[K8SNodeInformer] Node ${nodeName}deleted from cluster`)
             Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
         });
         this.informer.on('error', (err: k8s.V1Node) => {

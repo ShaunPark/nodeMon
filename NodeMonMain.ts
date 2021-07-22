@@ -34,7 +34,7 @@ export class NodeMonMain {
             this.configManager = new ConfigManager(configFile);
             const config: IConfig = this.configManager.config;
 
-            Log.info(`load config from ${configFile}`)
+            Log.info(`[NodeMonMain] load config from ${configFile}`)
             // logger.info(config.interval)
             // if (config.kubernetes) {
             //     const { interval } = config.kubernetes;
@@ -54,7 +54,7 @@ export class NodeMonMain {
     public run = (): void => {
         const config: IConfig = this.configManager.config;
 
-        Log.info(`NodeMon started`)
+        Log.info(`[NodeMonMain.run] NodeMon started`)
         this.initChannels(this.configFile);
 
         this.nodeInformer.startInformer()
@@ -106,7 +106,7 @@ export class NodeMonMain {
         this._esLogger.postMessage({ type: "shutdown" });
         this._nodeManager.postMessage({ type: "shutdown" });
 
-        Log.info('Stop Informers')
+        Log.info('[NodeMonMain.close] Stop Informers')
         this.eventInformer.stopInformer()
         this.nodeInformer.stopInformer()
 
@@ -131,7 +131,7 @@ const args = parse<IArguments>({
 const nodeMon = new NodeMonMain(args.configFile, args.dryRun);
 
 process.on('SIGTERM', function onSigterm() {
-    Log.info('Got SIGTERM. Graceful shutdown start')
+    Log.info('[NodeMonMain.onSigterm] Got SIGTERM. Graceful shutdown start')
 
     nodeMon.close();
 })

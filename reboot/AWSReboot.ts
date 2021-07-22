@@ -33,7 +33,7 @@ class AWSShutdown {
 
   public async run(ipAddress: string) {
 
-    Log.info(`Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
+    Log.info(`[AWSReboot.run] Reboot for nodes( ${JSON.stringify(ipAddress)}) started`)
 
     const vpc = this.configManager?.config.nodeManager.awsVPC;
     const filters: Array<Filter> = new Array<Filter>()
@@ -52,7 +52,7 @@ class AWSShutdown {
     if (vpc) {
       filters.push({ Name: 'vpc-id', Values: [vpc] })
       const param: DescribeInstancesCommandInput = { Filters: filters, DryRun: false }
-      Log.debug(JSON.stringify(param))
+      Log.debug(`[AWSReboot.run] describe instances command param : ${JSON.stringify(param)}`)
 
       // get instance information filtered by private ip address
       const command = new DescribeInstancesCommand(param)
@@ -60,14 +60,13 @@ class AWSShutdown {
         const data = await this.ec2.send(command)
         const instanceIds = jp.query(data, jsonPath) as Array<string>
 
-        Log.info(`Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
+        Log.info(`[AWSReboot.run] Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
         this.terminateNode(instanceIds)
-        Log.debug(JSON.stringify(instanceIds))
       } catch (err) {
-        Log.error("Error", err.stack);
+        Log.error("[AWSReboot.run] Error", err.stack);
       }
     } else {
-      Log.error('VPC is not configured in configfile. Reboot skipped.')
+      Log.error('[AWSReboot.run] VPC is not configured in configfile. Reboot skipped.')
     }
   }
 
@@ -86,17 +85,17 @@ class AWSShutdown {
 
     const dryRun: boolean = (instanceIds.length > 1) ? true : false;
     const param: TerminateInstancesCommandInput = { InstanceIds: instanceIds, DryRun: dryRun }
-    Log.debug(`Terminate param : ${JSON.stringify(param)}`)
+    Log.debug(`[AWSReboot.terminateNode] Terminate param : ${JSON.stringify(param)}`)
 
     const data = this.sendAWSCommand(new TerminateInstancesCommand(param))
-    Log.info(`Terminate request for ${instanceIds} done ${data}`)
+    Log.info(`[AWSReboot.terminateNode] Terminate request for ${instanceIds} done ${data}`)
   }
 
   private async sendAWSCommand(command: TerminateInstancesCommand | StopInstancesCommand): Promise<any> {
     try {
       return await this.ec2.send(command)
     } catch (err) {
-      throw new Error(`Call Instance Commanad Failed - ${err.message}`);
+      throw new Error(`[AWSReboot.sendAWSCommand] Call Instance Commanad Failed - ${err.message}`);
     }
   }
 }

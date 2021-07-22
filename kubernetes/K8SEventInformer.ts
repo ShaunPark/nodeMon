@@ -52,7 +52,7 @@ export default class K8SEventInformer extends K8SInformer{
 
         const labelMap = this.stringsToArray(labelSelector)
 
-        Log.info(JSON.stringify(labelMap))
+        Log.info(`[K8SEventInformer] ${JSON.stringify(labelMap)}`)
 
         this.informer.on('add', (evt: k8s.CoreV1Event) => {
             // logger.info('Event added !!!', JSON.stringify(evt.involvedObject.kind))
@@ -140,7 +140,7 @@ export default class K8SEventInformer extends K8SInformer{
     ])
 
     public checkValid(event: CoreV1Event): boolean {
-        Log.info(`Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
+        Log.info(`[K8SEventInformer.checkValid] Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
 
         if (event.reason) {
             const ce = this.concernedEvents.get(event.reason)

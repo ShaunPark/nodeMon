@@ -5,7 +5,7 @@ const { workerData } = require('worker_threads');
 
 const nodeManager = new NodeManager(workerData?.config, workerData?.dryRun)
 process.on('SIGTERM', function onSigterm() {
-    Log.info('Got SIGTERM in NodeManager. Graceful shutdown start')
+    Log.info('[NodeManagerRun.onSigterm] Got SIGTERM in NodeManager. Graceful shutdown start')
     nodeManager.close();
 })
 nodeManager.run()

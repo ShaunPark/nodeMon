@@ -1,9 +1,11 @@
+import { integer } from "@elastic/elasticsearch/api/types";
+
 export default interface IConfig {
-    dryRun:boolean
+    dryRun: boolean
     //interval?: number;
     rebootDelay: number;
     rebootThroughSSH?: boolean;
-
+    configReloadInterval?: integer;
     kubernetes: Ik8s;
     nodeManager: INodeMgr;
     elasticSearch: IElasticSearch;
@@ -18,8 +20,8 @@ interface IMaintenance {
     endHour: string   // 4 - 4AM
     // duration: number // 10 - 10 days
     ratio: number // 30 percent
-    cordonStartHour:string
-    cordonEndHour:string
+    cordonStartHour: string
+    cordonEndHour: string
 }
 interface IElasticSearch {
     host: string
@@ -38,5 +40,6 @@ interface INodeMgr {
     interval: number;
     awsRegion?: string
     awsVPC?: string;
-    sshPemFile?: string;
+    sshPemFile: string;
+    sshUser: string;
 }
