@@ -35,7 +35,7 @@ export default class NodeConditionChanger extends K8SClient {
     public async getNodeCondition(nodeName: string, conditionName: string): Promise<V1NodeCondition[]> {
         const conditions = await this.getNodeConditions(nodeName)
         Log.debug(JSON.stringify(conditions))
-        const ret: V1NodeCondition[] = jsonpath.query(conditions, `$..conditions[?(@.type == '${conditionName}')][0]`)
+        const ret: V1NodeCondition[] = jsonpath.query(conditions, `$..conditions[?(@.type == '${conditionName}')]`)
         return Promise.resolve(ret)
     }
 
