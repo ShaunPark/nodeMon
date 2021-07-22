@@ -29,7 +29,7 @@ export interface NodeConditionCache {
     readonly lastUpdateTime: Date
     readonly status: string,
     readonly timer?: NodeJS.Timeout,
-    readonly lastRebootedTime: Date|undefined,
+    readonly lastRebootedTime: Date | undefined,
     readonly nodeName: string,
     readonly UUID: string
 }
@@ -61,6 +61,7 @@ export default class NodeManager {
     public static setNode(node: NodeConditionCache, obj?: Object) {
         const newNode = { ...node, ...obj }
         Channel.sendNodeStatusToES(newNode);
+        Log.debug(JSON.stringify(newNode))
         this.nodeStatusCache.set(newNode.nodeName, newNode)
     }
 
@@ -109,7 +110,16 @@ export default class NodeManager {
                     }
                     return true;
                 }).map(condition => node.conditions.set(condition.type, condition))
-                NodeManager.setNode(node, { ipAddress: nodeCondition.nodeIp, lastUpdateTime: new Date(), status: status })
+                let lastRebootedTime = node.lastRebootedTime
+                if (lastRebootedTime === undefined) {
+                    nodeCondition.conditions.forEach(condition => {
+                        Log.debug(JSON.stringify(condition))
+                        if (condition.type == "Ready" && condition.reason == "KubeletReady") {
+                            lastRebootedTime = condition.lastTransitionTime
+                        }
+                    })
+                }
+                NodeManager.setNode(node, { ipAddress: nodeCondition.nodeIp, lastUpdateTime: new Date(), status: status, lastRebootedTime: lastRebootedTime })
             } else {
                 Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
