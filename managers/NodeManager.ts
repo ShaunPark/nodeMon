@@ -63,7 +63,6 @@ export default class NodeManager {
     public static setNode(node: NodeConditionCache, obj?: Object) {
         const newNode = { ...node, ...obj }
         Channel.sendNodeStatusToES(newNode);
-        Log.debug(JSON.stringify(newNode))
         this.nodeStatusCache.set(newNode.nodeName, newNode)
     }
 
