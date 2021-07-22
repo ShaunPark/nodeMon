@@ -20,7 +20,7 @@ const mapping = {
     status: { type: "keyword" },
     lastRebootedTime: { type: "date" },
     nodeName: { type: "keyword" },
-    UUID: { type: "binary" }
+    UUID: { type: "keyword" }
 }
 export class ESStatusClient extends ESClient<ESNodeStatus> {
     constructor(configManager: ConfigManager) {
