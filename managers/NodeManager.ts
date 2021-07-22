@@ -289,7 +289,7 @@ export default class NodeManager {
 
             setTimeout(() => {
                 Log.info(`[NodeManager.reboot] ${(isReboot) ? "Reboot" : "Termination"} ${nodeName} started.`)
-                Channel.info(nodeName, `Node '${nodeName} ${rebootStr} now.`)
+                Channel.info(nodeName, `Node ${rebootStr} process starts now.`)
                 NodeManager.lastRebootTime = new Date()
 
                 if (this.dryRun !== true) {
