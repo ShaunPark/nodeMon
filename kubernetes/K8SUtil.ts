@@ -13,7 +13,7 @@ export default class NodeConditionChanger extends K8SClient {
     }
 
     // 노드 condition을 변경하는 메소드 
-    public async changeNodeCondition(nodeName: string, conditionType: string, str:"True"|"False"): Promise<Object> {
+    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False"): Promise<Object> {
         try {
             const condition: V1NodeCondition = {
                 status: str,
@@ -24,25 +24,23 @@ export default class NodeConditionChanger extends K8SClient {
                 reason: conditionType
             }
             const status: V1NodeStatus = { conditions: [condition] }
-            const body = { status: status }
             const header = { headers: { "Content-Type": "application/strategic-merge-patch+json" } }
-            return this.k8sApi.patchNodeStatus(nodeName, body, undefined, undefined, undefined, undefined, header)
+            return this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
         } catch (err) {
             Log.error(err)
             return Promise.reject()
         }
     }
 
-    public async getNodeCondition(nodeName:string, conditionName:string):Promise<V1NodeCondition[]> {
+    public async getNodeCondition(nodeName: string, conditionName: string): Promise<V1NodeCondition[]> {
         const conditions = await this.getNodeConditions(nodeName)
         Log.debug(JSON.stringify(conditions))
-        const ret:V1NodeCondition[] = jsonpath.query(conditions,`$..conditions[?(@.type == '${conditionName}')][0]`)
+        const ret: V1NodeCondition[] = jsonpath.query(conditions, `$..conditions[?(@.type == '${conditionName}')][0]`)
         return Promise.resolve(ret)
     }
 
     private async getNodeConditions(nodeName: string): Promise<V1NodeStatus> {
         try {
-
             // 노드 상태정보 조회
             const ret = await this.k8sApi.readNodeStatus(nodeName)
 
@@ -66,13 +64,13 @@ export default class NodeConditionChanger extends K8SClient {
             Log.info(`remove node status of '${nodeName}'`)
             if (status.conditions) {
                 status.conditions = status.conditions.filter(condition => condition.type != conditionType)
-    
+
                 Log.debug(JSON.stringify(status))
-    
+
                 // condition 변경작업 수행 
                 await this.removeNodeStatus(nodeName, status)
             }
-        } catch(err) {
+        } catch (err) {
             Log.error(err)
         }
     }
@@ -80,10 +78,8 @@ export default class NodeConditionChanger extends K8SClient {
     private async removeNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
         try {
             //const status: V1NodeStatus = { conditions: conditions }
-            const body = { status: status }
             const header = { headers: { "Content-Type": "application/merge-patch+json" } }
-            const ret = await this.k8sApi.patchNodeStatus(nodeName, body, undefined, undefined, undefined, undefined, header)
-            console.log('Job finished successfully.')
+            const ret = await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
             return Promise.resolve(ret)
         } catch (err) {
             Log.error(err)
@@ -94,8 +90,7 @@ export default class NodeConditionChanger extends K8SClient {
     public async cordonNode(nodeName: string): Promise<Object> {
         try {
             const spec: V1NodeSpec = { unschedulable: true }
-            const body: V1Node = { spec: spec }
-            return this.k8sApi.patchNode(nodeName, body)
+            return this.k8sApi.patchNode(nodeName, { spec: spec })
         } catch (err) {
             Log.error(err)
             return Promise.reject()
@@ -105,31 +100,14 @@ export default class NodeConditionChanger extends K8SClient {
     public async uncordonNode(nodeName: string): Promise<Object> {
         try {
             const spec: V1NodeSpec = { unschedulable: false }
-            const body: V1Node = { spec: spec }
-            return this.k8sApi.patchNode(nodeName, body)
+            return this.k8sApi.patchNode(nodeName, { spec: spec })
         } catch (err) {
             Log.error(err)
             return Promise.reject()
         }
     }
 
-    // public async getAllNodeAndMemory(labelSelector: string | undefined): Promise<Array<string>> {
-    //     const retArr = new Array<string>()
-
-    //     Log.debug(`getAllNodeAndMemory : ${labelSelector}`)
-    //     const arr = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, labelSelector)
-
-    //     arr.body.items.forEach(node => {
-    //         if (node.metadata && node.metadata.name && node.status && node.status.allocatable) {
-    //             retArr.push(node.metadata.name)
-    //         }
-    //     })
-
-    //     Log.debug(`getAllNodeAndMemory : ${retArr.length}`)
-    //     return Promise.resolve(retArr)
-    // }
-
-    public async getNodeListOfPods(fieldSelector: string | undefined = undefined, labelSelector: string | undefined = undefined):Promise<string[]> {
+    public async getNodeListOfPods(fieldSelector: string | undefined = undefined, labelSelector: string | undefined = undefined): Promise<string[]> {
         const { body } = await this.k8sApi.listPodForAllNamespaces(undefined, undefined, fieldSelector, labelSelector)
         const nodeList = jsonpath.query(body, '$.items[*].spec.nodeName') as string[]
         return Promise.resolve(nodeList)
