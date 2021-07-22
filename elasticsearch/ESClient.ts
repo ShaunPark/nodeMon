@@ -3,7 +3,6 @@ import Log from '../logger/Logger'
 
 export abstract class ESClient<T> {
   private client: Client;
-
   protected INDEX_NAME: string;
 
   constructor(indexName: string, hostString: string) {
@@ -15,13 +14,13 @@ export abstract class ESClient<T> {
   public async createIndex() {
     Log.info(`Check Index : ${this.INDEX_NAME}`)
     const exist = await this.client.indices.exists({ index: this.INDEX_NAME })
-    if ( exist.body !== true ) {
+    if (exist.body !== true) {
       Log.info(`Index ${this.INDEX_NAME} doesn't exist. Create!!!`)
       await this.client.indices.create({ index: this.INDEX_NAME });
     }
   }
 
-  protected put(data: T) {
+  protected async put(data: T) {
     try {
       const bodyData: RequestParams.Index = {
         index: this.INDEX_NAME,
@@ -31,13 +30,10 @@ export abstract class ESClient<T> {
         }
       };
 
-      return this.client.index(bodyData);
+      await this.client.index(bodyData);
     } catch (error) {
-      Log.error(
-        `ESClient put method, error-message=${error.message}`
-      );
+      Log.error(`ESClient put=${error.message}`);
       console.error(error)
-      return;
     }
   }
 
@@ -60,17 +56,14 @@ export abstract class ESClient<T> {
       Log.debug(JSON.stringify(body))
       arr.forEach(item => { retArr.push(item._source as T) })
 
-      Log.debug(retArr.length)
-      return retArr
+      return Promise.resolve(retArr)
     } catch (error) {
-      Log.error(
-        `ESClient search method, error-message=${error.message}`
-      );
+      Log.error(`ESClient search=${error.message}`);
       return Promise.reject()
     }
   }
 
-  protected async searchId(data: T, sort?:string): Promise<Array<string>>{
+  protected async searchId(data: T, sort?: string): Promise<Array<string>> {
     try {
       const bodyData: RequestParams.Search = {
         index: this.INDEX_NAME,
@@ -79,7 +72,7 @@ export abstract class ESClient<T> {
             match: data
           }
         },
-        sort:sort
+        sort: sort
       };
       Log.debug(JSON.stringify(bodyData))
 
@@ -90,20 +83,16 @@ export abstract class ESClient<T> {
 
       arr.forEach(item => { retArr.push(item._id) })
 
-      return retArr
+      return Promise.resolve(retArr)
     } catch (error) {
-      Log.error(
-        `ESClient search method, error-message=${error.message}`
-      );
+      Log.error(`ESClient searchId=${error.message}`);
       return Promise.reject()
     }
   }
 
   public async update(id: string, data: T) {
     try {
-
       Log.debug(id)
-
       const bodyData: RequestParams.Index = {
         index: this.INDEX_NAME,
         id: id,
@@ -112,20 +101,19 @@ export abstract class ESClient<T> {
           timestamp: new Date()
         }
       }
-      return this.client.index(bodyData);
+      await this.client.index(bodyData);
     } catch (error) {
-      Log.error(
-        `ESClient update method, error-message=${error.message}`
-      );
-      // throw error;
+      Log.error(`ESClient update=${error.message}`);
     }
   }
 
-  protected delete(id:string) {
-    const bodyData:RequestParams.Delete = {
-      index: this.INDEX_NAME,
-      id: id
+  protected async delete(id: string) {
+    try {
+      Log.debug(id)
+      const bodyData: RequestParams.Delete = { index: this.INDEX_NAME, id: id }
+      await this.client.delete(bodyData)
+    } catch (error) {
+      Log.error(`ESClient delete=${error.message}`);
     }
-    return this.client.delete(bodyData)
   }
 }
