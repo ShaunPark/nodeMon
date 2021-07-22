@@ -29,7 +29,7 @@ export interface NodeConditionCache {
     readonly lastUpdateTime: Date
     readonly status: string,
     readonly timer?: NodeJS.Timeout,
-    readonly lastRebootedTime?: Date,
+    readonly lastRebootedTime: Date|undefined,
     readonly nodeName: string,
     readonly UUID: string
 }
@@ -113,17 +113,20 @@ export default class NodeManager {
             } else {
                 Channel.sendMessageEventToES({ node: nodeName, message: `Monitoring node '${nodeName}' started.` })
                 const newMap = new Map<string, NodeCondition>();
-                const node: NodeConditionCache = { nodeName: nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status, UUID: btoa(nodeName) };
 
+                let lastRebootedTime = undefined
                 // 노드를 처음으로 모니터링 하기 시작 했으면 kubelet ready시간을 reboot 시간으로 설정
                 nodeCondition.conditions.forEach(condition => {
-                    if (condition.type === "Ready" && condition.reason === "KubeletReady") {
-                        NodeManager.setNode(node, { lastRebootedTime: condition.lastTransitionTime })
+                    Log.debug(JSON.stringify(condition))
+                    if (condition.type == "Ready" && condition.reason == "KubeletReady") {
+                        lastRebootedTime = condition.lastTransitionTime
                     }
                 })
-
                 nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
-                NodeManager.setNode(node, { conditions: newMap })
+
+                const node: NodeConditionCache = { nodeName: nodeName, ipAddress: nodeCondition.nodeIp, conditions: newMap, lastUpdateTime: new Date(), status: status, UUID: btoa(nodeName), lastRebootedTime: lastRebootedTime };
+
+                NodeManager.setNode(node)
             }
         },
         NodeEvent: (event: any) => {
@@ -431,11 +434,6 @@ export default class NodeManager {
                 // reboot 시간이 끝나면 reboot 대상 노드들을 uncordon
                 if (this.rebootScheduled === true) {
                     Log.info("End of reboot check")
-
-                    // this.rebootList.forEach(item => {
-                    //     this.uncordonNode(item)
-                    //     this.removeRebootCondition(item)
-                    // })
                     this.rebootList = new Array<string>()
                 }
                 this.rebootScheduled = false
