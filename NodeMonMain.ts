@@ -35,14 +35,6 @@ export class NodeMonMain {
             const config: IConfig = this.configManager.config;
 
             Log.info(`[NodeMonMain] load config from ${configFile}`)
-            // logger.info(config.interval)
-            // if (config.kubernetes) {
-            //     const { interval } = config.kubernetes;
-            //     logger.info(` interval ${interval} : ${label}`)
-            // } else {
-            //     logger.info('no kubernetes info')
-            // }
-
             this.nodeInformer = new K8SNodeInformer(config)
             this.eventInformer = new K8SEventInformer(config)
         } catch (err) {
@@ -58,7 +50,10 @@ export class NodeMonMain {
         this.initChannels(this.configFile);
 
         this.nodeInformer.startInformer()
-        this.eventInformer.startInformer()
+        // NodeInformer에 의해 노드 정보가 오기전에 오는 이벤트들이 무시되지 않도록 eventinformer를 5초 후에 시작.
+        setTimeout(() => {
+            this.eventInformer.startInformer()
+        }, 5000)
 
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
