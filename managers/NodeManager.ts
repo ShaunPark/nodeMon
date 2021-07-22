@@ -102,7 +102,7 @@ export default class NodeManager {
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
 
-            if (node) {
+            if (node !== undefined) {
                 nodeCondition.conditions.filter((condition) => {
                     const tempCondition = node.conditions.get(condition.type)
                     if (tempCondition && equal(tempCondition, condition)) {
@@ -112,8 +112,8 @@ export default class NodeManager {
                 }).map(condition => node.conditions.set(condition.type, condition))
                 let lastRebootedTime = node.lastRebootedTime
                 if (lastRebootedTime === undefined) {
+                    Log.debug(`Conditions : ${JSON.stringify(nodeCondition.conditions)}`)
                     nodeCondition.conditions.forEach(condition => {
-                        Log.debug(JSON.stringify(condition))
                         if (condition.type == "Ready" && condition.reason == "KubeletReady") {
                             lastRebootedTime = condition.lastTransitionTime
                         }

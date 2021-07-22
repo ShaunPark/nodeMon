@@ -116,6 +116,7 @@ export default class K8SNodeInformer extends K8SInformer {
         const newArr: Array<NodeCondition> = []
         //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
         if (targetConditions && targetConditions.length > 0) {
+            targetConditions.push("Ready")
             nodeConditions
                 .filter(condition => targetConditions.includes(condition.type))
                 .map(condition => newArr.push(condition as NodeCondition))
