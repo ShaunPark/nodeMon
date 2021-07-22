@@ -49,7 +49,7 @@ export default class K8SNodeInformer extends K8SInformer {
             Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
         });
         this.informer.on('error', (err: k8s.V1Node) => {
-            console.error(err);
+            Log.error(`[K8SNodeInformer] ${err}`);
             // Restart informer after 5sec
             setTimeout(() => {
                 this.reInit()
@@ -92,7 +92,7 @@ export default class K8SNodeInformer extends K8SInformer {
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
 
             if (retArr.length < 1) {
-                console.error(`Cannot get internal ip-address of node ${name}. skip ${name}`)
+                Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
                 if (name && conditions) {
                     const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }

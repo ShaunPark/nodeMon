@@ -1,3 +1,4 @@
+import Log from "../logger/Logger";
 import ConfigManager from "../config/ConfigManager";
 import { NodeCondition } from "../types/Type";
 import { ESClient } from "./ESClient";
@@ -29,7 +30,7 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
             const { host, port, statusIndex } = el
             super(statusIndex, `http://${host.trim()}:${port}`, mapping)
         } else {
-            console.error("ElasticSearch connection information is not set in config file.")
+            Log.error("[ESStatusClient] ElasticSearch connection information is not set in config file.")
         }
     }
 

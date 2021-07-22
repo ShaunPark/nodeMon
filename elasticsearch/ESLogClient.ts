@@ -1,3 +1,4 @@
+import Log from "../logger/Logger";
 import ConfigManager from "../config/ConfigManager";
 import { ESClient } from "./ESClient";
 
@@ -18,7 +19,7 @@ export class ESLogClient extends ESClient<LogType> {
             const { host, port, logIndex } = el
             super(logIndex, `http://${host.trim()}:${port}`, mapping)
         } else {
-            console.error("ElasticSearch connection information is not set in config file.")
+            Log.error("[ESLogClient] ElasticSearch connection information is not set in config file.")
         }
     }
 

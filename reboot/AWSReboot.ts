@@ -19,7 +19,7 @@ class AWSShutdown {
         this.ec2 = new EC2Client({ region: REGION_AP_2 });
       }
     } catch (err) {
-      console.error(err)
+      Log.error(`[AWSReboot] ${err}`)
       throw err;
     }
   }

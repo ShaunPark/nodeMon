@@ -37,8 +37,7 @@ export abstract class ESClient<T> {
 
       await this.client.index(bodyData);
     } catch (error) {
-      Log.error(`[ESClient.put] ${error.message}`);
-      console.error(error)
+      Log.error(`[ESClient.put] ${error}`);
     }
   }
 

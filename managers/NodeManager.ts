@@ -164,7 +164,7 @@ export default class NodeManager {
                         this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName)
                     }
                 } else {
-                    Log.info(`[NodeManager.eventHandlers] Event raised at ${raisedTime}. Ignore old event.${startTime}`)
+                    Log.info(`[NodeManager.eventHandlers] Event raised at ${raisedTime.toLocaleString()}. Ignore old event.`)
                 }
             }
         },
@@ -177,7 +177,10 @@ export default class NodeManager {
                         rebootNode = { nodeName: rb, rebootTime: "YES" }
                     }
                 })
-                arr.push({ name: key, ipAddress: node.ipAddress, lastUpdateTime: node.lastUpdateTime, status: node.status, lastRebootedTime: node.lastRebootedTime, rebootSchedule: rebootNode.rebootTime })
+                arr.push({ name: key, ipAddress: node.ipAddress, 
+                    lastUpdateTime: node.lastUpdateTime.toLocaleString(), 
+                    status: node.status, lastRebootedTime: node.lastRebootedTime?.toLocaleString(), 
+                    rebootSchedule: rebootNode.rebootTime.toLocaleString() })
             })
             console.table(arr);
         },
@@ -288,7 +291,7 @@ export default class NodeManager {
 
                         NodeManager.setNode(node, { lastRebootedTime: new Date() })
                     } catch (err) {
-                        console.error(err)
+                        Log.error(`[NodeManager.reboot] ${err}`)
                     }
                 }
             }, delay)
