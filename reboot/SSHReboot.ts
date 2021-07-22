@@ -19,20 +19,22 @@ class SSHReboot {
 
             if (sshFile) {
                 conn
-                .on('error', (err) => {  Log.error(err) })
-                .on('end', () => {  Log.info("[SSHReboot.reboot] Connection ended") })
-                .on('close', () => {  Log.error("[SSHReboot.reboot] Connection closed") })
-                .on('ready', () => {
+                    .on('error', (err) => { Log.error(err) })
+                    .on('end', () => { Log.info("[SSHReboot.reboot] Connection ended") })
+                    .on('close', () => { Log.info("[SSHReboot.reboot] Connection closed") })
+                    .on('ready', () => {
                         Log.debug('[SSHReboot.reboot] SShClient ready');
                         try {
                             conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
-                                Log.error(err)
+                                if (err !== undefined) {
+                                    Log.error(`[SSHReboot.reboot] ${err}`)
+                                }
                                 stream.on('close', (code: any, signal: any) => {
                                     conn.end();
                                 });
                             });
                         } catch (err) {
-                            Log.error(err)
+                            Log.error(`[SSHReboot.reboot] ${err}-`)
                         }
                     })
                     .connect({

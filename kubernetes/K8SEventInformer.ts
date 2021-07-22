@@ -139,7 +139,7 @@ export default class K8SEventInformer extends K8SInformer{
     ])
 
     public checkValid(event: CoreV1Event): boolean {
-        Log.info(`[K8SEventInformer.checkValid] Got Event of Node :   ${event.involvedObject.name}  ${event.reason}  ${event.source?.component}`)
+        Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
 
         if (event.reason) {
             const ce = this.concernedEvents.get(event.reason)

@@ -63,9 +63,6 @@ export default class NodeConditionChanger extends K8SClient {
             Log.info(`[K8SUtil.removeNodeCondition] remove node status of '${nodeName}'`)
             if (status.conditions) {
                 status.conditions = status.conditions.filter(condition => condition.type != conditionType)
-
-                Log.debug(`[K8SUtil.removeNodeCondition] ${JSON.stringify(status)}`)
-
                 // condition 변경작업 수행 
                 await this.removeNodeStatus(nodeName, status)
             }
