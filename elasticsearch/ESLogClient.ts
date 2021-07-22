@@ -3,11 +3,13 @@ import ConfigManager from "../config/ConfigManager";
 import { ESClient } from "./ESClient";
 
 export type LogType = {
+    logType: "Error"|"Info"|"Warning"
     nodeName: string,
     message?: string
 };
 
 const mapping = {
+    logType: {type:"keyword"},
     nodeName: { type: "keyword" },
     message: { type: "text" }
 }

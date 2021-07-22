@@ -9,11 +9,12 @@ const { workerData, parentPort } = require('worker_threads');
 
 
 export interface ESMessage {
-    kind: string
+    kind: "log"|"status"
     log?: ESLog
-    status?:NodeConditionCache
+    status?: NodeConditionCache
 }
 export interface ESLog {
+    logType: "Error" | "Info" | "Warning",
     node: string,
     message: string
 }
@@ -30,15 +31,15 @@ class ESExporter {
 
     private initMessageHandler = (event: MessageEvent) => {
         const ePort: MessagePort = event.data.port;
-        if( ePort !== undefined)
+        if (ePort !== undefined)
             ePort.addListener("message", this.log);
     }
 
     private log = (event: MessageEvent<ESMessage>) => {
         // logger.info(`log in es exporter : ${JSON.stringify(event)}`)
         if (event.data.kind === "log" && event.data.log) {
-            this.esLogger.putLog({ nodeName: event.data.log.node, message: event.data.log.message })
-        } else if ( event.data.kind === "status" && event.data.status) {
+            this.esLogger.putLog({ logType: event.data.log.logType, nodeName: event.data.log.node, message: event.data.log.message })
+        } else if (event.data.kind === "status" && event.data.status) {
             this.esStatus.updateStatus(event.data.status)
         }
     }

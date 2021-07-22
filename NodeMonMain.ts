@@ -62,9 +62,9 @@ export class NodeMonMain {
 
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
-            Channel.sendMessageEventToES({ message: `Node monitor started on node ${currentNode}.`, node: currentNode })
+            Channel.sendMessageEventToES({ message: `Node monitor started on node ${currentNode}.`, node: currentNode, logType: "Info" })
         } else {
-            Channel.sendMessageEventToES({ message: `Node monitor started.`, node: "--------" })
+            Channel.sendMessageEventToES({ message: `Node monitor started.`, node: "--------", logType: "Info" })
         }
     }
 
@@ -112,9 +112,9 @@ export class NodeMonMain {
 
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
-            Channel.sendMessageEventToES({ message: `Node monitor stoped from node ${currentNode}.`, node: currentNode })
+            Channel.sendMessageEventToES({ message: `Node monitor stoped from node ${currentNode}.`, node: currentNode, logType: "Info" })
         } else {
-            Channel.sendMessageEventToES({ message: `Node monitor stopped.`, node: "--------" })
+            Channel.sendMessageEventToES({ message: `Node monitor stopped.`, node: "--------", logType: "Info" })
         }
 
         setTimeout(() => {

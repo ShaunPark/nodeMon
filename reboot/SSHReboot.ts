@@ -47,6 +47,7 @@ class SSHReboot {
             }
         } catch (err) {
             console.error(`[SSHReboot.reboot]Fail to reboot ${ipAddress}.`, err)
+            throw err
         }
     }
 }
