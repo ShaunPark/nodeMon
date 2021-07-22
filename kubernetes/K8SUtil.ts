@@ -13,10 +13,10 @@ export default class NodeConditionChanger extends K8SClient {
     }
 
     // 노드 condition을 변경하는 메소드 
-    public async changeNodeCondition(nodeName: string, conditionType: string): Promise<Object> {
+    public async changeNodeCondition(nodeName: string, conditionType: string, str:"True"|"False"): Promise<Object> {
         try {
             const condition: V1NodeCondition = {
-                status: "True",
+                status: str,
                 type: conditionType,
                 lastHeartbeatTime: new Date(),
                 lastTransitionTime: new Date(),
@@ -31,6 +31,13 @@ export default class NodeConditionChanger extends K8SClient {
             Log.error(err)
             return Promise.reject()
         }
+    }
+
+    public async getNodeCondition(nodeName:string, conditionName:string):Promise<V1NodeCondition[]> {
+        const conditions = await this.getNodeConditions(nodeName)
+        Log.debug(JSON.stringify(conditions))
+        const ret:V1NodeCondition[] = jsonpath.query(conditions,`$..conditions[?(@.type == '${conditionName}')][0]`)
+        return Promise.resolve(ret)
     }
 
     private async getNodeConditions(nodeName: string): Promise<V1NodeStatus> {
@@ -51,7 +58,7 @@ export default class NodeConditionChanger extends K8SClient {
         return Promise.reject()
     }
 
-    async removeNodeCondition(nodeName: string, conditionType: string) {
+    public async removeNodeCondition(nodeName: string, conditionType: string) {
         Log.info(`remove node status of condition '${conditionType}'`)
         try {
             const status = await this.getNodeConditions(nodeName)
@@ -63,14 +70,14 @@ export default class NodeConditionChanger extends K8SClient {
                 Log.debug(JSON.stringify(status))
     
                 // condition 변경작업 수행 
-                await this.changeNodeStatus(nodeName, status)
+                await this.removeNodeStatus(nodeName, status)
             }
         } catch(err) {
             Log.error(err)
         }
     }
 
-    private async changeNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
+    private async removeNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
         try {
             //const status: V1NodeStatus = { conditions: conditions }
             const body = { status: status }
@@ -83,7 +90,6 @@ export default class NodeConditionChanger extends K8SClient {
         }
         return Promise.reject()
     }
-
 
     public async cordonNode(nodeName: string): Promise<Object> {
         try {
