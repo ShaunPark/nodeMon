@@ -20,7 +20,6 @@ export class ESLogClient extends ESClient<LogType> {
         } else {
             console.error("ElasticSearch connection information is not set in config file.")
         }
-
     }
 
     public putLog(log: LogType) {
