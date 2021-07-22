@@ -75,7 +75,6 @@ export default class K8SEventInformer extends K8SInformer{
             // }
         });
         this.informer.on('error', (err: k8s.CoreV1Event) => {
-            Log.error(`[K8SEventInformer] ${err}`);
             // Restart informer after 5sec
             setTimeout(() => {
                 this.reInit()

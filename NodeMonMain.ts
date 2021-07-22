@@ -102,7 +102,7 @@ export class NodeMonMain {
         }
     }
 
-    close = async () => {
+    close = () => {
         this._esLogger.postMessage({ type: "shutdown" });
         this._nodeManager.postMessage({ type: "shutdown" });
 
@@ -116,11 +116,8 @@ export class NodeMonMain {
         } else {
             Channel.info("--------", 'Node monitor stopped.')
         }
-
-        setTimeout(() => {
-            this._esLogger.terminate()
-            this._nodeManager.terminate()
-        }, 1000)
+        this._esLogger.terminate()
+        this._nodeManager.terminate()
     }
 }
 

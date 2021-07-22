@@ -49,7 +49,6 @@ export default class K8SNodeInformer extends K8SInformer {
             Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
         });
         this.informer.on('error', (err: k8s.V1Node) => {
-            Log.error(`[K8SNodeInformer] ${err}`);
             // Restart informer after 5sec
             setTimeout(() => {
                 this.reInit()

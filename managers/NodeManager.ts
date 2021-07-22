@@ -89,6 +89,7 @@ export default class NodeManager {
             ePort.addListener("message", this.onEvent);
         } else if (event.data.type === "shutdown") {
             Log.info(`[NodeManager.initMessageHandler] Shutdown NodeManager`)
+            this.close()
         } else {
             Channel.initLoggerForNodeManager(ePort);
         }
