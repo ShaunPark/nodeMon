@@ -3,20 +3,18 @@ import Log from '../logger/Logger'
 
 export abstract class ESClient<T> {
   private client: Client;
-  protected INDEX_NAME: string;
 
-  constructor(indexName: string, hostString: string) {
-    this.INDEX_NAME = indexName;
+  constructor(private INDEX_NAME: string, hostString: string, private mapping:Object) {
     this.client = new Client({ node: hostString })
     this.createIndex()
   }
 
-  public async createIndex() {
+  private async createIndex() {
     Log.info(`Check Index : ${this.INDEX_NAME}`)
     const exist = await this.client.indices.exists({ index: this.INDEX_NAME })
     if (exist.body !== true) {
       Log.info(`Index ${this.INDEX_NAME} doesn't exist. Create!!!`)
-      await this.client.indices.create({ index: this.INDEX_NAME });
+      await this.client.indices.create({ index: this.INDEX_NAME, body: {mappings:this.mapping}});
     }
   }
 

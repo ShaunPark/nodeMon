@@ -8,18 +8,28 @@ export interface ESNodeStatus {
     conditions?: Map<string, NodeCondition>
     lastUpdateTime?: Date
     status?: string,
-    timer?: NodeJS.Timeout,
     lastRebootedTime?: Date,
     nodeName?: string,
     UUID: string
 }
 
+const mapping = {
+    properties: {
+        ipAddress: { type: "ip" },
+        conditions: {type: "object"},
+        lastUpdateTime:  { type: "date" },
+        status: { type: "keyword" },
+        lastRebootedTime:  { type: "date" },
+        nodeName: { type: "keyword" },
+        UUID: { type: "binary" }
+    }
+}
 export class ESStatusClient extends ESClient<ESNodeStatus> {
     constructor(configManager: ConfigManager) {
         const el = configManager.config.elasticSearch;
         if (el !== undefined) {
             const { host, port, statusIndex } = el
-            super(statusIndex, `http://${host.trim()}:${port}`)
+            super(statusIndex, `http://${host.trim()}:${port}`, mapping)
         } else {
             console.error("ElasticSearch connection information is not set in config file.")
         }
