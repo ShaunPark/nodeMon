@@ -7,10 +7,8 @@ export type LogType = {
 };
 
 const mapping = {
-    properties: {
-        nodeName: { type: "keyword" },
-        message: { type: "text" }
-    }
+    nodeName: { type: "keyword" },
+    message: { type: "text" }
 }
 
 export class ESLogClient extends ESClient<LogType> {

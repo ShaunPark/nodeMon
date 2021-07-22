@@ -4,7 +4,7 @@ import Log from '../logger/Logger'
 export abstract class ESClient<T> {
   private client: Client;
 
-  constructor(private INDEX_NAME: string, hostString: string, private mapping:Object) {
+  constructor(private INDEX_NAME: string, hostString: string, private mapping: Object) {
     this.client = new Client({ node: hostString })
     this.createIndex()
   }
@@ -14,7 +14,14 @@ export abstract class ESClient<T> {
     const exist = await this.client.indices.exists({ index: this.INDEX_NAME })
     if (exist.body !== true) {
       Log.info(`Index ${this.INDEX_NAME} doesn't exist. Create!!!`)
-      await this.client.indices.create({ index: this.INDEX_NAME, body: {mappings:this.mapping}});
+      await this.client.indices.create({
+        index: this.INDEX_NAME,
+        body: {
+          mappings: {
+            properties: { ...this.mapping, timestamp: { type: "date" } }
+          }
+        }
+      });
     }
   }
 

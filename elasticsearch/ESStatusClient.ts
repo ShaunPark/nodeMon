@@ -14,15 +14,13 @@ export interface ESNodeStatus {
 }
 
 const mapping = {
-    properties: {
-        ipAddress: { type: "ip" },
-        conditions: {type: "object"},
-        lastUpdateTime:  { type: "date" },
-        status: { type: "keyword" },
-        lastRebootedTime:  { type: "date" },
-        nodeName: { type: "keyword" },
-        UUID: { type: "binary" }
-    }
+    ipAddress: { type: "ip" },
+    conditions: { type: "object" },
+    lastUpdateTime: { type: "date" },
+    status: { type: "keyword" },
+    lastRebootedTime: { type: "date" },
+    nodeName: { type: "keyword" },
+    UUID: { type: "binary" }
 }
 export class ESStatusClient extends ESClient<ESNodeStatus> {
     constructor(configManager: ConfigManager) {
