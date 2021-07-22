@@ -42,9 +42,9 @@ class ESExporter {
             this.esStatus.updateStatus(event.data.status)
         }
     }
-
-    run = () => { }
 }
 
 const esExporter = new ESExporter(workerData?.config)
-esExporter.run()
+process.on('SIGTERM', function onSigterm() {
+    Log.info('Got SIGTERM in ESExporter. Graceful shutdown start')
+})

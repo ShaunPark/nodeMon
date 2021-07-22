@@ -16,7 +16,47 @@ type Label = {
     [key: string]: string
 }
 export default class K8SNodeInformer extends K8SInformer {
-    private _config?: IConfig;
+    private _config: IConfig;
+    private informer:k8s.Informer<k8s.V1Node>
+
+    constructor(config: IConfig) {
+        super()
+        this._config = config
+        const labelSelector = config.kubernetes.nodeSelector;
+
+        const listFn = () => this.k8sApi.listNode(
+            undefined,
+            true,
+            undefined,
+            undefined,
+            labelSelector,
+        );
+
+        this.informer = k8s.makeInformer(
+            this.kubeConfig,
+            '/api/v1/nodes',
+            listFn,
+            labelSelector
+        );
+
+        this.labelSelectors = this.stringsToArray(labelSelector)
+
+        this.informer.on('add', this.sendNodeCondition);
+        this.informer.on('update', this.sendNodeCondition);
+        this.informer.on('delete', (node) => {
+            const nodeName = node.metadata?.name
+            Log.info(`Node ${nodeName}deleted from cluster`)
+            Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+        });
+        this.informer.on('error', (err: k8s.V1Node) => {
+            console.error(err);
+            // Restart informer after 5sec
+            setTimeout(() => {
+                this.reInit()
+                this.informer.start()
+            }, 5000);
+        });
+    }
 
     private stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
         if (str == undefined) {
@@ -33,44 +73,12 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private labelSelectors?: Array<LocalLabel>;
 
-    public createAndStartInformer = (config: IConfig) => {
-        this._config = config
-        const labelSelector = config.kubernetes.nodeSelector;
-
-        const listFn = () => this.k8sApi.listNode(
-            undefined,
-            true,
-            undefined,
-            undefined,
-            labelSelector,
-        );
-
-        const informer = k8s.makeInformer(
-            this.kubeConfig,
-            '/api/v1/nodes',
-            listFn,
-            labelSelector
-        );
-
-        this.labelSelectors = this.stringsToArray(labelSelector)
-
-        informer.on('add', this.sendNodeCondition);
-        informer.on('update', this.sendNodeCondition);
-        informer.on('delete', (node) => {
-            const nodeName = node.metadata?.name
-            Log.info(`Node ${nodeName}deleted from cluster`)
-            Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
-        });
-
-        informer.on('error', (err: k8s.V1Node) => {
-            console.error(err);
-            // Restart informer after 5sec
-            setTimeout(() => {
-                this.reInit()
-                informer.start()
-            }, 5000);
-        });
-        informer.start()
+    stopInformer = () => {
+        this.informer.stop()
+    }
+    
+    startInformer = () => {
+        this.informer.start()
     }
 
     private labelMap = new Map<string, { lastUpdateTime: Date, needSend: string }>()

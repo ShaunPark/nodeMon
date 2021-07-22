@@ -34,7 +34,57 @@ class RequestWithFieldSelector extends DefaultRequest {
 export default class K8SEventInformer extends K8SInformer{
     // private _k8sApi: k8s.CoreV1Api;
     // private _config?: IConfig;
-    
+    private informer: k8s.ListWatch<CoreV1Event> 
+    constructor(config:IConfig) {
+        super()
+        const labelSelector = config.kubernetes.nodeSelector;
+        const listFn = () => this.k8sApi.listEventForAllNamespaces(
+            true,
+            undefined,
+            'involvedObject.kind=Node'
+        );
+
+        // 기본 makeInformer를 대신하여 커스텀 request를 사용하여 informer를 생성하도록 수정
+        // fieldSelector를 통해 Node에서 발생한 event만 수신하도록 함.
+        const requestImpl = new RequestWithFieldSelector(undefined, 'involvedObject.kind=Node');
+        const watch = new k8s.Watch(this.kubeConfig, requestImpl);
+        this.informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);
+
+        const labelMap = this.stringsToArray(labelSelector)
+
+        Log.info(JSON.stringify(labelMap))
+
+        this.informer.on('add', (evt: k8s.CoreV1Event) => {
+            // logger.info('Event added !!!', JSON.stringify(evt.involvedObject.kind))
+            if (this.checkValid(evt)) {
+                Logger.sendEventToNodeManager(this.createSendingEvent(evt))
+            }
+        });
+        this.informer.on('update', (evt: k8s.CoreV1Event) => {
+            // logger.info('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
+
+            if (this.checkValid(evt)) {
+                Logger.sendEventToNodeManager(this.createSendingEvent(evt))
+            }
+        });
+        this.informer.on('delete', (evt: k8s.CoreV1Event) => {
+            // logger.info('Event deleted !!!')
+
+            // if( this.checkValid(evt)) {
+            //     logger.info(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
+            // }
+        });
+        this.informer.on('error', (err: k8s.CoreV1Event) => {
+            console.error(err);
+            // Restart informer after 5sec
+            setTimeout(() => {
+                this.reInit()
+                this.informer.start()
+            }, 5000);
+        });
+
+    }
+
     public stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
         if (str == undefined) {
             return undefined
@@ -48,53 +98,12 @@ export default class K8SEventInformer extends K8SInformer{
         return array
     }
 
-    createAndStartInformer = (config: IConfig) => {
-        const labelSelector = config.kubernetes.nodeSelector;
-        const listFn = () => this.k8sApi.listEventForAllNamespaces(
-            true,
-            undefined,
-            'involvedObject.kind=Node'
-        );
+    stopInformer() {
+        this.informer?.stop()
+    }
 
-        // 기본 makeInformer를 대신하여 커스텀 request를 사용하여 informer를 생성하도록 수정
-        // fieldSelector를 통해 Node에서 발생한 event만 수신하도록 함.
-        const requestImpl = new RequestWithFieldSelector(undefined, 'involvedObject.kind=Node');
-        const watch = new k8s.Watch(this.kubeConfig, requestImpl);
-        const informer = new k8s.ListWatch<CoreV1Event>('/api/v1/events', watch, listFn, false);
-
-        const labelMap = this.stringsToArray(labelSelector)
-
-        Log.info(JSON.stringify(labelMap))
-
-        informer.on('add', (evt: k8s.CoreV1Event) => {
-            // logger.info('Event added !!!', JSON.stringify(evt.involvedObject.kind))
-            if (this.checkValid(evt)) {
-                Logger.sendEventToNodeManager(this.createSendingEvent(evt))
-            }
-        });
-        informer.on('update', (evt: k8s.CoreV1Event) => {
-            // logger.info('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
-
-            if (this.checkValid(evt)) {
-                Logger.sendEventToNodeManager(this.createSendingEvent(evt))
-            }
-        });
-        informer.on('delete', (evt: k8s.CoreV1Event) => {
-            // logger.info('Event deleted !!!')
-
-            // if( this.checkValid(evt)) {
-            //     logger.info(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
-            // }
-        });
-        informer.on('error', (err: k8s.CoreV1Event) => {
-            console.error(err);
-            // Restart informer after 5sec
-            setTimeout(() => {
-                this.reInit()
-                informer.start()
-            }, 5000);
-        });
-        informer.start()
+    startInformer = () => {
+        this.informer.start()
     }
 
     private createSendingEvent(obj: CoreV1Event): Object {

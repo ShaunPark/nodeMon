@@ -24,6 +24,8 @@ export class NodeMonMain {
     private _esLogger!: Worker;
     private _nodeManager!: Worker;
     private configManager: ConfigManager;
+    private nodeInformer: K8SNodeInformer;
+    private eventInformer: K8SEventInformer
 
     constructor(private configFile: string, private dryRun?: boolean) {
         // command line argument parsing 
@@ -40,6 +42,9 @@ export class NodeMonMain {
             // } else {
             //     logger.info('no kubernetes info')
             // }
+
+            this.nodeInformer = new K8SNodeInformer(config)
+            this.eventInformer = new K8SEventInformer(config)
         } catch (err) {
             Log.error(err)
             process.exit(1);
@@ -52,11 +57,9 @@ export class NodeMonMain {
         Log.info(`NodeMon started`)
         this.initChannels(this.configFile);
 
-        const nodeInformer = new K8SNodeInformer()
-        nodeInformer.createAndStartInformer(this.configManager.config)
-        const eventInformer = new K8SEventInformer()
-        eventInformer.createAndStartInformer(this.configManager.config)
-        
+        this.nodeInformer.startInformer()
+        this.eventInformer.startInformer()
+
         const currentNode = process.env.NODE_NAME
         if (currentNode) {
             Channel.sendMessageEventToES({ message: `Node monitor started on node ${currentNode}.`, node: currentNode })
@@ -101,6 +104,11 @@ export class NodeMonMain {
 
     close = async () => {
         this._esLogger.postMessage({ type: "shutdown" });
+        this._nodeManager.postMessage({ type: "shutdown" });
+
+        Log.info('Stop Informers')
+        this.eventInformer.stopInformer()
+        this.nodeInformer.stopInformer()
 
         const currentNode = process.env.NODE_NAME
         if (currentNode) {

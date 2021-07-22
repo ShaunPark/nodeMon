@@ -44,6 +44,8 @@ export default class NodeManager {
     private static nodeStatusCache = new Map<string, NodeConditionCache>()
     private cmg: ConfigManager;
     private k8sUtil: K8SUtil
+    private static lastRebootTime: Date | undefined
+    private mainLoop?:NodeJS.Timeout
 
     /// static methods 
     public static getNode(nodeName: string) {
@@ -72,6 +74,12 @@ export default class NodeManager {
 
         this.cmg = new ConfigManager(this.configFile);
         this.k8sUtil = new K8SUtil(this.cmg.config)
+    }
+
+    public close() {
+        if( this.mainLoop !== undefined ) {
+            clearTimeout(this.mainLoop)
+        }
     }
 
     // 스레드간 채널 연결 초기화
@@ -235,8 +243,6 @@ export default class NodeManager {
         }
     }
 
-    private static lastRebootTime: Date | undefined
-
     private reboot(nodeName: string) {
         const config = this.cmg.config;
         const node = NodeManager.getNode(nodeName)
@@ -318,7 +324,7 @@ export default class NodeManager {
         }
 
         // setTimeout(this.checkNodeStatus, interval);
-        setInterval(() => {
+        this.mainLoop = setInterval(() => {
             this.checkNodeStatus()
             this.eventHandlers['PrintNode']()
             //eventHandlers['CleanNode'](NodeManager.nodes)
@@ -341,13 +347,12 @@ export default class NodeManager {
     private cordonEndHour: Date = new Date('Thu, 01 Jan 1970 21:00:00+09:00')
     private rebootStartHour: Date = new Date('Thu, 01 Jan 1970 03:00:00+09:00')
     private rebootEndHoure: Date = new Date('Thu, 01 Jan 1970 05:00:00+09:00')
-
     private cordoned = false
     private rebootScheduled = false
-
     private percentOfReboot = 30
     private rebootList: Array<string> = []
     private maxLivenessDays = 10
+    private rebootedList: string[] = []
 
     private reloadConfigValues = () => {
         const maint = this.cmg.config.maintenance
@@ -523,8 +528,6 @@ export default class NodeManager {
             }, 30 * 1000)
         }
     }
-
-    private rebootedList: string[] = []
 
     private setNodeConditionToReboot = (nodeName: string) => {
         Log.debug(`Node ${nodeName} is scheduled for reboot`)
