@@ -13,10 +13,11 @@ export abstract class ESClient<T> {
         }
       })
     } else if (!el.useApiKey && el.id !== undefined && el.password !== undefined) {
+      const password = (process.env.ES_PASSWORD)?process.env.ES_PASSWORD:""
       this.client = new Client({
         node: hostString, auth: {
           username: el.id,
-          password: el.password
+          password: password
         }
       })
     } else {
