@@ -3,3 +3,4 @@ build
 a.json
 .vscode
 test
+copy.sh
