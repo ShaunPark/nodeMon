@@ -12,7 +12,7 @@ export abstract class ESClient<T> {
           apiKey: el.apiKey
         }
       })
-    } else if (!el.useApiKey && el.id !== undefined && el.password !== undefined) {
+    } else if (!el.useApiKey && el.id !== undefined ) {
       const password = (process.env.ES_PASSWORD)?process.env.ES_PASSWORD:""
       this.client = new Client({
         node: hostString, auth: {

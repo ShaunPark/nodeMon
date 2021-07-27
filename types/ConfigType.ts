@@ -30,7 +30,6 @@ export interface IElasticSearch {
     logIndex: string
     statusIndex: string
     id?: string
-    password?: string
     apiKey?: string
     useApiKey: boolean
 }
