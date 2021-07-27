@@ -58,9 +58,13 @@ class AWSShutdown {
       const command = new DescribeInstancesCommand(param)
       try {
         const data = await this.ec2.send(command)
+
+        Log.debug(JSON.stringify(data))
+
         const instanceIds = jp.query(data, jsonPath) as Array<string>
 
         Log.info(`[AWSReboot.run] Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
+        
         this.terminateNode(instanceIds)
       } catch (err) {
         Log.error("[AWSReboot.run] Error", err.stack);
