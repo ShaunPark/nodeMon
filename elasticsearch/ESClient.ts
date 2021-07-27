@@ -1,11 +1,27 @@
 import { Client, RequestParams } from '@elastic/elasticsearch';
 import Log from '../logger/Logger'
+import { IElasticSearch } from '../types/ConfigType';
 
 export abstract class ESClient<T> {
   private client: Client;
 
-  constructor(private INDEX_NAME: string, hostString: string, private mapping: Object) {
-    this.client = new Client({ node: hostString })
+  constructor(private INDEX_NAME: string, hostString: string, private mapping:Object, el: IElasticSearch ) {
+    if (el.useApiKey && el.apiKey !== undefined) {
+      this.client = new Client({
+        node: hostString, auth: {
+          apiKey: el.apiKey
+        }
+      })
+    } else if (!el.useApiKey && el.id !== undefined && el.password !== undefined) {
+      this.client = new Client({
+        node: hostString, auth: {
+          username: el.id,
+          password: el.password
+        }
+      })
+    } else {
+      this.client = new Client({ node: hostString })
+    }
     this.createIndex()
   }
 

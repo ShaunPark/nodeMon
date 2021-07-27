@@ -70,17 +70,6 @@ class AWSShutdown {
     }
   }
 
-  // private async stopNode(instanceIds: string[]) {
-
-  //   const dryRun:boolean =  (instanceIds.length > 1)?true:false;
-  //   const param: StopInstancesCommandInput  = { InstanceIds: instanceIds , DryRun: dryRun}
-  //   logger.info(`Reboot param : ${param}`)
-
-  //   const data = this.sendAWSCommand(new StopInstancesCommand(param))
-  //   logger.info(`Reboot request for ${instanceIds} done ${data}`)
-
-  // }
-
   private async terminateNode(instanceIds: string[]) {
 
     const dryRun: boolean = (instanceIds.length > 1) ? true : false;

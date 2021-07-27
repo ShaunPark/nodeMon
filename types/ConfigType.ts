@@ -22,12 +22,17 @@ interface IMaintenance {
     ratio: number // 30 percent
     cordonStartHour: string
     cordonEndHour: string
+    rebootBuffer?: number
 }
-interface IElasticSearch {
+export interface IElasticSearch {
     host: string
     port: number
     logIndex: string
     statusIndex: string
+    id?: string
+    password?: string
+    apiKey?: string
+    useApiKey: boolean
 }
 interface Ik8s {
     nodeSelector?: string

@@ -73,7 +73,6 @@ export default class NodeConditionChanger extends K8SClient {
 
     private async removeNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
         try {
-            //const status: V1NodeStatus = { conditions: conditions }
             const header = { headers: { "Content-Type": "application/merge-patch+json" } }
             const ret = await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
             return Promise.resolve(ret)

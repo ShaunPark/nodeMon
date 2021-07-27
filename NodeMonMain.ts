@@ -43,7 +43,7 @@ export class NodeMonMain {
         }
     }
 
-    public run = (): void => {
+    public run = () => {
         const config: IConfig = this.configManager.config;
 
         Log.info(`[NodeMonMain.run] NodeMon started`)

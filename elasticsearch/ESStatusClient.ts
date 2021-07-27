@@ -28,7 +28,7 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
         const el = configManager.config.elasticSearch;
         if (el !== undefined) {
             const { host, port, statusIndex } = el
-            super(statusIndex, `http://${host.trim()}:${port}`, mapping)
+            super(statusIndex, `http://${host.trim()}:${port}`, mapping, el)
         } else {
             Log.error("[ESStatusClient] ElasticSearch connection information is not set in config file.")
         }

@@ -55,24 +55,16 @@ export default class K8SEventInformer extends K8SInformer{
         Log.info(`[K8SEventInformer] ${JSON.stringify(labelMap)}`)
 
         this.informer.on('add', (evt: k8s.CoreV1Event) => {
-            // logger.info('Event added !!!', JSON.stringify(evt.involvedObject.kind))
             if (this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
         this.informer.on('update', (evt: k8s.CoreV1Event) => {
-            // logger.info('Event updated !!!', JSON.stringify(evt.involvedObject.kind))
-
             if (this.checkValid(evt)) {
                 Logger.sendEventToNodeManager(this.createSendingEvent(evt))
             }
         });
         this.informer.on('delete', (evt: k8s.CoreV1Event) => {
-            // logger.info('Event deleted !!!')
-
-            // if( this.checkValid(evt)) {
-            //     logger.info(`Deleted:  ${evt.involvedObject.name} ${evt.reason} ${evt.type}`);
-            // }
         });
         this.informer.on('error', (err: k8s.CoreV1Event) => {
             // Restart informer after 5sec
