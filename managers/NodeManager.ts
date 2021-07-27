@@ -1,6 +1,5 @@
 import Channel from "../logger/Channel";
 import ConfigManager from "../config/ConfigManager";
-import IConfig from "../types/ConfigType"
 
 import { MessagePort } from "worker_threads"
 import { NodeCondition } from "../types/Type";

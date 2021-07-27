@@ -2,6 +2,7 @@ import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Fil
 import ConfigManager from '../config/ConfigManager';
 import IConfig from "../types/ConfigType"
 import Log from '../logger/Logger'
+import Channel from "../logger/Channel";
 
 const jp = require('jsonpath')
 const REGION_AP_2 = 'ap-northeast-2'
@@ -24,10 +25,10 @@ class AWSShutdown {
     }
   }
 
-  private checkIfValidIP(str:string) {
+  private checkIfValidIP(str: string) {
     // Regular expression to check if string is a IP address
     const regexExp = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-  
+
     return regexExp.test(str);
   }
 
@@ -41,7 +42,7 @@ class AWSShutdown {
     let jsonPath = `$.Reservations[*].Instances[?(@.PrivateIpAddress  == "${ipAddress}")].InstanceId`
 
     // ip 가 지정된 경우에만 
-    if( this.checkIfValidIP(ipAddress)) {
+    if (this.checkIfValidIP(ipAddress)) {
       filters.push({ Name: PRIVATE_IP_ADDRESS, Values: [ipAddress] })
       jsonPath = `$.Reservations[*].Instances[?(@.PrivateIpAddress  == "${ipAddress}")].InstanceId`
     } else {
@@ -59,14 +60,14 @@ class AWSShutdown {
       try {
         const data = await this.ec2.send(command)
 
-        Log.debug(JSON.stringify(data))
-
         const instanceIds = jp.query(data, jsonPath) as Array<string>
 
         Log.info(`[AWSReboot.run] Reboot for InstanceIds ${JSON.stringify(instanceIds)} starts.`)
-        
+
         this.terminateNode(instanceIds)
+        Channel.info(ipAddress, "AWS instance is terminated.");
       } catch (err) {
+        Channel.error(ipAddress, "Failed to terminate AWS instance.");
         Log.error("[AWSReboot.run] Error", err.stack);
       }
     } else {
@@ -75,13 +76,16 @@ class AWSShutdown {
   }
 
   private async terminateNode(instanceIds: string[]) {
+    try {
+      const dryRun: boolean = (instanceIds.length == 1) ? false : true;
+      const param: TerminateInstancesCommandInput = { InstanceIds: instanceIds, DryRun: dryRun }
+      Log.debug(`[AWSReboot.terminateNode] Terminate param : ${JSON.stringify(param)}`)
 
-    const dryRun: boolean = (instanceIds.length > 1) ? true : false;
-    const param: TerminateInstancesCommandInput = { InstanceIds: instanceIds, DryRun: dryRun }
-    Log.debug(`[AWSReboot.terminateNode] Terminate param : ${JSON.stringify(param)}`)
-
-    const data = this.sendAWSCommand(new TerminateInstancesCommand(param))
-    Log.info(`[AWSReboot.terminateNode] Terminate request for ${instanceIds} done ${data}`)
+      const data = this.sendAWSCommand(new TerminateInstancesCommand(param))
+      Log.info(`[AWSReboot.terminateNode] Terminate request for ${instanceIds} done ${data}`)
+    } catch (err) {      
+      throw new Error(`[AWSReboot.terminateNode] Terminate Instance Failed - ${err.message}`);
+    }
   }
 
   private async sendAWSCommand(command: TerminateInstancesCommand | StopInstancesCommand): Promise<any> {
