@@ -460,7 +460,7 @@ export default class NodeManager {
     private rebootStartHour: Date = new Date('Thu, 01 Jan 1970 03:00:00+09:00')
     private rebootEndHoure: Date = new Date('Thu, 01 Jan 1970 05:00:00+09:00')
     private percentOfReboot = 30
-    private maxLivenessDays = 10
+    private maxLivenessMilli = 10 * ONEDAYMILLISECOND
     private rebootBuffer = 15
     // 작업 진행상태 플래그
     private cordoned = false
@@ -480,8 +480,20 @@ export default class NodeManager {
                 Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
                 this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (30000))
-                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000))
-                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (90000))
+                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 10))
+                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (60000 * 10 + 30000))
+
+                this.percentOfReboot = maint.ratio
+                if (this.percentOfReboot < 10 || this.percentOfReboot > 90) {
+                    this.percentOfReboot = 20
+                }
+
+                this.maxLivenessMilli = maint.maxLivenessDays * ONEMINUTEMILLISECOND
+
+                this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
+                if (this.rebootBuffer < 1 || this.rebootBuffer > 30) {
+                    this.rebootBuffer = 15
+                }
             } else {
                 // cordon 시간대 기본값 시작 : 20시-한국시간 종료 : 21시-한국시간
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
@@ -497,21 +509,21 @@ export default class NodeManager {
                 if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
                     this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
                 }
-            }
-            // 리부트 비율은 기본 20%, 최소 10%, 최대 50%
-            this.percentOfReboot = maint.ratio
-            if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
-                this.percentOfReboot = 20
-            }
-            // 리부트 없이 노드가 유지되는 기간은 기본 14일, 최소 7일, 최대 28일
-            this.maxLivenessDays = maint.maxLivenessDays
-            if (this.maxLivenessDays < 7 || this.maxLivenessDays > 28) {
-                this.maxLivenessDays = 14
-            }
-            // 노드간 리부트 시 시간 간격은, 기본 15분, 최소 5분, 최대 30분 
-            this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
-            if (this.rebootBuffer < 5 || this.rebootBuffer > 30) {
-                this.rebootBuffer = 15
+                // 리부트 비율은 기본 20%, 최소 10%, 최대 50%
+                this.percentOfReboot = maint.ratio
+                if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
+                    this.percentOfReboot = 20
+                }
+                // 리부트 없이 노드가 유지되는 기간은 기본 14일, 최소 7일, 최대 28일
+                this.maxLivenessMilli = maint.maxLivenessDays * ONEDAYMILLISECOND
+                if (this.maxLivenessMilli < 7 * ONEDAYMILLISECOND || this.maxLivenessMilli > 28 * ONEDAYMILLISECOND) {
+                    this.maxLivenessMilli = 14 * ONEDAYMILLISECOND
+                }
+                // 노드간 리부트 시 시간 간격은, 기본 15분, 최소 5분, 최대 30분 
+                this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
+                if (this.rebootBuffer < 5 || this.rebootBuffer > 30) {
+                    this.rebootBuffer = 15
+                }
             }
         }
     }
@@ -690,7 +702,7 @@ export default class NodeManager {
      */
     private findOldNodes = (now: Date): Array<string> => {
         const arr: Array<string> = []
-        const rebootTime = now.getTime() - (this.maxLivenessDays * ONEDAYMILLISECOND)
+        const rebootTime = now.getTime() - (this.maxLivenessMilli)
 
         NodeManager.getAll().forEach(node => {
             // 리부트 시간이 설정되어 있지 않으면 스킵. 이후에 kubelet시작 시간으로 설정됨.
