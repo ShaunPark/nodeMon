@@ -24,11 +24,12 @@ import K8SUtil from '../kubernetes/K8SUtil'
 
 describe('NodeManager', () => {
 
-    it('time test', () => {
+    it('time test', async () => {
         const c = new ConfigManager("./test/config.yaml");
 
         const k = new K8SUtil(c.config)
-        k.getCordonedNodes()
+        const r = await k.getCordonedNodes()
+        console.log(r)
         // mgr.getReloadConfigValues()()
 
         // const now = new Date()
