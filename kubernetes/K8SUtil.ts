@@ -1,4 +1,5 @@
 import { V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import { json } from "express";
 import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
@@ -13,9 +14,9 @@ export default class K8SUtil extends K8SClient {
     }
 
     // 노드 condition을 변경하는 메소드 
-    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False", message?:string): Promise<Object> {
+    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False", message?: string): Promise<Object> {
         try {
-            const msg = (message === undefined)?"Reboot requested by nodeMon":message
+            const msg = (message === undefined) ? "Reboot requested by nodeMon" : message
             const condition: V1NodeCondition = {
                 status: str,
                 type: conditionType,
@@ -109,9 +110,18 @@ export default class K8SUtil extends K8SClient {
         return Promise.resolve(nodeList)
     }
 
-    public async getCordonedNodes() : Promise<string[]> {
-        const {body} = await this.k8sApi.listNode(undefined,undefined, undefined,undefined, this.config.kubernetes.nodeSelector)
-        console.log(JSON.stringify(body))
-        return Promise.resolve([])
+    public async getCordonedNodes(): Promise<string[]> {
+        const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
+        const { items } = body
+        const arr:string[] = []
+        items.forEach(item => {
+            const ret = jsonpath.query(item, '$.status.conditions[?(@.type == "KubeletHasSufficientMemory")]')
+            if( ret.length == 1 && ret[0].status == "False" && ret[0].message !== "0") {
+                if( item.metadata && item.metadata.name) {
+                    arr.push(item.metadata.name)
+                }
+            }
+        })
+        return Promise.resolve(arr)
     }
 }
