@@ -480,9 +480,9 @@ export default class NodeManager {
             if (maint.testMode === true) {
                 Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
-                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (30000))
+                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (180000))
                 this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 10))
-                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (60000 * 10 + 30000))
+                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (60000 * 10 + 180000))
 
                 this.percentOfReboot = maint.ratio
                 if (this.percentOfReboot < 10 || this.percentOfReboot > 90) {
