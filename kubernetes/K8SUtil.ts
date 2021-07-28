@@ -86,17 +86,22 @@ export default class K8SUtil extends K8SClient {
     public async cordonNode(nodeName: string): Promise<Object> {
         try {
             const spec: V1NodeSpec = { unschedulable: true }
-            return this.k8sApi.patchNode(nodeName, { spec: spec })
+            return this.patchNode(nodeName, spec)
         } catch (err) {
             Log.error(err)
             return Promise.reject()
         }
     }
 
+    private async patchNode(nodeName: string, spec: V1NodeSpec) {
+        const header = { headers: { "Content-Type": "application/merge-patch+json" } }
+        return this.k8sApi.patchNode(nodeName, { spec: spec }, undefined, undefined, undefined, undefined, header)
+    }
+
     public async uncordonNode(nodeName: string): Promise<Object> {
         try {
             const spec: V1NodeSpec = { unschedulable: false }
-            return this.k8sApi.patchNode(nodeName, { spec: spec })
+            return this.patchNode(nodeName, spec)
         } catch (err) {
             Log.error(err)
             return Promise.reject()
@@ -109,16 +114,16 @@ export default class K8SUtil extends K8SClient {
         return Promise.resolve(nodeList)
     }
 
-    public async getCordonedNodes(type:string): Promise<string[]> {
+    public async getCordonedNodes(type: string): Promise<string[]> {
         const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
         const { items } = body
-        const arr:string[] = []
+        const arr: string[] = []
         items.forEach(item => {
             console.log(JSON.stringify(item))
             const ret = jsonpath.query(item, `$.status.conditions[?(@.type == '${type}')]`)
             console.log(JSON.stringify(ret))
-            if( ret.length == 1 && ret[0].status == "False" && ret[0].message !== "0") {
-                if( item.metadata && item.metadata.name) {
+            if (ret.length == 1 && ret[0].status == "False" && ret[0].message !== "0") {
+                if (item.metadata && item.metadata.name) {
                     arr.push(item.metadata.name)
                 }
             }
