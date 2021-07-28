@@ -1,0 +1,33 @@
+dryRun: false
+rebootThroughSSH: false
+rebootDelay: 0
+kubernetes:
+  nodeSelector: "draino-enabled=true, draino-test=true"
+  conditions:
+  - CustomErrorCondition
+  - KernelDeadlock
+  - RebootRequested
+  podLabelSelector: "worker=enabled"
+  #      podFieldSelector: metadata.name=aaa
+nodeManager:
+  interval: 10000
+  awsRegion: "ap-northeast-2"
+  awsVPC: "vpc-08d52a53e0cfed045"
+  sshPemFile: "/etc/ssl/certs/my.pem"
+  sshUser: "ubuntu"
+elasticSearch:
+  host: 3.37.79.125
+  port: 9200
+  logIndex: log
+  statusIndex: status
+  useApiKey: false
+maintenance:
+  runMaintenance: true
+  testMode: true
+  maxLivenessDays: 14
+  cordonStartHour: "16:40+09:00"
+  cordonEndHour: "14:14+09:00"
+  startHour: "14:15+09:00"
+  endHour: "14:16+09:00"
+  ratio: 50
+  rebootBuffer: 15

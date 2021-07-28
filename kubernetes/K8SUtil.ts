@@ -1,10 +1,10 @@
-import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import { V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
 import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
 import K8SClient from "./K8SClient";
 
-export default class NodeConditionChanger extends K8SClient {
+export default class K8SUtil extends K8SClient {
     protected config: IConfig;
 
     constructor(config: IConfig) {
