@@ -802,8 +802,9 @@ export default class NodeManager {
         this.rebootedList.push(nodeName)
 
         // dry-run이 아닌 경우에만 수행 
+        const now = new Date()
         if (!this.cmg.config.dryRun) {
-            this.k8sUtil.changeNodeCondition(nodeName, REBOOT_SCHEDULED, "True", `${Date.now()}`)
+            this.k8sUtil.changeNodeCondition(nodeName, REBOOT_SCHEDULED, "True", `Reboot scheduled by nodeMon : ${now.toLocaleString()}`)
         }
         Channel.info(nodeName, `Node cordoned for reboot by node-mon.`)
     }

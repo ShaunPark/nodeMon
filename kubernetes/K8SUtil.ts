@@ -22,7 +22,7 @@ export default class K8SUtil extends K8SClient {
                 lastHeartbeatTime: new Date(),
                 lastTransitionTime: new Date(),
                 message: msg,
-                reason: conditionType
+                reason: "beeNodeMon"
             }
             const status: V1NodeStatus = { conditions: [condition] }
             const header = { headers: { "Content-Type": "application/strategic-merge-patch+json" } }
