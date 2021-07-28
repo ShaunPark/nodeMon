@@ -25,7 +25,7 @@ import K8SUtil from '../kubernetes/K8SUtil'
 describe('NodeManager', () => {
 
     it('time test', () => {
-        const c = new ConfigManager("./config.yaml");
+        const c = new ConfigManager("./test/config.yaml");
 
         const k = new K8SUtil(c.config)
         k.getCordonedNodes()
