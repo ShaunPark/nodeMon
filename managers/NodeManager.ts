@@ -593,6 +593,7 @@ export default class NodeManager {
                     // rebootList 가 비어있는 경우 cordon time 과 reboot time사이에 node-mon이 재 기동했을 수 있으므로
                     // condition 기반으로 노드 목록을 조회
                     if (this.rebootList.length == 0) {
+                        Log.debug("[NodeManager.checkNodeStatus] reboot scheduled node list is empty. get node from condition.")
                         this.rebootList = await this.getCordonedNode()
                     }
                     const cordonedCount = this.rebootList.length;
@@ -604,6 +605,7 @@ export default class NodeManager {
 
                     // 만약 cordon이 수행된 노드 수가 리부트할 최대 노드 수 보다 적으면 추가로 reboot할 노드를 추가함 
                     if (numberOfReboot > this.rebootList.length) {
+                        Log.debug("[NodeManager.checkNodeStatus] reboot scheduled nodes are less than numberOfReboot. add more!")
                         const nodeList = await this.filterRebootNode()
                         this.rebootList = [...this.rebootList, ...nodeList]
                     }
