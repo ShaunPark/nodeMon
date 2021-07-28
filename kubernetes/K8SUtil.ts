@@ -1,5 +1,4 @@
 import { V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
-import { json } from "express";
 import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
