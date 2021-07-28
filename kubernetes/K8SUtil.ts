@@ -13,14 +13,15 @@ export default class NodeConditionChanger extends K8SClient {
     }
 
     // 노드 condition을 변경하는 메소드 
-    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False"): Promise<Object> {
+    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False", message?:string): Promise<Object> {
         try {
+            const msg = (message === undefined)?"Reboot requested by nodeMon":message
             const condition: V1NodeCondition = {
                 status: str,
                 type: conditionType,
                 lastHeartbeatTime: new Date(),
                 lastTransitionTime: new Date(),
-                message: "Reboot requested by nodeMon",
+                message: msg,
                 reason: conditionType
             }
             const status: V1NodeStatus = { conditions: [condition] }
@@ -106,5 +107,11 @@ export default class NodeConditionChanger extends K8SClient {
         const { body } = await this.k8sApi.listPodForAllNamespaces(undefined, undefined, fieldSelector, labelSelector)
         const nodeList = jsonpath.query(body, '$.items[*].spec.nodeName') as string[]
         return Promise.resolve(nodeList)
+    }
+
+    public async getCordonedNodes() : Promise<string[]> {
+        const {body} = await this.k8sApi.listNode(undefined,undefined, undefined,undefined, this.config.kubernetes.nodeSelector)
+        console.log(JSON.stringify(body))
+        return Promise.resolve([])
     }
 }

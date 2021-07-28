@@ -1,4 +1,4 @@
-import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Filter, StopInstancesCommand, TerminateInstancesCommand, TerminateInstancesCommandInput } from '@aws-sdk/client-ec2';
+import { DescribeInstancesCommand, DescribeInstancesCommandInput, EC2Client, Filter, TerminateInstancesCommand, TerminateInstancesCommandInput } from '@aws-sdk/client-ec2';
 import ConfigManager from '../config/ConfigManager';
 import IConfig from "../types/ConfigType"
 import Log from '../logger/Logger'
@@ -88,7 +88,7 @@ class AWSShutdown {
     }
   }
 
-  private async sendAWSCommand(command: TerminateInstancesCommand | StopInstancesCommand): Promise<any> {
+  private async sendAWSCommand(command: TerminateInstancesCommand): Promise<any> {
     try {
       return await this.ec2.send(command)
     } catch (err) {

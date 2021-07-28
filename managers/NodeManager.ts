@@ -96,7 +96,7 @@ export default class NodeManager {
         this.cmg = new ConfigManager(this.configFile);
         this.k8sUtil = new K8SUtil(this.cmg.config)
     }
-    
+
     /**
      * 노드매니저 종료
      */
@@ -130,7 +130,7 @@ export default class NodeManager {
 
     /**
      * Kubernetes 모니터에서 전달된 이벤트 처리
-     */ 
+     */
     private onEvent = (event: any) => {
         //수신한 이벤트를 처리
         this.eventHandlers[event.kind as EventTypes](event);
@@ -491,8 +491,8 @@ export default class NodeManager {
                     this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
                 }
                 // 리부트 시간대 기본값 시작 : 03시-한국시간 종료 : 04시-한국시간
-                this.rebootStartHour = util.timeStrToDate(maint.startHour, "03:00+09:00")
-                this.rebootEndHoure = util.timeStrToDate(maint.endHour, "04:00+09:00")
+                this.rebootStartHour = util.timeStrToDate(maint.rebootStartHour, "03:00+09:00")
+                this.rebootEndHoure = util.timeStrToDate(maint.rebootEndHour, "04:00+09:00")
                 // 시작 시각이 종료시각 보다 나중이면 종료시각을 시작시각 1시간 후로 설정 
                 if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
                     this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
@@ -533,6 +533,8 @@ export default class NodeManager {
             }
 
             const now = new Date()
+            const numberOfReboot = Math.ceil(NodeManager.getAll().size * (this.percentOfReboot / 100))
+
             // 지금이 cordon작업을 수행할 시점인지 확인 
             if (this.isCordonTime(now)) {
                 // 이미 cordon을 수행 했는지 확인
@@ -546,10 +548,13 @@ export default class NodeManager {
                     const arr = this.findOldNodes(now)
                     Log.info(`[NodeManager.checkNodeStatus] Reboot Schedule nodes : ${JSON.stringify(arr)}`)
 
+
                     // 해당 노드들에 대해서 cordon 작업을 수행하고 리부트 우선순위 목록에 추가함
-                    arr.forEach((node: string, index: number) => {
+                    // 최대 리부트 수 까지만 cordon을 수행
+                    arr.slice(0, numberOfReboot).forEach((node: string, index: number) => {
                         this.cordonNode(node)
                         this.rebootList.push(node)
+                        this.setNodeConditionCordoned(node)
                     })
                     // cordon 작업이 수행되었음을 표시
                     this.cordoned = true
@@ -572,10 +577,16 @@ export default class NodeManager {
                     // 리부트 된 노드 목록 초기화
                     this.rebootedList = []
 
+                    const cordonedCount = this.rebootList.length;
+                    // rebootList 가 비어있는 경우 cordon time 과 reboot time사이에 node-mon이 재 기동했을 수 있으므로
+                    // condition 기반으로 노드 목록을 조회
+                    if(cordonedCount < 1 ) {
+                        this.rebootList = await this.getCordonedNode()
+                    }
+
                     Log.info("[NodeManager.checkNodeStatus] Time to reboot check")
                     Log.info(`[NodeManager.checkNodeStatus] nubmer of reboot by max liveness : ${this.rebootList.length}`)
                     // 매일 리부트할 최대 노드 수를 계산
-                    const numberOfReboot = Math.ceil(NodeManager.getAll().size * (this.percentOfReboot / 100))
                     Log.info(`[NodeManager.checkNodeStatus] nubmer of reboot : ${numberOfReboot}`)
 
                     // 만약 cordon이 수행된 노드 수가 리부트할 최대 노드 수 보다 적으면 추가로 reboot할 노드를 추가함 
@@ -584,7 +595,8 @@ export default class NodeManager {
                         this.rebootList = [...this.rebootList, ...nodeList]
                     }
                     // 전체 리부트 대상 노드에서 최대 리부트 노드 수만큼만 수행하도록 함 
-                    this.rebootList = this.rebootList.slice(0, numberOfReboot)
+                    const rebootCount = (numberOfReboot > cordonedCount)? numberOfReboot:cordonedCount
+                    this.rebootList = this.rebootList.slice(0, rebootCount)
                     // 선택된 노드들에 대해서 리부트 작업을 스케쥴링 
                     this.scheduleRebootNodes(this.rebootList)
                     this.rebootScheduled = true
@@ -636,13 +648,17 @@ export default class NodeManager {
         return Promise.resolve(filteredNodes)
     }
 
+    private async getCordonedNode() : Promise<string[]>{
+        return this.k8sUtil.getCordonedNodes()
+    }
+
     /**
      * 워커를 표시하는 Pod 레이블 및 필드를 기준으로 워커가 실행중인 노드 목록을 조회
      * @returns 워커가 실행중인 노드 목록
      */
     private async getNodeHasWorker(): Promise<string[]> {
-        const fieldSelector = this.cmg.config.kubernetes.podFieldSelector
-        const labelSelector = this.cmg.config.kubernetes.podLabelSelector
+        const fieldSelector = this.cmg.config.kubernetes.workerPodFieldSelector
+        const labelSelector = this.cmg.config.kubernetes.workerPodLabelSelector
         return this.k8sUtil.getNodeListOfPods(fieldSelector, labelSelector)
     }
 
@@ -717,7 +733,7 @@ export default class NodeManager {
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
             // 먼저 RebootRequested 컨디션을 False로 변경 
-            await this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "False")
+            await this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "False", "0")
             Channel.info(nodeName, `Node reboot process finished.`)
 
             // 30초 후에 해당 컨디션을 노드에서 삭제
@@ -746,6 +762,19 @@ export default class NodeManager {
             this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "True")
         }
         Channel.info(nodeName, `Node reboot process started.`)
+    }
+
+    private setNodeConditionCordoned = (nodeName: string) => {
+        Log.debug(`[NodeManager.setNodeConditionCordoned] Node ${nodeName} is cordoned for reboot`)
+
+        // 리부트된 노드 목록에 해당 노드를 추가
+        this.rebootedList.push(nodeName)
+
+        // dry-run이 아닌 경우에만 수행 
+        if (!this.cmg.config.dryRun) {
+            this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "False", `${Date.now()}`)
+        }
+        Channel.info(nodeName, `Node cordoned for reboot by node-mon.`)
     }
 
     //// Test fundtions: 아래는 테스트를 위한 임시 함수들
