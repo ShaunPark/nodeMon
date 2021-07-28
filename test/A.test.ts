@@ -28,7 +28,7 @@ describe('NodeManager', () => {
         const c = new ConfigManager("./test/config.yaml");
 
         const k = new K8SUtil(c.config)
-        const r = await k.getCordonedNodes()
+        const r = await k.getCordonedNodes("RebootRequested")
         console.log(r)
         // mgr.getReloadConfigValues()()
 

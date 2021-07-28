@@ -649,7 +649,7 @@ export default class NodeManager {
     }
 
     private async getCordonedNode() : Promise<string[]>{
-        return this.k8sUtil.getCordonedNodes()
+        return this.k8sUtil.getCordonedNodes(RebootRequested)
     }
 
     /**
