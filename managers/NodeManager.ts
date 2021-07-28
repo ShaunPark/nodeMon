@@ -551,7 +551,7 @@ export default class NodeManager {
 
                     // 해당 노드들에 대해서 cordon 작업을 수행하고 리부트 우선순위 목록에 추가함
                     // 최대 리부트 수 까지만 cordon을 수행
-                    arr.slice(0, numberOfReboot).forEach((node: string, index: number) => {
+                    arr.slice(0, numberOfReboot).forEach(node => {
                         this.cordonNode(node)
                         this.rebootList.push(node)
                         this.setNodeConditionCordoned(node)
@@ -577,12 +577,12 @@ export default class NodeManager {
                     // 리부트 된 노드 목록 초기화
                     this.rebootedList = []
 
-                    const cordonedCount = this.rebootList.length;
                     // rebootList 가 비어있는 경우 cordon time 과 reboot time사이에 node-mon이 재 기동했을 수 있으므로
                     // condition 기반으로 노드 목록을 조회
-                    if(cordonedCount < 1 ) {
+                    if (this.rebootList.length == 0) {
                         this.rebootList = await this.getCordonedNode()
                     }
+                    const cordonedCount = this.rebootList.length;
 
                     Log.info("[NodeManager.checkNodeStatus] Time to reboot check")
                     Log.info(`[NodeManager.checkNodeStatus] nubmer of reboot by max liveness : ${this.rebootList.length}`)
@@ -595,7 +595,8 @@ export default class NodeManager {
                         this.rebootList = [...this.rebootList, ...nodeList]
                     }
                     // 전체 리부트 대상 노드에서 최대 리부트 노드 수만큼만 수행하도록 함 
-                    const rebootCount = (numberOfReboot > cordonedCount)? numberOfReboot:cordonedCount
+                    // cordon이 수행된 노드는 모두 리부트 함
+                    const rebootCount = (numberOfReboot > cordonedCount) ? numberOfReboot : cordonedCount
                     this.rebootList = this.rebootList.slice(0, rebootCount)
                     // 선택된 노드들에 대해서 리부트 작업을 스케쥴링 
                     this.scheduleRebootNodes(this.rebootList)
@@ -648,7 +649,7 @@ export default class NodeManager {
         return Promise.resolve(filteredNodes)
     }
 
-    private async getCordonedNode() : Promise<string[]>{
+    private async getCordonedNode(): Promise<string[]> {
         return this.k8sUtil.getCordonedNodes(RebootRequested)
     }
 
