@@ -38,7 +38,8 @@ type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFaile
 
 const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
 const startTime: Date = new Date()
-const RebootRequested = "RebootRequested"
+const REBOOT_REQUESTED = "RebootRequested"
+const REBOOT_SCHEDULED = "RebootScheduled"
 const ONEDAYMILLISECOND = 86400000
 const ONEMINUTEMILLISECOND = 60000
 
@@ -662,7 +663,7 @@ export default class NodeManager {
     }
 
     private async getCordonedNode(): Promise<string[]> {
-        return this.k8sUtil.getCordonedNodes(RebootRequested)
+        return this.k8sUtil.getCordonedNodes(REBOOT_SCHEDULED)
     }
 
     /**
@@ -689,6 +690,7 @@ export default class NodeManager {
             const scheduledTime = new Date(Date.now() + delay)
             Channel.info(nodeName, `Node reboot is scheduled at ${scheduledTime.toLocaleString()}`)
             setTimeout(() => this.setNodeConditionToReboot(nodeName), (delay < 0) ? 0 : delay)
+            this.removeCordonedCondition(nodeName)
         })
     }
 
@@ -746,14 +748,28 @@ export default class NodeManager {
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
             // 먼저 RebootRequested 컨디션을 False로 변경 
-            await this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "False", "0")
+            await this.k8sUtil.changeNodeCondition(nodeName, REBOOT_REQUESTED, "False")
             Channel.info(nodeName, `Node reboot process finished.`)
 
             // 30초 후에 해당 컨디션을 노드에서 삭제
             // 바로하는 경우 오류 발생
             setTimeout(() => {
-                this.k8sUtil.removeNodeCondition(nodeName, RebootRequested)
+                this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
             }, 30 * 1000)
+        }
+    }
+
+/**
+ * 리부트가 시작 된 후 해당 리부트 작업 시작을 위해 사용된 condition을 삭제
+ * 
+ * @param nodeName reboot 시작을 위한 condition을 제거할 노드 명 
+ */
+    private removeCordonedCondition = async (nodeName: string) => {
+        Log.debug(`[NodeManager.removeCordonedCondition] Node ${nodeName}`)
+
+        // dry-run이 아닌 경우에만 수행 
+        if (!this.cmg.config.dryRun) {
+            this.k8sUtil.removeNodeCondition(nodeName, REBOOT_SCHEDULED)
         }
     }
 
@@ -772,7 +788,7 @@ export default class NodeManager {
 
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
-            this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "True")
+            this.k8sUtil.changeNodeCondition(nodeName, REBOOT_REQUESTED, "True")
         }
         Channel.info(nodeName, `Node reboot process started.`)
     }
@@ -785,7 +801,7 @@ export default class NodeManager {
 
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
-            this.k8sUtil.changeNodeCondition(nodeName, RebootRequested, "False", `${Date.now()}`)
+            this.k8sUtil.changeNodeCondition(nodeName, REBOOT_SCHEDULED, "True", `${Date.now()}`)
         }
         Channel.info(nodeName, `Node cordoned for reboot by node-mon.`)
     }
