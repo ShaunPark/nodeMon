@@ -306,7 +306,14 @@ export default class NodeManager {
         CordonSucceeded: () => { },
         DrainStarting: () => { },
         UncordonStarting: () => { },
-        UncordonSucceeded: () => { },
+        UncordonSucceeded: (nodeName: string) => {
+            // 리부트된 노드 목록에서 작업을 수행할 노드를 제거함.
+            // 정상적으로 draino에 의해서 uncordon이 된 경우에 수행
+            if (this.rebootedList.includes(nodeName)) {
+                this.rebootedList = this.rebootedList.filter(node => node != nodeName)
+                this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
+            }
+        },
         UncordonFailed: () => { },
     }
 
@@ -743,29 +750,20 @@ export default class NodeManager {
     private removeRebootCondition = async (nodeName: string) => {
         Log.debug(`[NodeManager.removeRebootCondition] Node ${nodeName} RebootRequested`)
 
-        // 리부트된 노드 목록에서 작업을 수행할 노드를 제거함.
-        // 목록에서 제거하여 dry-run으로 수행하거나 실패하더라도 재 수행 하지 않음
-        this.rebootedList = this.rebootedList.filter(node => node != nodeName)
 
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
             // 먼저 RebootRequested 컨디션을 False로 변경 
             await this.k8sUtil.changeNodeCondition(nodeName, REBOOT_REQUESTED, "False")
             Channel.info(nodeName, `Node reboot process finished.`)
-
-            // 30초 후에 해당 컨디션을 노드에서 삭제
-            // 바로하는 경우 오류 발생
-            setTimeout(() => {
-                this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
-            }, 30 * 1000)
         }
     }
 
-/**
- * 리부트가 시작 된 후 해당 리부트 작업 시작을 위해 사용된 condition을 삭제
- * 
- * @param nodeName reboot 시작을 위한 condition을 제거할 노드 명 
- */
+    /**
+     * 리부트가 시작 된 후 해당 리부트 작업 시작을 위해 사용된 condition을 삭제
+     * 
+     * @param nodeName reboot 시작을 위한 condition을 제거할 노드 명 
+     */
     private removeCordonedCondition = async (nodeName: string) => {
         Log.debug(`[NodeManager.removeCordonedCondition] Node ${nodeName}`)
 
