@@ -116,7 +116,7 @@ export default class K8SUtil extends K8SClient {
         const arr:string[] = []
         items.forEach(item => {
             console.log(JSON.stringify(item))
-            const ret = jsonpath.query(item, "$.status.conditions[?(@.type == 'ReadonlyFilesystem')].status")
+            const ret = jsonpath.query(item, "$.status.conditions[?(@.type == 'ReadonlyFilesystem')]")
             console.log(JSON.stringify(ret))
             if( ret.length == 1 && ret[0].status == "False" && ret[0].message !== "0") {
                 if( item.metadata && item.metadata.name) {
