@@ -311,8 +311,8 @@ export default class NodeManager {
             // 정상적으로 draino에 의해서 uncordon이 된 경우에 수행
             if (this.rebootedList.includes(nodeName)) {
                 this.rebootedList = this.rebootedList.filter(node => node != nodeName)
-                this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
             }
+            this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
         },
         UncordonFailed: () => { },
     }
