@@ -307,6 +307,8 @@ export default class NodeManager {
         DrainStarting: () => { },
         UncordonStarting: () => { },
         UncordonSucceeded: (nodeName: string) => {
+            Log.info(`[NodeManager.UncordonSucceeded] uncordoned by draino remove node condition.`)
+
             // 리부트된 노드 목록에서 작업을 수행할 노드를 제거함.
             // 정상적으로 draino에 의해서 uncordon이 된 경우에 수행
             if (this.rebootedList.includes(nodeName)) {
