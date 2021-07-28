@@ -119,9 +119,7 @@ export default class K8SUtil extends K8SClient {
         const { items } = body
         const arr: string[] = []
         items.forEach(item => {
-            console.log(JSON.stringify(item))
             const ret = jsonpath.query(item, `$.status.conditions[?(@.type == '${type}')]`)
-            console.log(JSON.stringify(ret))
             if (ret.length == 1 && ret[0].status == "True") {
                 if (item.metadata && item.metadata.name) {
                     arr.push(item.metadata.name)
