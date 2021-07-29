@@ -113,7 +113,14 @@ export default class NodeManager {
                     lastRebootedTime = rebootedTimeFromCondition
                 }
 
-                NodeStatus.setNode(node, { ipAddress: nodeCondition.nodeIp, lastUpdateTime: new Date(), status: status, lastRebootedTime: lastRebootedTime })
+                NodeStatus.setNode(node, {
+                    ipAddress: nodeCondition.nodeIp,
+                    lastUpdateTime: new Date(),
+                    status: status,
+                    lastRebootedTime: lastRebootedTime,
+                    hasScheduled: hasScheduled,
+                    hasReboodRequest: hasRebootRequest
+                })
             } else { // 처음 수신한 노드인 경우
                 Channel.info(nodeName, 'Node added to monitoring list.')
                 // 노드 정보를 생성하여 노드 목록에 추가
