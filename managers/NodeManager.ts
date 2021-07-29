@@ -668,8 +668,8 @@ export default class NodeManager {
         // dry-run이 아닌 경우 cordon 수행
         if (!this.cmg.config.dryRun) {
             const rebootTime = this.getNextRebootTime()
-            await this.k8sUtil.cordonNode(nodeName)
             await this.k8sUtil.changeNodeCondition(nodeName, NODE_CORDONED, "True", `Reboot scheduled by nodeMon : ${rebootTime.toISOString()}`)
+            await this.k8sUtil.cordonNode(nodeName)
         }
         Channel.info(nodeName, `Node cordoned`)
     }

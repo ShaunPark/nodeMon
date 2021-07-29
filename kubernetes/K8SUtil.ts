@@ -14,6 +14,8 @@ export default class K8SUtil extends K8SClient {
 
     // 노드 condition을 변경하는 메소드 
     public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False", message?: string): Promise<Object> {
+        Log.info(`[K8SUtil.changeNodeCondition] remove node status of condition '${nodeName}' '${conditionType}' '${str}'`)
+
         try {
             const msg = (message === undefined) ? "Reboot requested by nodeMon" : message
             const condition: V1NodeCondition = {
@@ -25,7 +27,7 @@ export default class K8SUtil extends K8SClient {
             }
             const status: V1NodeStatus = { conditions: [condition] }
             const header = { headers: { "Content-Type": "application/strategic-merge-patch+json" } }
-            return this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
+            return await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
         } catch (err) {
             Log.error(err)
             return Promise.reject()
@@ -49,7 +51,7 @@ export default class K8SUtil extends K8SClient {
         return Promise.reject()
     }
 
-    public async removeNodeCondition(nodeName: string, conditionType: string):Promise<boolean> {
+    public async removeNodeCondition(nodeName: string, conditionType: string): Promise<boolean> {
         Log.info(`[K8SUtil.removeNodeCondition] remove node status of condition '${conditionType}'`)
         let hasCondition = false
 
