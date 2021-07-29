@@ -576,15 +576,16 @@ export default class NodeManager {
             // 리부트 된 노드 목록 초기화
             this.rebootedList.reset()
 
-            const rebootList = [...this.cordonedList.get()]
 
             // rebootList 가 비어있는 경우 cordon time 과 reboot time사이에 node-mon이 재 기동했을 수 있으므로
             // condition 기반으로 노드 목록을 조회
             if (this.cordonedList.length() == 0) {
                 Log.debug("[NodeManager.checkNodeStatus] reboot scheduled node list is empty. get node from condition.")
                 const cordonedByStoppedNodMon = await this.getCordonedNode()
-                cordonedByStoppedNodMon.forEach(node => rebootList.push(node))
+                this.cordonedList.merge(cordonedByStoppedNodMon)
             }
+
+            const rebootList = [...this.cordonedList.get()]
             const cordonedCount = rebootList.length;
 
             Log.info("[NodeManager.checkNodeStatus] Time to reboot check")
@@ -660,7 +661,7 @@ export default class NodeManager {
      * @returns 일정 기간동안 리부트 되지 않는 노드 이름 목록
      */
     private findOldNodes = (now: Date): Array<string> => {
-        const arr: Array<string> = []
+        const arr: Array<{nodeName:string, rebootTime:Date}> = []
         const rebootTime = now.getTime() - (this.maxLivenessMilli)
 
         NodeManager.getAll().forEach(node => {
@@ -668,11 +669,13 @@ export default class NodeManager {
             if (node.lastRebootedTime !== undefined) {
                 // 일정 시각 보다 이전에 리부트 된 경우는 리부트 대상으로 선정
                 if (node.lastRebootedTime.getTime() < rebootTime) {
-                    arr.push(node.nodeName)
+                    arr.push({nodeName:node.nodeName, rebootTime:node.lastRebootedTime })
                 }
             }
         })
-        return arr;
+        return arr.sort( (node1, node2) => {
+            return node2.rebootTime.getTime() - node1.rebootTime.getTime()
+        }).map( item => item.nodeName);
     }
     /**
      * 전체 모니터링 대상 노드 중에서  아래 조건의 노드를 제외
@@ -742,6 +745,7 @@ export default class NodeManager {
             Channel.info(nodeName, `Node reboot is scheduled at ${scheduledTime.toLocaleString()}`)
             setTimeout(() => this.setNodeConditionToReboot(nodeName), (delay < 0) ? 0 : delay)
             if (!this.cordonedList.includes(nodeName)) {
+                Log.debug(`[NodeManager.scheduleRebootNodes] Node is not cordoned by current node mon. remove condition`)
                 this.removeCordonedCondition(nodeName, false)
             }
         })
