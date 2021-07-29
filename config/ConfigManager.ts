@@ -17,7 +17,7 @@ export default class ConfigManager {
         const now = new Date()
 
         if ((now.getTime() - this._lastReadTime.getTime()) > 60000) {
-            Log.info(`[ConfigManager.config] config loaded at ${this._lastReadTime.toLocaleString()}  now ${now.toLocaleString()}. Reload config now `)
+            Log.info(`[ConfigManager.config] config loaded at ${this._lastReadTime}  now ${now}. Reload config now `)
 
             this._config = yaml.load(fs.readFileSync(this.configFile, 'utf8')) as IConfig;
             this._lastReadTime = new Date();

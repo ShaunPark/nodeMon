@@ -1,36 +1,14 @@
 import Channel from "../logger/Channel";
 import ConfigManager from "../config/ConfigManager";
 import { MessagePort } from "worker_threads"
-import { NodeCondition } from "../types/Type";
+import { NodeConditionCache, NodeConditionEvent } from "../types/Type";
 import Log from '../logger/Logger'
-import equal from 'deep-equal'
 import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
 import * as util from "../util/Util";
-import { NodeList } from "./NodeList"
+import { NodeStatus } from "./NodeStatus";
 const { parentPort } = require('worker_threads');
-export interface NodeInfo {
-    nodeName: string
-    nodeIp: string
-    nodeUnscheduleable: boolean
-}
 
-export interface NodeConditionEvent extends NodeInfo {
-    kind: string,
-    status: string,
-    conditions: Array<NodeCondition>
-}
-
-export interface NodeConditionCache {
-    readonly ipAddress: string
-    readonly conditions: Map<string, NodeCondition>
-    readonly lastUpdateTime: Date
-    readonly status: string,
-    readonly timer?: NodeJS.Timeout,
-    readonly lastRebootedTime: Date | undefined,
-    readonly nodeName: string,
-    readonly UUID: string
-}
 
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
 type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Rebooted" | "NodeNotReady" | "NodeReady"
@@ -43,44 +21,10 @@ const ONEDAYMILLISECOND = 86400000
 const ONEMINUTEMILLISECOND = 60000
 
 export default class NodeManager {
-    private static nodeStatusCache = new Map<string, NodeConditionCache>()
     private cmg: ConfigManager;
     private k8sUtil: K8SUtil
     private static lastRebootTime: Date | undefined
     private mainLoop?: NodeJS.Timeout
-
-    /**
-     * 노드정보를 관리하는 목록에서 노드를 검색
-     * @param nodeName 노드 명
-     * @returns 노드 정보
-     */
-    public static getNode(nodeName: string) {
-        return this.nodeStatusCache.get(nodeName)
-    }
-    /**
-     * 노드정보 목록에서 노드를 삭제
-     * @param nodeName 노드 명
-     */
-    public static deleteNode(nodeName: string) {
-        this.nodeStatusCache.delete(nodeName)
-    }
-    /**
-     * 모든 노드 정보를 리턴
-     * @returns 노드정보 목록
-     */
-    public static getAll() {
-        return this.nodeStatusCache
-    }
-    /**
-     * 기존 노드 정보을 변경하여 저장. 노드 정보가 변경될때마다 elastic search의 상태 인덱스를 업데이트 
-     * @param node 신규/변경된 노드 정보
-     * @param obj 변경할 속성을 가진 오브젝트
-     */
-    public static setNode(node: NodeConditionCache, obj?: Object) {
-        const newNode = { ...node, ...obj }
-        Channel.sendNodeStatusToES(newNode);
-        this.nodeStatusCache.set(newNode.nodeName, newNode)
-    }
 
     /**
      * 생성자
@@ -143,64 +87,55 @@ export default class NodeManager {
         NodeCondition: (event: any) => {
             const nodeName = event.nodeName;
             const nodeCondition = event as NodeConditionEvent
-            const node = NodeManager.getNode(nodeCondition.nodeName)
+            const node = NodeStatus.getNode(nodeCondition.nodeName)
             Log.info(`[NodeManager.eventHandlers] receive node condition : ${nodeName}`)
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
+            let rebootedTimeFromCondition = undefined
+            let hasRebootRequest = false
+            let hasScheduled = false
 
-            if (node !== undefined) {
-                // 처음 수신한 노드 정보가 아닌경우 
-                nodeCondition.conditions.filter((condition) => {
-                    // 모니터링 대상인 컨디션이며 컨디션이 변경된 내용만 필터링
-                    const tempCondition = node.conditions.get(condition.type)
-                    if (tempCondition && equal(tempCondition, condition)) {
-                        return false;
-                    }
-                    return true;
-                }).map(condition => node.conditions.set(condition.type, condition))
+            nodeCondition.conditions.forEach(condition => {
+                if (condition.type == "Ready" && condition.reason == "KubeletReady") {
+                    rebootedTimeFromCondition = condition.lastTransitionTime
+                }
+                if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
+                    hasRebootRequest = true
+                }
+                if (condition.type == NODE_CORDONED && condition.status == "True") {
+                    hasScheduled = true
+                }
+            })
+
+            if (node !== undefined) { // 처음 수신한 노드 정보가 아닌경우 
                 // 마지막 리부트 시간이 없는 경우 kubelet이 Ready가 된 시점으로 리부트 시간을 설정함
                 let lastRebootedTime = node.lastRebootedTime
                 if (lastRebootedTime === undefined) {
-                    Log.debug(`[NodeManager.eventHandlers] Conditions : ${JSON.stringify(nodeCondition.conditions)}`)
-                    nodeCondition.conditions.forEach(condition => {
-                        if (condition.type == "Ready" && condition.reason == "KubeletReady") {
-                            lastRebootedTime = condition.lastTransitionTime
-                        }
-                    })
+                    lastRebootedTime = rebootedTimeFromCondition
                 }
-                NodeManager.setNode(node, { ipAddress: nodeCondition.nodeIp, lastUpdateTime: new Date(), status: status, lastRebootedTime: lastRebootedTime })
-            } else {
-                // 처음 수신한 노드인 경우
-                Channel.info(nodeName, 'Node added to monitoring list.')
-                const newMap = new Map<string, NodeCondition>();
 
-                let lastRebootedTime = undefined
-                // 노드를 처음으로 모니터링 하기 시작 했으면 kubelet ready시간을 reboot 시간으로 설정
-                nodeCondition.conditions.forEach(condition => {
-                    if (condition.type == "Ready" && condition.reason == "KubeletReady") {
-                        lastRebootedTime = condition.lastTransitionTime
-                    }
-                })
-                // 노드 컨디션만 추출
-                nodeCondition.conditions.map(condition => newMap.set(condition.type, condition))
+                NodeStatus.setNode(node, { ipAddress: nodeCondition.nodeIp, lastUpdateTime: new Date(), status: status, lastRebootedTime: lastRebootedTime })
+            } else { // 처음 수신한 노드인 경우
+                Channel.info(nodeName, 'Node added to monitoring list.')
                 // 노드 정보를 생성하여 노드 목록에 추가
-                const node: NodeConditionCache = {
+                const newNode: NodeConditionCache = {
                     nodeName: nodeName,
                     ipAddress: nodeCondition.nodeIp,
-                    conditions: newMap,
                     lastUpdateTime: new Date(),
                     status: status,
                     UUID: btoa(nodeName),
-                    lastRebootedTime: lastRebootedTime
+                    lastRebootedTime: rebootedTimeFromCondition,
+                    hasScheduled: hasScheduled,
+                    hasReboodRequest: hasRebootRequest
                 };
-                NodeManager.setNode(node)
+                NodeStatus.setNode(newNode)
             }
         },
         // 쿠버네트스 이벤트 수신 이벤트를 수신했을때의 처리
         NodeEvent: (event: any) => {
             const nodeName = event.nodeName;
             Log.info(`[NodeManager.eventHandlers] receive events : ${nodeName}`)
-            const node = NodeManager.getNode(nodeName)
+            const node = NodeStatus.getNode(nodeName)
             // 이벤트 관련 노드가 관리 대상이 아닌경우 무시
             if (node == undefined) {
                 Log.info(`[NodeManager.eventHandlers] Node ${nodeName} does not exist in list. Ignore`)
@@ -210,7 +145,7 @@ export default class NodeManager {
                 const raisedTime = new Date(eventDate)
                 if (startTime.getTime() < eventDate) {
                     // 노드 정보 변경 시간 업데이트 
-                    NodeManager.setNode(node, { status: event.reason, lastUpdateTime: raisedTime })
+                    NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime })
                     // 이벤트가 원인이 모니터링 대상에 포함된 경우만 처리
                     if (NodeEventReasonArray.includes(event.reason)) {
                         Log.info(`[NodeManager.eventHandlers] event.reason '${event.reason}'is NodeEventReasons`)
@@ -218,7 +153,7 @@ export default class NodeManager {
                         this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName)
                     }
                 } else {
-                    Log.info(`[NodeManager.eventHandlers] Event raised at ${raisedTime.toLocaleString()}. Ignore old event.`)
+                    Log.info(`[NodeManager.eventHandlers] Event raised at ${raisedTime}. Ignore old event.`)
                 }
             }
         },
@@ -226,18 +161,12 @@ export default class NodeManager {
         // 노드 리스트를 테이블용 데이터로 만든 후 표로 출력
         PrintNode: () => {
             const arr = new Array<Object>()
-            NodeManager.getAll().forEach((node, key) => {
-                // let rebootNode: { nodeName: string, rebootTime: string } = { nodeName: node.nodeName, rebootTime: "NO" }
-                // this.cordonedList.get().forEach(rb => {
-                //     if (rb == node.nodeName) {
-                //         rebootNode = { nodeName: rb, rebootTime: "YES" }
-                //     }
-                // })
+            NodeStatus.getAll().forEach((node, key) => {
                 arr.push({
                     name: key, ipAddress: node.ipAddress,
-                    lastUpdateTime: node.lastUpdateTime.toLocaleString(),
-                    status: node.status, lastRebootedTime: node.lastRebootedTime?.toLocaleString(),
-                    // rebootSchedule: rebootNode.rebootTime.toLocaleString()
+                    lastUpdateTime: node.lastUpdateTime,
+                    status: node.status, lastRebootedTime: node.lastRebootedTime,
+                    hasScheduled: node.hasScheduled, hasReboodRequest: node.hasReboodRequest
                 })
             })
             console.table(arr);
@@ -246,7 +175,7 @@ export default class NodeManager {
         DeleteNode: (event: any) => {
             Log.info(`[NodeManager.eventHandlers] Node '${event.nodeName} removed from moritoring list. delete it.`)
             Channel.info(event.nodeName, `Node removed from moritoring list.`)
-            NodeManager.deleteNode(event.nodeName)
+            NodeStatus.deleteNode(event.nodeName)
         }
     }
 
@@ -283,11 +212,11 @@ export default class NodeManager {
         // maintenance에 의해 리부트 된 경우 컨디션 제거 작업을 설정함
         Rebooted: (nodeName: string) => {
             Channel.info(nodeName, `Node rebooted`)
-            if (this.rebootedList.includes(nodeName)) {
-                this.rebootedList.delete(nodeName)
+            const node = NodeStatus.getNode(nodeName)
+            if (node && node.hasReboodRequest) {
                 setTimeout(async () => {
                     await this.removeRebootCondition(nodeName)
-                    this.removeCordonedCondition(nodeName, true)
+                    this.unCordonNode(nodeName)
                 }, 30 * 1000)
             }
             this.setNodeRebootTime(nodeName)
@@ -318,10 +247,10 @@ export default class NodeManager {
      * @param nodeName  리부트 된 시각을 설정할 노드 명
      */
     private setNodeRebootTime(nodeName: string) {
-        const node = NodeManager.getNode(nodeName)
+        const node = NodeStatus.getNode(nodeName)
         if (node) {
             // 노드의 리부트 된 시각을 지금으로 설정
-            NodeManager.setNode(node, { lastRebootedTime: new Date() })
+            NodeStatus.setNode(node, { lastRebootedTime: new Date() })
         }
     }
 
@@ -332,7 +261,7 @@ export default class NodeManager {
      */
     private reboot(nodeName: string) {
         const config = this.cmg.config;
-        const node = NodeManager.getNode(nodeName)
+        const node = NodeStatus.getNode(nodeName)
 
         //리부트 방식 확인, 노드 리부트 혹은 AWS EC2인스턴스 종료 여부
         const isReboot: boolean = config.rebootThroughSSH === undefined || config.rebootThroughSSH === true
@@ -367,7 +296,7 @@ export default class NodeManager {
             }
             // 리부트할 시각 계산 
             const rebootTime = new Date(now + delay)
-            Channel.info(nodeName, `Node ${rebootStr} process will start at ${rebootTime.toLocaleString()}.`)
+            Channel.info(nodeName, `Node ${rebootStr} process will start at ${rebootTime}.`)
             // 타이머 설정 
             setTimeout(() => {
                 Log.info(`[NodeManager.reboot] ${(isReboot) ? "Reboot" : "Termination"} ${nodeName} started.`)
@@ -382,7 +311,7 @@ export default class NodeManager {
                         const rebooter: Rebooter = new Rebooter(this.cmg)
                         rebooter.run(node.nodeName)
                         // 노드 정보에 마지막으로 리부트 한 시각 설정
-                        NodeManager.setNode(node, { lastRebootedTime: new Date() })
+                        NodeStatus.setNode(node, { lastRebootedTime: new Date() })
                     } catch (err) {
                         Channel.error(nodeName, `Node '${nodeName} ${rebootStr} is failed ${rebootTime}.`)
                         Log.error(`[NodeManager.reboot] ${err}`)
@@ -402,12 +331,12 @@ export default class NodeManager {
     private setTimerForReboot(nodeName: string) {
         const drainBuffer = 10
         const timeout = drainBuffer * ONEMINUTEMILLISECOND;
-        const node = NodeManager.getNode(nodeName)
+        const node = NodeStatus.getNode(nodeName)
 
         const timer = setTimeout(() => {
             // 타임아웃이 되면 타이머를 제거하고 리부트 수행 
             if (node !== undefined) {
-                NodeManager.setNode(node, { timer: undefined })
+                NodeStatus.setNode(node, { timer: undefined })
             }
             Channel.warn(nodeName, `Node '${nodeName} draining failed for ${drainBuffer} minutes and will reboot in 1 minute.`)
             this.reboot(nodeName)
@@ -415,7 +344,7 @@ export default class NodeManager {
 
         // 타이머를 노드 리스트에 설정 - 정상적인 이벤트가 왔을 경우 타이머를 취소하기 위해서 
         if (node !== undefined) {
-            NodeManager.setNode(node, { timer: timer })
+            NodeStatus.setNode(node, { timer: timer })
         }
     }
 
@@ -469,9 +398,6 @@ export default class NodeManager {
     // 작업 진행상태 플래그
     private cordoned = false
     private rebootScheduled = false
-    // 작업 대상 관리용 노드 목록 
-    private cordonedList = new NodeList<string>()
-    private rebootedList = new NodeList<string>()
 
     /**
      * 설정파일에서 필요한 설정 정보를 읽어옮
@@ -538,7 +464,7 @@ export default class NodeManager {
     private cleanConditions = () => {
         Log.info("[NodeManager.cleanConditions] Clean node conditions.")
 
-        NodeManager.getAll().forEach(async ({ nodeName }) => {
+        NodeStatus.getAll().forEach(async ({ nodeName }) => {
             await this.removeCordonedCondition(nodeName, true)
             this.removeRebootCondition(nodeName)
         })
@@ -550,7 +476,6 @@ export default class NodeManager {
         // 도중에 node mon이 재 기동 되더라도 다시 처리할 수 있음.
         if (this.cordoned === false) {
             Log.info("[NodeManager.checkNodeStatus] Time to cordon check")
-            this.cordonedList.reset();
 
             this.cleanConditions()
             // 일정시간동안 리부트 되지 않은 노드를 목록으로 조회
@@ -573,19 +498,8 @@ export default class NodeManager {
         // 리부트 작업이 실행되지 않은 경우만 수행
 
         if (this.rebootScheduled === false) {
-            // 리부트 된 노드 목록 초기화
-            this.rebootedList.reset()
-
-
-            // rebootList 가 비어있는 경우 cordon time 과 reboot time사이에 node-mon이 재 기동했을 수 있으므로
-            // condition 기반으로 노드 목록을 조회
-            if (this.cordonedList.length() == 0) {
-                Log.debug("[NodeManager.checkNodeStatus] reboot scheduled node list is empty. get node from condition.")
-                const cordonedByStoppedNodMon = await this.getCordonedNode()
-                this.cordonedList.merge(cordonedByStoppedNodMon)
-            }
-
-            const rebootList = [...this.cordonedList.get()]
+            // condition 기반으로 CORDON이 수행된 노드 목록을 조회
+            const rebootList = this.getCordonedNode()
             const cordonedCount = rebootList.length;
 
             Log.info("[NodeManager.checkNodeStatus] Time to reboot check")
@@ -597,11 +511,12 @@ export default class NodeManager {
                 const sortedNodeListWithoutCordonedNodes = await this.filterRebootNode(rebootList)
                 sortedNodeListWithoutCordonedNodes.forEach(node => rebootList.push(node))
 
-                rebootList.slice(numberOfReboot)
+                this.scheduleRebootNodes(rebootList.slice(0, numberOfReboot))
+            } else {
+                this.scheduleRebootNodes(rebootList)
             }
 
             // 선택된 노드들에 대해서 리부트 작업을 스케쥴링 
-            this.scheduleRebootNodes(rebootList)
             this.rebootScheduled = true
         } else {
             Log.info("[NodeManager.checkNodeStatus] Time to reboot check but already done")
@@ -626,7 +541,7 @@ export default class NodeManager {
 
             const now = new Date()
             // 매일 리부트할 최대 노드 수를 계산
-            const numberOfReboot = Math.ceil(NodeManager.getAll().size * (this.percentOfReboot / 100))
+            const numberOfReboot = Math.ceil(NodeStatus.getAll().size * (this.percentOfReboot / 100))
             Log.info(`[NodeManager.checkNodeStatus] nubmer of reboot : ${numberOfReboot}`)
             // 지금이 cordon작업을 수행할 시점인지 확인 
             if (this.isCordonTime(now)) {
@@ -661,22 +576,20 @@ export default class NodeManager {
      * @returns 일정 기간동안 리부트 되지 않는 노드 이름 목록
      */
     private findOldNodes = (now: Date): Array<string> => {
-        const arr: Array<{nodeName:string, rebootTime:Date}> = []
         const rebootTime = now.getTime() - (this.maxLivenessMilli)
 
-        NodeManager.getAll().forEach(node => {
-            // 리부트 시간이 설정되어 있지 않으면 스킵. 이후에 kubelet시작 시간으로 설정됨.
-            if (node.lastRebootedTime !== undefined) {
-                // 일정 시각 보다 이전에 리부트 된 경우는 리부트 대상으로 선정
-                if (node.lastRebootedTime.getTime() < rebootTime) {
-                    arr.push({nodeName:node.nodeName, rebootTime:node.lastRebootedTime })
-                }
+        return NodeStatus.findNodes(node => {
+            if (node.lastRebootedTime) {
+                return node.lastRebootedTime.getTime() < rebootTime
             }
+            return false
         })
-        return arr.sort( (node1, node2) => {
-            return node2.rebootTime.getTime() - node1.rebootTime.getTime()
-        }).map( item => item.nodeName);
     }
+
+    private getCordonedNode(): string[] {
+        return NodeStatus.findNodes(node => node.hasScheduled)
+    }
+
     /**
      * 전체 모니터링 대상 노드 중에서  아래 조건의 노드를 제외
      *  - 워커가 실행중인 노드
@@ -689,35 +602,18 @@ export default class NodeManager {
         // worker가 실행중인 노드 목록 조회
         const nodesHasWorker = await this.getNodeHasWorker()
         Log.debug(`[NodeManager.filterRebootNode] Node has workder ${JSON.stringify(nodesHasWorker)}`)
-        const filteredNodes = Array.from(NodeManager.getAll())
-            .map(([_, node]) => node)
-            // 워커가 실행중이지 않은 노드만 리부트 대상으로 선정
-            .filter((node) => !nodesHasWorker.includes(node.nodeName))
-            // 이미 cordon되지 않은 노드만 목록으로 추출
-            .filter((node) => !cordonedList.includes(node.nodeName))
-            .filter((node) => {
-                // 최소한 하루 이전에 리부트 된 경우만 리부트 대상으로 선정
-                if (node.lastRebootedTime !== undefined) {
-                    const rebootTime = node.lastRebootedTime.getTime()
-                    const yesterday = Date.now() - (ONEDAYMILLISECOND)
-                    return rebootTime < yesterday
-                }
-                return true
-            })
-            .sort((node1, node2) => {
-                // 리부트 오래된 순서대로 정렬
-                const time1 = (node1.lastRebootedTime) ? node1.lastRebootedTime.getTime() : 0
-                const time2 = (node2.lastRebootedTime) ? node2.lastRebootedTime.getTime() : 0
-                return time1 - time2
-            })
-            .map(node => node.nodeName)
+        const yesterday = Date.now() - (ONEDAYMILLISECOND)
 
+        const filteredNodes = NodeStatus.findNodes(node => {
+            let rebootOneMoreDaysAgo = true
+            if (node.lastRebootedTime !== undefined) {
+                rebootOneMoreDaysAgo = node.lastRebootedTime.getTime() < yesterday
+            }
+            return !nodesHasWorker.includes(node.nodeName) && !cordonedList.includes(node.nodeName) && rebootOneMoreDaysAgo
+
+        })
         Log.debug(`[NodeManager.filterRebootNode] Filtered nodes ${JSON.stringify(filteredNodes)}`)
         return Promise.resolve(filteredNodes)
-    }
-
-    private async getCordonedNode(): Promise<string[]> {
-        return this.k8sUtil.getCordonedNodes(NODE_CORDONED)
     }
 
     /**
@@ -742,9 +638,9 @@ export default class NodeManager {
             const delay = index * (this.rebootBuffer * ONEMINUTEMILLISECOND) + 1000
             Log.debug(`[NodeManager.scheduleRebootNodes] Set timer for reboot '${nodeName} ${delay}`)
             const scheduledTime = new Date(Date.now() + delay)
-            Channel.info(nodeName, `Node reboot is scheduled at ${scheduledTime.toLocaleString()}`)
+            Channel.info(nodeName, `Node reboot is scheduled at ${scheduledTime}`)
             setTimeout(() => this.setNodeConditionToReboot(nodeName), (delay < 0) ? 0 : delay)
-            if (!this.cordonedList.includes(nodeName)) {
+            if (!NodeStatus.isCordoned(nodeName)) {
                 Log.debug(`[NodeManager.scheduleRebootNodes] Node is not cordoned by current node mon. remove condition`)
                 this.removeCordonedCondition(nodeName, false)
             }
@@ -768,7 +664,6 @@ export default class NodeManager {
      */
     private async cordonNode(nodeName: string) {
         Log.debug(`[NodeManager.cordonNode] Node ${nodeName} cordoned`)
-        this.cordonedList.add(nodeName)
 
         // dry-run이 아닌 경우 cordon 수행
         if (!this.cmg.config.dryRun) {
@@ -779,6 +674,16 @@ export default class NodeManager {
         Channel.info(nodeName, `Node cordoned`)
     }
 
+    private async unCordonNode(nodeName: string) {
+        if (!this.cmg.config.dryRun) {
+            if (NodeStatus.isCordoned(nodeName)) {
+                await this.removeCordonedCondition(nodeName, true)
+            } else {
+                this.k8sUtil.changeNodeCondition(nodeName, REBOOT_REQUESTED, "False")
+            }
+        }
+    }
+
     /**
      * 리부트가 종료 된 후 해당 리부트 작업을 위해 사용된 condition을 삭제
      * 
@@ -787,11 +692,10 @@ export default class NodeManager {
     private removeRebootCondition = async (nodeName: string) => {
         Log.debug(`[NodeManager.removeRebootCondition] Node ${nodeName} RebootRequested`)
 
-
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
             // 먼저 RebootRequested 컨디션을 False로 변경 
-            await this.k8sUtil.changeNodeCondition(nodeName, REBOOT_REQUESTED, "False")
+            await this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
             Channel.info(nodeName, `Node reboot process finished.`)
         }
     }
@@ -801,12 +705,12 @@ export default class NodeManager {
      * 
      * @param nodeName reboot 시작을 위한 condition을 제거할 노드 명 
      */
-    private removeCordonedCondition = async (nodeName: string, doCordon: boolean) => {
+    private removeCordonedCondition = async (nodeName: string, doUnCordon: boolean) => {
         Log.debug(`[NodeManager.removeCordonedCondition] Node ${nodeName}`)
 
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
-            if (await this.k8sUtil.removeNodeCondition(nodeName, NODE_CORDONED) && doCordon) {
+            if (await this.k8sUtil.removeNodeCondition(nodeName, NODE_CORDONED) && doUnCordon) {
                 Log.debug(`[NodeManager.removeCordonedCondition] unCordon Node : ${nodeName}`)
                 this.k8sUtil.uncordonNode(nodeName)
             }
@@ -824,7 +728,7 @@ export default class NodeManager {
         Log.debug(`[NodeManager.setNodeConditionToReboot] Node ${nodeName} is scheduled for reboot`)
 
         // 리부트된 노드 목록에 해당 노드를 추가
-        this.rebootedList.add(nodeName)
+        // this.rebootedList.add(nodeName)
 
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {

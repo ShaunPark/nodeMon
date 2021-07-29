@@ -35,7 +35,6 @@ export interface IElasticSearch {
 }
 interface Ik8s {
     nodeSelector?: string
-    conditions?: Array<string>
     workerPodFieldSelector?: string
     workerPodLabelSelector?: string
 }

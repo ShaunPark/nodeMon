@@ -2,8 +2,7 @@ import * as k8s from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import Log from '../logger/Logger';
-import { NodeInfo } from '../managers/NodeManager';
-import { NodeCondition } from '../types/Type';
+import { NodeInfo } from '../types/Type';
 import IConfig from "../types/ConfigType"
 import K8SInformer from './K8SClient';
 
@@ -17,7 +16,7 @@ type Label = {
 }
 export default class K8SNodeInformer extends K8SInformer {
     private _config: IConfig;
-    private informer:k8s.Informer<k8s.V1Node>
+    private informer: k8s.Informer<k8s.V1Node>
 
     constructor(config: IConfig) {
         super()
@@ -75,7 +74,7 @@ export default class K8SNodeInformer extends K8SInformer {
     stopInformer = () => {
         this.informer.stop()
     }
-    
+
     startInformer = () => {
         this.informer.start()
     }
@@ -90,7 +89,7 @@ export default class K8SNodeInformer extends K8SInformer {
             const unschedulable = node.spec?.unschedulable ? true : false;
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
 
-            if (retArr.length < 1) {
+            if (retArr.length == 0) {
                 Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
                 if (name && conditions) {
@@ -98,7 +97,7 @@ export default class K8SNodeInformer extends K8SInformer {
                     const status = conditions.find(condition => condition.type == "Ready")
                     const statusString = status?.status == "True" ? "Ready" : "NotReady"
                     // Node condition를 node manager로 전달
-                    this.sendNodeConditionsToManager(nodeInfo, conditions, statusString)
+                    Logger.sendEventToNodeManager({ kind: "NodeCondition", status: status, conditions: conditions, ...node })
                 }
             }
         }
@@ -114,25 +113,6 @@ export default class K8SNodeInformer extends K8SInformer {
             }
             this.labelMap.set(nodeName, { lastUpdateTime: new Date(), needSend: needSendStr })
         }
-    }
-
-    private sendNodeConditionsToManager(node: NodeInfo, nodeConditions: Array<k8s.V1NodeCondition>, status: string) {
-        // 모니터링 대상 condition만 처리 그 외는 무시
-        const targetConditions = this._config?.kubernetes.conditions;
-
-        const newArr: Array<NodeCondition> = []
-        //targetCondition이 정의 되어 있으면 해당 condition만 전송, 아니면 모두 전송
-        if (targetConditions && targetConditions.length > 0) {
-            targetConditions.push("Ready")
-            nodeConditions
-                .filter(condition => targetConditions.includes(condition.type))
-                .map(condition => newArr.push(condition as NodeCondition))
-        } else {
-            nodeConditions.map(condition => newArr.push(condition as NodeCondition))
-        }
-
-        // logger.info(`Send Node Conditions of ${nodeName} \n ${JSON.stringify(newArr)}`)
-        Logger.sendEventToNodeManager({ kind: "NodeCondition", status: status, conditions: newArr, ...node })
     }
 
     private checkValid(labels?: { [key: string]: string; }): boolean {

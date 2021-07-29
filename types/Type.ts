@@ -68,3 +68,27 @@ export interface NodeCondition {
     type: string;
 }
 
+export interface NodeInfo {
+    nodeName: string
+    nodeIp: string
+    nodeUnscheduleable: boolean
+}
+
+export interface NodeConditionEvent extends NodeInfo {
+    kind: string,
+    status: string,
+    conditions: Array<NodeCondition>
+}
+
+export interface NodeConditionCache {
+    readonly ipAddress: string
+    // readonly conditions: Map<string, NodeCondition>
+    readonly lastUpdateTime: Date
+    readonly status: string,
+    readonly timer?: NodeJS.Timeout,
+    readonly lastRebootedTime: Date | undefined,
+    readonly nodeName: string,
+    readonly UUID: string
+    readonly hasScheduled: boolean
+    readonly hasReboodRequest: boolean
+}
