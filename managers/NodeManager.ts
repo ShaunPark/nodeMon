@@ -468,14 +468,18 @@ export default class NodeManager {
      * CORDONED 및 REBOOTED condition중 남아있는 컨디션 삭제
      * CORDONED NODE에 대해서는 UNCORDON수행 
      */
-    private cleanConditions = () => {
+    private cleanConditions = async () => {
         Log.info("[NodeManager.cleanConditions] Cleaning node conditions.")
 
-        NodeStatus.getAll().forEach(async ({ nodeName }) => {
-            await this.removeCordonedCondition(nodeName, true)
-            await this.removeRebootCondition(nodeName)
-            Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
-        })
+        const promises = Array.from(NodeStatus.getAll())
+            .map(([_, node]) => node)
+            .map(async ({ nodeName }) => {
+                await this.removeCordonedCondition(nodeName, true)
+                await this.removeRebootCondition(nodeName)
+                Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
+            })
+
+        await Promise.all(promises)
     }
 
     private cordonNodes = async (now: Date, numberOfReboot: number) => {
@@ -485,7 +489,7 @@ export default class NodeManager {
         if (this.cordoned === false) {
             Log.info("[NodeManager.checkNodeStatus] Time to cordon check")
 
-            this.cleanConditions()
+            await this.cleanConditions()
             // 일정시간동안 리부트 되지 않은 노드를 목록으로 조회
             const arr = this.findOldNodes(now)
             Log.info(`[NodeManager.checkNodeStatus] Reboot Schedule nodes : ${JSON.stringify(arr)}`)
