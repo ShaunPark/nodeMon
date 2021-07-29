@@ -1,6 +1,5 @@
 import * as chai from 'chai'
 import assert from 'assert'
-import NodeManager, { NodeConditionCache, NodeConditionEvent } from '../managers/NodeManager';
 import ConfigManager from '../config/ConfigManager';
 import { NodeCondition } from '../types/Type';
 import K8SUtil from '../kubernetes/K8SUtil'

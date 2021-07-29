@@ -1,6 +1,6 @@
 import { MessagePort } from "worker_threads";
 import { ESLog } from "../elasticsearch/ESExporter";
-import { NodeConditionCache } from "../managers/NodeManager";
+import { NodeConditionCache } from "../types/Type";
 import logger from "./Logger";
 class Channel {
     private static esPort: MessagePort;

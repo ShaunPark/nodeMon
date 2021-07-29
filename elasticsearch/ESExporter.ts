@@ -1,7 +1,7 @@
 import { MessagePort } from "worker_threads"
 import ConfigManager from "../config/ConfigManager";
 import Log from '../logger/Logger'
-import { NodeConditionCache } from "../managers/NodeManager";
+import { NodeConditionCache } from "../types/Type";
 import { ESLogClient } from "./ESLogClient";
 import { ESStatusClient } from "./ESStatusClient";
 
