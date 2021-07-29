@@ -157,26 +157,27 @@ export default class NodeManager {
                 }
             }
         },
-        // 노드 정보 출력 이벤트를 수신했을때의 처리
-        // 노드 리스트를 테이블용 데이터로 만든 후 표로 출력
-        PrintNode: () => {
-            const arr = new Array<Object>()
-            NodeStatus.getAll().forEach((node, key) => {
-                arr.push({
-                    name: key, ipAddress: node.ipAddress,
-                    lastUpdateTime: node.lastUpdateTime,
-                    status: node.status, lastRebootedTime: node.lastRebootedTime,
-                    hasScheduled: node.hasScheduled, hasReboodRequest: node.hasReboodRequest
-                })
-            })
-            console.table(arr);
-        },
         // 노드가 삭제된 이벤트를 수신했을때의 처리
         DeleteNode: (event: any) => {
             Log.info(`[NodeManager.eventHandlers] Node '${event.nodeName} removed from moritoring list. delete it.`)
             Channel.info(event.nodeName, `Node removed from moritoring list.`)
             NodeStatus.deleteNode(event.nodeName)
         }
+    }
+
+    // 노드 정보 출력 이벤트를 수신했을때의 처리
+    // 노드 리스트를 테이블용 데이터로 만든 후 표로 출력
+    private printNode = () => {
+        const arr = new Array<Object>()
+        NodeStatus.getAll().forEach((node, key) => {
+            arr.push({
+                name: key, ipAddress: node.ipAddress,
+                lastUpdateTime: node.lastUpdateTime,
+                status: node.status, lastRebootedTime: node.lastRebootedTime,
+                hasScheduled: node.hasScheduled, hasReboodRequest: node.hasReboodRequest
+            })
+        })
+        console.table(arr);
     }
 
     /**
@@ -359,7 +360,7 @@ export default class NodeManager {
 
         this.mainLoop = setInterval(() => {
             this.checkNodeStatus()
-            this.eventHandlers['PrintNode']()
+            this.printNode()
         }, interval)
     }
 
