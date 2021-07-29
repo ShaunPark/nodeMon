@@ -76,13 +76,7 @@ export default class NodeManager {
      * Kubernetes 모니터에서 전달된 이벤트 처리
      */
     private onEvent = (event: any) => {
-        Log.debug(`[NodeManager.onEvent] ${JSON.stringify(event)}`)
-        //수신한 이벤트를 처리
-        switch (event.kind) {
-            case "NodeCondition": this.eventHandlers["NodeCondition"](event); break;
-            case "NodeEvent": this.eventHandlers["NodeEvent"](event); break;
-            case "DeleteNode": this.eventHandlers["DeleteNode"](event); break;
-        }
+        this.eventHandlers[event.kind as EventTypes](event);
     }
     /**
      * Informer들에서 전달된 이벤트들에 대한 핸들러들

@@ -1,7 +1,7 @@
 import { MessagePort } from "worker_threads";
 import { ESLog } from "../elasticsearch/ESExporter";
 import { NodeConditionCache } from "../types/Type";
-import logger from "./Logger";
+import Log from "./Logger";
 class Channel {
     private static esPort: MessagePort;
     private static nmPort: MessagePort;
@@ -29,7 +29,7 @@ class Channel {
 
     private static sendMessageEventToES(log: ESLog) {
         if (Channel.esPort === undefined) {
-            logger.info(`${log.node} : ${log.message}`)
+            Log.info(`${log.node} : ${log.message}`)
         } else {
             Channel.esPort.postMessage({ data: { log: log, kind: "log" } });
         }
@@ -37,7 +37,7 @@ class Channel {
 
     public static sendNodeStatusToES(node: NodeConditionCache) {
         if (Channel.esPort === undefined) {
-            logger.info(`${node.nodeName} : ${JSON.stringify(node)}`)
+            Log.info(`${node.nodeName} : ${JSON.stringify(node)}`)
         } else {
             const nodeJson = {
                 ipAddress: node.ipAddress,

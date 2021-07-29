@@ -84,9 +84,6 @@ export default class K8SNodeInformer extends K8SInformer {
     private sendNodeCondition = (node: k8s.V1Node) => {
         const needSend = true//this.checkValid(node.metadata?.labels)
 
-
-        Log.info(`${node.metadata} ${node.status}`)
-
         if (needSend && node.metadata && node.status) {
             const { name } = node.metadata;
             const { conditions } = node.status;
@@ -94,8 +91,6 @@ export default class K8SNodeInformer extends K8SInformer {
 
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
 
-            Log.info(JSON.stringify(retArr))
-            Log.info(`${name} ${JSON.stringify(conditions)}`)
             if (retArr.length == 0) {
                 Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
@@ -104,7 +99,7 @@ export default class K8SNodeInformer extends K8SInformer {
                     const status = conditions.find(condition => condition.type == "Ready")
                     const statusString = status?.status == "True" ? "Ready" : "NotReady"
                     // Node condition를 node manager로 전달
-                    Logger.sendEventToNodeManager({ kind: "NodeCondition", status: status, conditions: conditions, ...node })
+                    Logger.sendEventToNodeManager({ kind: "NodeCondition", status: statusString, conditions: conditions, ...nodeInfo })
                 }
             }
         }
