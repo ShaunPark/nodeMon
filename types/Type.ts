@@ -84,11 +84,13 @@ export interface NodeConditionCache {
     readonly ipAddress: string
     // readonly conditions: Map<string, NodeCondition>
     readonly lastUpdateTime: Date
-    readonly status: string,
-    readonly timer?: NodeJS.Timeout,
-    readonly lastRebootedTime: Date | undefined,
-    readonly nodeName: string,
+    readonly status: string
+    readonly timer?: NodeJS.Timeout
+    readonly lastRebootedTime: Date | undefined
+    readonly nodeName: string
     readonly UUID: string
     readonly hasScheduled: boolean
     readonly hasReboodRequest: boolean
+    readonly scheduledTime:number
+    readonly rebootRequestedTime:number
 }

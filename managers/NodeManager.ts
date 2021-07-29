@@ -93,6 +93,8 @@ export default class NodeManager {
             let rebootedTimeFromCondition = undefined
             let hasRebootRequest = false
             let hasScheduled = false
+            let scheduledTime = 0
+            let rebootRequestedTime = 0
 
             nodeCondition.conditions.forEach(condition => {
                 if (condition.type == "Ready" && condition.reason == "KubeletReady") {
@@ -113,26 +115,31 @@ export default class NodeManager {
                     lastRebootedTime = rebootedTimeFromCondition
                 }
 
-                NodeStatus.setNode(node, {
+                const obj: { [key: string]: any } = {
                     ipAddress: nodeCondition.nodeIp,
                     lastUpdateTime: new Date(),
                     status: status,
                     lastRebootedTime: lastRebootedTime,
                     hasScheduled: hasScheduled,
-                    hasReboodRequest: hasRebootRequest
-                })
+                    hasReboodRequest: hasRebootRequest,
+                    scheduledTime: scheduledTime,
+                    rebootRequestedTime: rebootRequestedTime
+                }
+                NodeStatus.setNode(node, obj)
             } else { // 처음 수신한 노드인 경우
                 Channel.info(nodeName, 'Node added to monitoring list.')
                 // 노드 정보를 생성하여 노드 목록에 추가
                 const newNode: NodeConditionCache = {
+                    UUID: btoa(nodeName),
                     nodeName: nodeName,
                     ipAddress: nodeCondition.nodeIp,
                     lastUpdateTime: new Date(),
                     status: status,
-                    UUID: btoa(nodeName),
                     lastRebootedTime: rebootedTimeFromCondition,
                     hasScheduled: hasScheduled,
-                    hasReboodRequest: hasRebootRequest
+                    hasReboodRequest: hasRebootRequest,
+                    scheduledTime: scheduledTime,
+                    rebootRequestedTime: rebootRequestedTime
                 };
                 NodeStatus.setNode(newNode)
             }
@@ -470,15 +477,20 @@ export default class NodeManager {
      */
     private cleanConditions = async () => {
         Log.info("[NodeManager.cleanConditions] Cleaning node conditions.")
-
+        const yesterDay = Date.now() - ONEDAYMILLISECOND
         const promises = Array.from(NodeStatus.getAll())
             .map(([_, node]) => node)
-            .map(async ({ nodeName }) => {
-                await this.removeCordonedCondition(nodeName, true)
-                await this.removeRebootCondition(nodeName)
-                Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
+            .map(async (node) => {
+                if (node.hasScheduled && node.scheduledTime < yesterDay) {
+                    Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has scheduled reboot but it is too old. Delete schedule.`)
+                    await this.removeCordonedCondition(node.nodeName, true)
+                }
+                if (node.hasReboodRequest && node.rebootRequestedTime < yesterDay) {
+                    Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has requesed to reboot but it is too old. Delete request.`)
+                    await this.removeRebootCondition(node.nodeName)
+                }
             })
-
+        Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
         await Promise.all(promises)
     }
 
