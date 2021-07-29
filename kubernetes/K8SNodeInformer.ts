@@ -83,13 +83,19 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private sendNodeCondition = (node: k8s.V1Node) => {
         const needSend = true//this.checkValid(node.metadata?.labels)
-        console.log(JSON.stringify(node))
+
+
+        Log.info(`${node.metadata} ${node.status}`)
+
         if (needSend && node.metadata && node.status) {
             const { name } = node.metadata;
             const { conditions } = node.status;
             const unschedulable = node.spec?.unschedulable ? true : false;
+
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
 
+            Log.info(JSON.stringify(retArr))
+            Log.info(`${name} ${JSON.stringify(conditions)}`)
             if (retArr.length == 0) {
                 Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
