@@ -116,7 +116,7 @@ export default class K8SNodeInformer extends K8SInformer {
     }
 
     private checkValid(labels?: { [key: string]: string; }): boolean {
-        Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
+        // Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
         const labelMap = this.labelSelectors
         if (labelMap && labels) {
             let hasAllLabel: boolean = true;
