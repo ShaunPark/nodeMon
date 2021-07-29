@@ -90,36 +90,35 @@ export default class NodeManager {
             Log.info(`[NodeManager.eventHandlers] receive node condition : ${nodeName}`)
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
-            let rebootedTimeFromCondition = undefined
+            let rebootedTimeFromCondition: number = 0
             let hasRebootRequest = false
             let hasScheduled = false
             let scheduledTime = 0
             let rebootRequestedTime = 0
 
             nodeCondition.conditions.forEach(condition => {
-                if (condition.type == "Ready" && condition.reason == "KubeletReady") {
-                    rebootedTimeFromCondition = condition.lastTransitionTime
-                }
-                if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
-                    hasRebootRequest = true
-                }
-                if (condition.type == NODE_CORDONED && condition.status == "True") {
-                    hasScheduled = true
+                if (condition.lastTransitionTime !== undefined) {
+                    if (condition.type == "Ready" && condition.reason == "KubeletReady") {
+                        rebootedTimeFromCondition = condition.lastTransitionTime.getTime()
+                    }
+                    if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
+                        hasRebootRequest = true
+                        scheduledTime = condition.lastTransitionTime.getTime()
+                    }
+                    if (condition.type == NODE_CORDONED && condition.status == "True") {
+                        hasScheduled = true
+                        rebootRequestedTime = condition.lastTransitionTime.getTime()
+                    }
                 }
             })
 
             if (node !== undefined) { // 처음 수신한 노드 정보가 아닌경우 
                 // 마지막 리부트 시간이 없는 경우 kubelet이 Ready가 된 시점으로 리부트 시간을 설정함
-                let lastRebootedTime = node.lastRebootedTime
-                if (lastRebootedTime === undefined) {
-                    lastRebootedTime = rebootedTimeFromCondition
-                }
-
                 const obj: { [key: string]: any } = {
                     ipAddress: nodeCondition.nodeIp,
                     lastUpdateTime: new Date(),
                     status: status,
-                    lastRebootedTime: lastRebootedTime,
+                    lastRebootedTime: (node.lastRebootedTime === 0) ? rebootedTimeFromCondition : node.lastRebootedTime,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
                     scheduledTime: scheduledTime,
