@@ -82,7 +82,7 @@ export default class K8SNodeInformer extends K8SInformer {
     private labelMap = new Map<string, { lastUpdateTime: Date, needSend: string }>()
 
     private sendNodeCondition = (node: k8s.V1Node) => {
-        const needSend = this.checkValid(node.metadata?.labels)
+        const needSend = true//this.checkValid(node.metadata?.labels)
         if (needSend && node.metadata && node.status) {
             const { name } = node.metadata;
             const { conditions } = node.status;
@@ -116,6 +116,7 @@ export default class K8SNodeInformer extends K8SInformer {
     }
 
     private checkValid(labels?: { [key: string]: string; }): boolean {
+        Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
         const labelMap = this.labelSelectors
         if (labelMap && labels) {
             let hasAllLabel: boolean = true;
