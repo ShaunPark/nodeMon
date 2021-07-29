@@ -86,7 +86,7 @@ export interface NodeConditionCache {
     readonly lastUpdateTime: Date
     readonly status: string
     readonly timer?: NodeJS.Timeout
-    readonly lastRebootedTime: Date | undefined
+    readonly lastRebootedTime: number
     readonly nodeName: string
     readonly UUID: string
     readonly hasScheduled: boolean

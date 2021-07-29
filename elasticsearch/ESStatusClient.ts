@@ -34,9 +34,9 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
         }
     }
 
-    public putStatus(status: ESNodeStatus) {
-        super.put(status)
-    }
+    // public putStatus(status: ESNodeStatus) {
+    //     super.put(status)
+    // }
 
     public async updateStatus(status: ESNodeStatus) {
         const searchStatus = { UUID: status.UUID }
@@ -48,7 +48,7 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
             } else {
                 super.update(arr[0], status)
                 if (arr.length > 1) {
-                    arr.slice(1).map((id) => {
+                    arr.slice(1).forEach((id) => {
                         super.delete(id)
                     })
                 }
@@ -58,7 +58,7 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
         }
     }
 
-    public async searchStatus(status: ESNodeStatus): Promise<Array<ESNodeStatus>> {
-        return super.search(status)
-    }
+    // public async searchStatus(status: ESNodeStatus): Promise<Array<ESNodeStatus>> {
+    //     return super.search(status)
+    // }
 }

@@ -49,9 +49,7 @@ export class NodeStatus {
             .map(([_, node]) => node)
             .filter(f)
             .sort((node1, node2) => {
-                if (node2.lastRebootedTime && node1.lastRebootedTime) {
-                    return node1.lastRebootedTime.getTime() - node2.lastRebootedTime.getTime()
-                } return 0
+                return node1.lastRebootedTime - node2.lastRebootedTime
             })
             .map(node => node.nodeName)
     }

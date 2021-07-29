@@ -185,7 +185,7 @@ export default class NodeManager {
             arr.push({
                 name: key, ipAddress: node.ipAddress,
                 lastUpdateTime: node.lastUpdateTime,
-                status: node.status, lastRebootedTime: node.lastRebootedTime,
+                status: node.status, lastRebootedTime: new Date(node.lastRebootedTime),
                 hasScheduled: node.hasScheduled, hasReboodRequest: node.hasReboodRequest
             })
         })
@@ -602,8 +602,8 @@ export default class NodeManager {
         const rebootTime = now.getTime() - (this.maxLivenessMilli)
 
         return NodeStatus.findNodes(node => {
-            if (node.lastRebootedTime) {
-                return node.lastRebootedTime.getTime() < rebootTime
+            if (node.lastRebootedTime !==0 ) {
+                return node.lastRebootedTime < rebootTime
             }
             return false
         })
@@ -629,8 +629,8 @@ export default class NodeManager {
 
         const filteredNodes = NodeStatus.findNodes(node => {
             let rebootOneMoreDaysAgo = true
-            if (node.lastRebootedTime !== undefined) {
-                rebootOneMoreDaysAgo = node.lastRebootedTime.getTime() < yesterday
+            if (node.lastRebootedTime !== 0) {
+                rebootOneMoreDaysAgo = node.lastRebootedTime < yesterday
             }
             return !nodesHasWorker.includes(node.nodeName) && !cordonedList.includes(node.nodeName) && rebootOneMoreDaysAgo
 

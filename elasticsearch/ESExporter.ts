@@ -3,7 +3,7 @@ import ConfigManager from "../config/ConfigManager";
 import Log from '../logger/Logger'
 import { NodeConditionCache } from "../types/Type";
 import { ESLogClient } from "./ESLogClient";
-import { ESStatusClient } from "./ESStatusClient";
+import { ESNodeStatus, ESStatusClient } from "./ESStatusClient";
 
 const { workerData, parentPort } = require('worker_threads');
 
@@ -11,7 +11,7 @@ const { workerData, parentPort } = require('worker_threads');
 export interface ESMessage {
     kind: "log"|"status"
     log?: ESLog
-    status?: NodeConditionCache
+    status?: ESNodeStatus
 }
 export interface ESLog {
     logType: "Error" | "Info" | "Warning",

@@ -1,5 +1,6 @@
 import { MessagePort } from "worker_threads";
 import { ESLog } from "../elasticsearch/ESExporter";
+import { ESNodeStatus } from "../elasticsearch/ESStatusClient";
 import { NodeConditionCache } from "../types/Type";
 import Log from "./Logger";
 class Channel {
@@ -39,17 +40,16 @@ class Channel {
         if (Channel.esPort === undefined) {
             Log.info(`${node.nodeName} : ${JSON.stringify(node)}`)
         } else {
-            const nodeJson = {
+            const nodeJson:ESNodeStatus = {
                 ipAddress: node.ipAddress,
                 lastUpdateTime: node.lastUpdateTime,
                 status: node.status,
-                lastRebootedTime: node.lastRebootedTime,
+                lastRebootedTime: new Date(node.lastRebootedTime),
                 nodeName: node.nodeName,
                 UUID: node.UUID
             }
             Channel.esPort.postMessage({ data: { kind: "status", status: nodeJson } });
         }
-
     }
 
     public static sendEventToNodeManager(event: any) {
