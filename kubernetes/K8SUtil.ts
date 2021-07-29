@@ -19,7 +19,6 @@ export default class K8SUtil extends K8SClient {
             const condition: V1NodeCondition = {
                 status: str,
                 type: conditionType,
-                lastHeartbeatTime: new Date(),
                 lastTransitionTime: new Date(),
                 message: msg,
                 reason: "beeNodeMon"
@@ -33,20 +32,14 @@ export default class K8SUtil extends K8SClient {
         }
     }
 
-    public async getNodeCondition(nodeName: string, conditionName: string): Promise<V1NodeCondition[]> {
-        const conditions = await this.getNodeConditions(nodeName)
-        const ret: V1NodeCondition[] = jsonpath.query(conditions, `$..conditions[?(@.type == '${conditionName}')]`)
-        return Promise.resolve(ret)
-    }
-
-    private async getNodeConditions(nodeName: string): Promise<V1NodeStatus> {
+    private async getNodeConditions(nodeName: string): Promise<V1NodeCondition[]> {
         try {
             // 노드 상태정보 조회
             const ret = await this.k8sApi.readNodeStatus(nodeName)
 
             // 성공적으로 조회된 경우만 해당 결과를 리턴 아닌경우 메시지 출력 후 종료
             if (ret.response.statusCode == 200 && ret.body.status && ret.body.status.conditions) {
-                return Promise.resolve(ret.body.status)
+                return Promise.resolve(ret.body.status.conditions)
             } else {
                 Log.error(JSON.stringify(ret))
             }
@@ -56,23 +49,33 @@ export default class K8SUtil extends K8SClient {
         return Promise.reject()
     }
 
-    public async removeNodeCondition(nodeName: string, conditionType: string) {
+    public async removeNodeCondition(nodeName: string, conditionType: string):Promise<boolean> {
         Log.info(`[K8SUtil.removeNodeCondition] remove node status of condition '${conditionType}'`)
-        try {
-            const status = await this.getNodeConditions(nodeName)
+        let hasCondition = false
 
+        try {
+            const conditions = await this.getNodeConditions(nodeName)
             Log.info(`[K8SUtil.removeNodeCondition] remove node status of '${nodeName}'`)
-            if (status.conditions) {
-                status.conditions = status.conditions.filter(condition => condition.type != conditionType)
-                // condition 변경작업 수행 
-                await this.removeNodeStatus(nodeName, status)
+            if (conditions) {
+                conditions.forEach(condition => {
+                    if (condition.type == conditionType) {
+                        hasCondition = true;
+                    }
+                })
+                if (hasCondition) {
+                    const newCondition = conditions.filter(condition => condition.type != conditionType)
+                    // condition 변경작업 수행 
+                    await this.patchNodeStatus(nodeName, { conditions: newCondition })
+                }
             }
         } catch (err) {
             Log.error(err)
+        } finally {
+            return Promise.resolve(hasCondition)
         }
     }
 
-    private async removeNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
+    private async patchNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
         try {
             const header = { headers: { "Content-Type": "application/merge-patch+json" } }
             const ret = await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
@@ -116,9 +119,8 @@ export default class K8SUtil extends K8SClient {
 
     public async getCordonedNodes(type: string): Promise<string[]> {
         const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
-        const { items } = body
         const arr: string[] = []
-        items.forEach(item => {
+        body.items.forEach(item => {
             const ret = jsonpath.query(item, `$.status.conditions[?(@.type == '${type}')]`)
             if (ret.length == 1 && ret[0].status == "True") {
                 if (item.metadata && item.metadata.name) {
