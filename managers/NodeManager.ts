@@ -462,11 +462,12 @@ export default class NodeManager {
      * CORDONED NODE에 대해서는 UNCORDON수행 
      */
     private cleanConditions = () => {
-        Log.info("[NodeManager.cleanConditions] Clean node conditions.")
+        Log.info("[NodeManager.cleanConditions] Cleaning node conditions.")
 
         NodeStatus.getAll().forEach(async ({ nodeName }) => {
             await this.removeCordonedCondition(nodeName, true)
-            this.removeRebootCondition(nodeName)
+            await this.removeRebootCondition(nodeName)
+            Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
         })
     }
 
