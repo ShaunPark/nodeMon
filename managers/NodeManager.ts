@@ -97,8 +97,8 @@ export default class NodeManager {
             let scheduledTime = 0
             let rebootRequestedTime = 0
 
-
-            nodeCondition.conditions.forEach(condition => {
+            nodeCondition.conditions.map(condition => {
+                Log.info(condition.lastTransitionTime)
                 if (condition.lastTransitionTime !== undefined) {
                     if (condition.type == "Ready" && condition.reason == "KubeletReady") {
                         rebootedTimeFromCondition = condition.lastTransitionTime.getTime()
