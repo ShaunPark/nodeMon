@@ -99,7 +99,7 @@ export default class K8SNodeInformer extends K8SInformer {
             
                     if (name && conditions) {
                         const status = conditions.find(condition => condition.type == "Ready")
-                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${status}`)
+                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(status)}`)
     
                         const statusString = status?.status == "True" ? "Ready" : "NotReady"
                         Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${statusString}`)
