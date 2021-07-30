@@ -469,8 +469,9 @@ export default class NodeManager {
      * CORDONED 및 REBOOTED condition중 남아있는 컨디션 삭제
      * CORDONED NODE에 대해서는 UNCORDON수행 
      */
-    private cleanConditions = async () => {
+    private cleanConditions = async ():Promise<boolean> => {
         Log.info("[NodeManager.cleanConditions] Cleaning node conditions.")
+        let skipThisTurn = false
         const yesterDay = Date.now() - ONEDAYMILLISECOND
         const promises = Array.from(NodeStatus.getAll())
             .map(([_, node]) => node)
@@ -478,15 +479,18 @@ export default class NodeManager {
                 if (node.hasScheduled && node.scheduledTime < yesterDay) {
                     Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has scheduled reboot but it is too old. Delete schedule.`)
                     await this.removeCordonedCondition(node.nodeName, true)
+                    skipThisTurn = true
                 }
                 if (node.hasReboodRequest) {
                     Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has requesed to reboot. Delete request.`)
                     await this.removeRebootCondition(node.nodeName)
                     await this.removeCordonedCondition(node.nodeName, true)
+                    skipThisTurn = true
                 }
             })
         Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
         await Promise.all(promises)
+        return Promise.resolve(skipThisTurn)
     }
 
     private cordonNodes = async (now: Date, numberOfReboot: number) => {
@@ -496,7 +500,10 @@ export default class NodeManager {
         if (this.cordoned === false) {
             Log.info("[NodeManager.checkNodeStatus] Time to cordon check")
 
-            await this.cleanConditions()
+            if( await this.cleanConditions()) {
+                Log.info("[NodeManager.checkNodeStatus] cleaned something skip this turn.")
+                return
+            }
             // 일정시간동안 리부트 되지 않은 노드를 목록으로 조회
             const arr = this.findOldNodes(now)
             Log.info(`[NodeManager.checkNodeStatus] Reboot Schedule nodes : ${JSON.stringify(arr)}`)
