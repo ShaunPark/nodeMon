@@ -20,15 +20,13 @@ export interface NodeEvent extends BaseEvent  {
     // type: string;
 }
 
- interface InvolvedObject {
-    kind?: string,
-    name?: string,
-    uid?: string
-}
+//  interface InvolvedObject {
+//     kind?: string,
+//     name?: string,
+//     uid?: string
+// }
 export interface NodeCondition {
-    lastHeartbeatTime?: Date;
-    lastTransitionTime?: Date;
-    message?: string;
+    lastTransitionTime: number;
     reason?: string;
     status: string;
     type: string;

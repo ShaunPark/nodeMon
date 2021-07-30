@@ -99,15 +99,13 @@ export default class NodeManager {
 
             nodeCondition.conditions.map(condition => {
                 Log.info(condition.lastTransitionTime)
-                if (condition.lastTransitionTime !== undefined) {
-                    if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
-                        hasRebootRequest = true
-                        scheduledTimeDt = new Date(condition.lastTransitionTime)
-                    }
-                    if (condition.type == NODE_CORDONED && condition.status == "True") {
-                        hasScheduled = true
-                        rebootRequestedTimeDt = new Date(condition.lastTransitionTime)
-                    }
+                if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
+                    hasRebootRequest = true
+                    scheduledTimeDt = new Date(condition.lastTransitionTime)
+                }
+                if (condition.type == NODE_CORDONED && condition.status == "True") {
+                    hasScheduled = true
+                    rebootRequestedTimeDt = new Date(condition.lastTransitionTime)
                 }
             })
 

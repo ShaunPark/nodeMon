@@ -2,7 +2,7 @@ import * as k8s from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import Log from '../logger/Logger';
-import { NodeInfo } from '../types/Type';
+import { NodeCondition, NodeInfo } from '../types/Type';
 import IConfig from "../types/ConfigType"
 import K8SInformer from './K8SClient';
 
@@ -96,13 +96,24 @@ export default class K8SNodeInformer extends K8SInformer {
                     Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
                 } else {
                     if (name && conditions) {
-                        const status = conditions.find(condition => condition.type == "Ready" && condition.reason == "KubeletReady")
+                        const sendCondition = conditions
+                            .filter(condition => validConditions.includes(condition.type))
+                            .map(
+                                c => {
+                                    let ltt = 0
+                                    try {
+                                        if (c.lastTransitionTime) ltt = c.lastTransitionTime.getTime()
+                                    } catch (err) { }
+
+                                    return { lastTransitionTime: ltt, reason: c.reason, status: c.status, type: c.type }
+                                })
+
+                        const status = sendCondition.find(condition => condition.type == "Ready" && condition.reason == "KubeletReady")
                         const statusString = status?.status == "True" ? "Ready" : "NotReady"
-                        const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
 
                         let rebootTime = 0
-                        if (status && status.lastTransitionTime) {
-                            rebootTime = new Date(status.lastTransitionTime).getTime()
+                        if (status) {
+                            rebootTime = status.lastTransitionTime
                         }
                         // Node condition를 node manager로 전달
                         Logger.sendEventToNodeManager({
