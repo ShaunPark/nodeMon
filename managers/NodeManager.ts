@@ -88,6 +88,7 @@ export default class NodeManager {
             const nodeCondition = event as NodeConditionEvent
             const node = NodeStatus.getNode(nodeCondition.nodeName)
             Log.info(`[NodeManager.eventHandlers] receive node condition : ${nodeName}`)
+            Log.info(JSON.stringify(event))
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
             let rebootedTimeFromCondition: number = 0
@@ -96,7 +97,6 @@ export default class NodeManager {
             let scheduledTime = 0
             let rebootRequestedTime = 0
 
-            console.log(JSON.stringify(nodeCondition))
 
             nodeCondition.conditions.forEach(condition => {
                 if (condition.lastTransitionTime !== undefined) {
