@@ -76,6 +76,7 @@ export default class NodeManager {
      * Kubernetes 모니터에서 전달된 이벤트 처리
      */
     private onEvent = (event: any) => {
+        Log.info(`[NodeManager.onEvent] ${event.nodeName}`)
         this.eventHandlers[event.kind as EventTypes](event);
     }
     /**

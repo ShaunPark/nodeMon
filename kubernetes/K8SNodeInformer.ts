@@ -95,12 +95,14 @@ export default class K8SNodeInformer extends K8SInformer {
             if (retArr.length == 0) {
                 Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
+                let msg = "not sent"
                 if (name && conditions) {
                     const status = conditions.find(condition => condition.type == "Ready")
                     const statusString = status?.status == "True" ? "Ready" : "NotReady"
                     const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
                     const rebootTime = ( status && status.lastTransitionTime)?status.lastTransitionTime.getTime():0
-                    
+
+                    msg = "sent"
                     // Node condition를 node manager로 전달
                     Logger.sendEventToNodeManager({
                         kind: "NodeCondition",
@@ -110,6 +112,7 @@ export default class K8SNodeInformer extends K8SInformer {
                         rebootTime: rebootTime
                     })
                 }
+                Log.info(`[K8SNodeInformer.sendEventToNodeManager] Node ${name} : ${msg}`)
             }
         }
 
