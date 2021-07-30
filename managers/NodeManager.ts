@@ -96,7 +96,7 @@ export default class NodeManager {
             let scheduledTime = 0
             let rebootRequestedTime = 0
 
-            console.log(JSON.stringify(nodeCondition.conditions))
+            console.log(JSON.stringify(nodeCondition))
 
             nodeCondition.conditions.forEach(condition => {
                 if (condition.lastTransitionTime !== undefined) {
