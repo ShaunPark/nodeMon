@@ -1,4 +1,4 @@
-import { V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
 import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
@@ -13,7 +13,7 @@ export default class K8SUtil extends K8SClient {
     }
 
     // 노드 condition을 변경하는 메소드 
-    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False", message?: string): Promise<Object> {
+    public async changeNodeCondition(nodeName: string, conditionType: string, str: "True" | "False", message?: string): Promise<V1Node> {
         Log.info(`[K8SUtil.changeNodeCondition] remove node status of condition '${nodeName}' '${conditionType}' '${str}'`)
 
         try {
@@ -27,7 +27,8 @@ export default class K8SUtil extends K8SClient {
             }
             const status: V1NodeStatus = { conditions: [condition] }
             const header = { headers: { "Content-Type": "application/strategic-merge-patch+json" } }
-            return await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
+            const { body } = await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
+            return Promise.resolve(body)
         } catch (err) {
             Log.error(err)
             return Promise.reject()
@@ -77,21 +78,22 @@ export default class K8SUtil extends K8SClient {
         }
     }
 
-    private async patchNodeStatus(nodeName: string, status: V1NodeStatus): Promise<Object> {
+    private async patchNodeStatus(nodeName: string, status: V1NodeStatus): Promise<V1Node> {
         try {
             const header = { headers: { "Content-Type": "application/merge-patch+json" } }
-            const ret = await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
-            return Promise.resolve(ret)
+            const { body } = await this.k8sApi.patchNodeStatus(nodeName, { status: status }, undefined, undefined, undefined, undefined, header)
+            return Promise.resolve(body)
         } catch (err) {
             Log.error(err)
         }
         return Promise.reject()
     }
 
-    public async cordonNode(nodeName: string): Promise<Object> {
+    public async cordonNode(nodeName: string): Promise<V1Node> {
         try {
             const spec: V1NodeSpec = { unschedulable: true }
-            return this.patchNode(nodeName, spec)
+            const { body } = await this.patchNode(nodeName, spec)
+            return Promise.resolve(body)
         } catch (err) {
             Log.error(err)
             return Promise.reject()
@@ -103,10 +105,11 @@ export default class K8SUtil extends K8SClient {
         return this.k8sApi.patchNode(nodeName, { spec: spec }, undefined, undefined, undefined, undefined, header)
     }
 
-    public async uncordonNode(nodeName: string): Promise<Object> {
+    public async uncordonNode(nodeName: string): Promise<V1Node> {
         try {
             const spec: V1NodeSpec = { unschedulable: false }
-            return this.patchNode(nodeName, spec)
+            const { body } = await this.patchNode(nodeName, spec)
+            return Promise.resolve(body)
         } catch (err) {
             Log.error(err)
             return Promise.reject()

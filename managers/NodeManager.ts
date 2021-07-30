@@ -1,7 +1,7 @@
 import Channel from "../logger/Channel";
 import ConfigManager from "../config/ConfigManager";
 import { MessagePort } from "worker_threads"
-import { NodeConditionCache, NodeConditionEvent } from "../types/Type";
+import { BaseEvent, NodeConditionCache, NodeEvent, NodeInfo } from "../types/Type";
 import Log from '../logger/Logger'
 import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
@@ -83,9 +83,9 @@ export default class NodeManager {
      */
     private eventHandlers = {
         // 노드 상태 관련 이벤트 수신 시
-        NodeCondition: (event: any) => {
+        NodeCondition: (event: NodeInfo) => {
             const nodeName = event.nodeName;
-            const nodeCondition = event as NodeConditionEvent
+            const nodeCondition = event as NodeInfo
             const node = NodeStatus.getNode(nodeCondition.nodeName)
             Log.info(`[NodeManager.eventHandlers] receive node condition : ${nodeName}`)
             Log.info(JSON.stringify(event))
@@ -94,8 +94,8 @@ export default class NodeManager {
             let rebootedTimeFromCondition: number = 0
             let hasRebootRequest = false
             let hasScheduled = false
-            let scheduledTime = 0
-            let rebootRequestedTime = 0
+            let scheduledTimeDt: Date = new Date(0)
+            let rebootRequestedTimeDt: Date = new Date(0)
 
             nodeCondition.conditions.map(condition => {
                 Log.info(condition.lastTransitionTime)
@@ -105,26 +105,26 @@ export default class NodeManager {
                     }
                     if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
                         hasRebootRequest = true
-                        scheduledTime = condition.lastTransitionTime.getTime()
+                        scheduledTimeDt = condition.lastTransitionTime
                     }
                     if (condition.type == NODE_CORDONED && condition.status == "True") {
                         hasScheduled = true
-                        rebootRequestedTime = condition.lastTransitionTime.getTime()
+                        rebootRequestedTimeDt = condition.lastTransitionTime
                     }
                 }
             })
 
             if (node !== undefined) { // 처음 수신한 노드 정보가 아닌경우 
                 // 마지막 리부트 시간이 없는 경우 kubelet이 Ready가 된 시점으로 리부트 시간을 설정함
-                const obj: { [key: string]: any } = {
+                const obj: { [key: string]: string | number | boolean } = {
                     ipAddress: nodeCondition.nodeIp,
-                    lastUpdateTime: new Date(),
+                    lastUpdateTime: Date.now(),
                     status: status,
                     lastRebootedTime: (node.lastRebootedTime === 0) ? rebootedTimeFromCondition : node.lastRebootedTime,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
-                    scheduledTime: scheduledTime,
-                    rebootRequestedTime: rebootRequestedTime
+                    scheduledTime: scheduledTimeDt.getTime(),
+                    rebootRequestedTime: rebootRequestedTimeDt.getTime()
                 }
                 NodeStatus.setNode(node, obj)
             } else { // 처음 수신한 노드인 경우
@@ -134,19 +134,19 @@ export default class NodeManager {
                     UUID: btoa(nodeName),
                     nodeName: nodeName,
                     ipAddress: nodeCondition.nodeIp,
-                    lastUpdateTime: new Date(),
+                    lastUpdateTime: Date.now(),
                     status: status,
                     lastRebootedTime: rebootedTimeFromCondition,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
-                    scheduledTime: scheduledTime,
-                    rebootRequestedTime: rebootRequestedTime
+                    scheduledTime: scheduledTimeDt.getTime(),
+                    rebootRequestedTime: rebootRequestedTimeDt.getTime()
                 };
                 NodeStatus.setNode(newNode)
             }
         },
         // 쿠버네트스 이벤트 수신 이벤트를 수신했을때의 처리
-        NodeEvent: (event: any) => {
+        NodeEvent: (event: NodeEvent) => {
             const nodeName = event.nodeName;
             Log.info(`[NodeManager.eventHandlers] receive events : ${nodeName}`)
             const node = NodeStatus.getNode(nodeName)
@@ -155,9 +155,8 @@ export default class NodeManager {
                 Log.info(`[NodeManager.eventHandlers] Node ${nodeName} does not exist in list. Ignore`)
             } else {
                 // 모니터 시작전 발생한 old 이벤트는 무시
-                const eventDate = Date.parse(event.lastTimestamp)
-                const raisedTime = new Date(eventDate)
-                if (startTime.getTime() < eventDate) {
+                const raisedTime = event.lastTimestamp
+                if (startTime.getTime() < raisedTime.getTime()) {
                     // 노드 정보 변경 시간 업데이트 
                     NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime })
                     // 이벤트가 원인이 모니터링 대상에 포함된 경우만 처리
@@ -172,7 +171,7 @@ export default class NodeManager {
             }
         },
         // 노드가 삭제된 이벤트를 수신했을때의 처리
-        DeleteNode: (event: any) => {
+        DeleteNode: (event: BaseEvent) => {
             Log.info(`[NodeManager.eventHandlers] Node '${event.nodeName} removed from moritoring list. delete it.`)
             Channel.info(event.nodeName, `Node removed from moritoring list.`)
             NodeStatus.deleteNode(event.nodeName)
@@ -604,7 +603,7 @@ export default class NodeManager {
         const rebootTime = now.getTime() - (this.maxLivenessMilli)
 
         return NodeStatus.findNodes(node => {
-            if (node.lastRebootedTime !==0 ) {
+            if (node.lastRebootedTime !== 0) {
                 return node.lastRebootedTime < rebootTime
             }
             return false

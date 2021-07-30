@@ -8,50 +8,16 @@ interface IEvent {
     message: string;
 }
 
-export interface NodeEvent  {
-    action?: string;
-    count?: number;
-    /**
-    * Time when this Event was first observed.
-    */
-    eventTime?: Date;
-    /**
-    * The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)
-    */
-    firstTimestamp?: Date;
-    involvedObject: InvolvedObject;
-    /**
-    * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-    */
-    kind?: string;
-    /**
-    * The time at which the most recent occurrence of this event was recorded.
-    */
-    lastTimestamp?: Date;
-    /**
-    * A human-readable description of the status of this operation.
-    */
-    message?: string;
-    // metadata: V1ObjectMeta;
-    /**
-    * This should be a short, machine understandable string that gives the reason for the transition into the object\'s current status.
-    */
-    reason?: string;
-    // related?: V1ObjectReference;
-    /**
-    * Name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`.
-    */
-    // reportingComponent?: string;
-    /**
-    * ID of the controller instance, e.g. `kubelet-xyzf`.
-    */
-    // reportingInstance?: string;
-    // series?: CoreV1EventSeries;
-    // source?: V1EventSource;
-    /**
-    * Type of this event (Normal, Warning), new types could be added in the future
-    */
-    type?: string;
+export interface NodeEvent extends BaseEvent  {
+    // action?: string;
+    // count?: number;
+    // eventTime?: Date;
+    // firstTimestamp?: Date;
+    // involvedObject: InvolvedObject;
+    lastTimestamp: Date;
+    // message?: string;
+    reason: string;
+    // type: string;
 }
 
  interface InvolvedObject {
@@ -68,22 +34,23 @@ export interface NodeCondition {
     type: string;
 }
 
-export interface NodeInfo {
-    nodeName: string
-    nodeIp: string
-    nodeUnscheduleable: boolean
+export interface BaseEvent {
+    kind:string
+    nodeName:string
 }
 
-export interface NodeConditionEvent extends NodeInfo {
-    kind: string,
+export interface NodeInfo extends BaseEvent {
+    nodeIp: string
+    nodeUnscheduleable: boolean
     status: string,
     conditions: Array<NodeCondition>
+    rebootTime: number
 }
 
 export interface NodeConditionCache {
     readonly ipAddress: string
     // readonly conditions: Map<string, NodeCondition>
-    readonly lastUpdateTime: Date
+    readonly lastUpdateTime: number
     readonly status: string
     readonly timer?: NodeJS.Timeout
     readonly lastRebootedTime: number

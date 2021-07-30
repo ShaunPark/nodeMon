@@ -8,7 +8,7 @@ import K8SInformer from './K8SClient';
 
 interface LocalLabel {
     key: string,
-    value: any
+    value: string
 }
 
 type Label = {
@@ -43,9 +43,11 @@ export default class K8SNodeInformer extends K8SInformer {
         this.informer.on('add', this.sendNodeCondition);
         this.informer.on('update', this.sendNodeCondition);
         this.informer.on('delete', (node) => {
-            const nodeName = node.metadata?.name
-            Log.info(`[K8SNodeInformer] Node ${nodeName}deleted from cluster`)
-            Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+            if (node.metadata && node.metadata.name) {
+                const nodeName = node.metadata.name
+                Log.info(`[K8SNodeInformer] Node ${nodeName}deleted from cluster`)
+                Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+            }
         });
         this.informer.on('error', (err: k8s.V1Node) => {
             // Restart informer after 5sec
@@ -94,16 +96,18 @@ export default class K8SNodeInformer extends K8SInformer {
                 Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
                 if (name && conditions) {
-                    const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
                     const status = conditions.find(condition => condition.type == "Ready")
                     const statusString = status?.status == "True" ? "Ready" : "NotReady"
                     const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
+                    const rebootTime = ( status && status.lastTransitionTime)?status.lastTransitionTime.getTime():0
+                    
                     // Node condition를 node manager로 전달
                     Logger.sendEventToNodeManager({
                         kind: "NodeCondition",
                         status: statusString,
                         conditions: sendCondition,
-                        ...nodeInfo
+                        nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0],
+                        rebootTime: rebootTime
                     })
                 }
             }

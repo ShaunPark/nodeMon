@@ -1,7 +1,7 @@
 import { MessagePort } from "worker_threads";
 import { ESLog } from "../elasticsearch/ESExporter";
 import { ESNodeStatus } from "../elasticsearch/ESStatusClient";
-import { NodeConditionCache } from "../types/Type";
+import { BaseEvent, NodeConditionCache, NodeEvent, NodeInfo } from "../types/Type";
 import Log from "./Logger";
 class Channel {
     private static esPort: MessagePort;
@@ -42,7 +42,7 @@ class Channel {
         } else {
             const nodeJson:ESNodeStatus = {
                 ipAddress: node.ipAddress,
-                lastUpdateTime: node.lastUpdateTime,
+                lastUpdateTime: new Date(node.lastUpdateTime),
                 status: node.status,
                 lastRebootedTime: new Date(node.lastRebootedTime),
                 nodeName: node.nodeName,
@@ -52,7 +52,7 @@ class Channel {
         }
     }
 
-    public static sendEventToNodeManager(event: any) {
+    public static sendEventToNodeManager(event: BaseEvent|NodeInfo|NodeEvent) {
         Channel.nmPort.postMessage(event);
     }
 }
