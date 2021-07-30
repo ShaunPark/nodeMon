@@ -92,7 +92,7 @@ export default class NodeManager {
             Log.info(JSON.stringify(event))
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
-            let rebootedTimeFromCondition: number = 0
+            const rebootedTimeFromCondition = event.rebootTime;
             let hasRebootRequest = false
             let hasScheduled = false
             let scheduledTimeDt: Date = new Date(0)
@@ -101,9 +101,6 @@ export default class NodeManager {
             nodeCondition.conditions.map(condition => {
                 Log.info(condition.lastTransitionTime)
                 if (condition.lastTransitionTime !== undefined) {
-                    if (condition.type == "Ready" && condition.reason == "KubeletReady") {
-                        rebootedTimeFromCondition = condition.lastTransitionTime.getTime()
-                    }
                     if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
                         hasRebootRequest = true
                         scheduledTimeDt = condition.lastTransitionTime

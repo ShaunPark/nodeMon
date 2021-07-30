@@ -96,7 +96,7 @@ export default class K8SNodeInformer extends K8SInformer {
                     Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
                 } else {
                     if (name && conditions) {
-                        const status = conditions.find(condition => condition.type == "Ready")
+                        const status = conditions.find(condition => condition.type == "Ready" && condition.reason == "KubeletReady")
                         const statusString = status?.status == "True" ? "Ready" : "NotReady"
                         const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
 
