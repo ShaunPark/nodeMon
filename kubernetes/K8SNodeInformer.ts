@@ -88,9 +88,8 @@ export default class K8SNodeInformer extends K8SInformer {
             const { name } = node.metadata;
             const { conditions } = node.status;
             const unschedulable = node.spec?.unschedulable ? true : false;
-
+            const validConditions = ["Ready", "RebootRequested", "RebootScheduled"]
             const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
-
             if (retArr.length == 0) {
                 Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
             } else {
@@ -98,8 +97,14 @@ export default class K8SNodeInformer extends K8SInformer {
                     const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
                     const status = conditions.find(condition => condition.type == "Ready")
                     const statusString = status?.status == "True" ? "Ready" : "NotReady"
+
                     // Node condition를 node manager로 전달
-                    Logger.sendEventToNodeManager({ kind: "NodeCondition", status: statusString, conditions: conditions, ...nodeInfo })
+                    Logger.sendEventToNodeManager({
+                        kind: "NodeCondition",
+                        status: statusString,
+                        conditions: conditions.filter(condition => validConditions.includes(condition.type)),
+                        ...nodeInfo
+                    })
                 }
             }
         }
