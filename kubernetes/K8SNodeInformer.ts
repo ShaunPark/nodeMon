@@ -84,51 +84,56 @@ export default class K8SNodeInformer extends K8SInformer {
     private labelMap = new Map<string, { lastUpdateTime: Date, needSend: string }>()
 
     private sendNodeCondition = (node: k8s.V1Node) => {
-        const needSend = true//this.checkValid(node.metadata?.labels)
-        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(node)}`)
-        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${node.metadata}`)
-        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${node.status}`)
-
-        if (needSend && node.metadata && node.status) {
-            const { name } = node.metadata;
-            const { conditions } = node.status;
-            const unschedulable = node.spec?.unschedulable ? true : false;
-            const validConditions = ["Ready", "RebootRequested", "RebootScheduled"]
-            const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
-            if (retArr.length == 0) {
-                Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
-            } else {
-                let msg = "not sent"
-                if (name && conditions) {
-                    const status = conditions.find(condition => condition.type == "Ready")
-                    const statusString = status?.status == "True" ? "Ready" : "NotReady"
-                    const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
-                    const rebootTime = ( status && status.lastTransitionTime)?status.lastTransitionTime.getTime():0
-
-                    msg = "sent"
-                    // Node condition를 node manager로 전달
-                    Logger.sendEventToNodeManager({
-                        kind: "NodeCondition",
-                        status: statusString,
-                        conditions: sendCondition,
-                        nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0],
-                        rebootTime: rebootTime
-                    })
-                }
-                Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${name} : ${msg}`)
-            }
-        }
-
-        const nodeName = node.metadata?.name
-        const needSendStr = (needSend) ? "TRUE" : "FALSE"
-        if (nodeName) {
-            const temp = this.labelMap.get(nodeName)
-            if (temp) {
-                if (!needSend && temp.needSend != needSendStr) {
-                    Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+        try {
+            const needSend = true//this.checkValid(node.metadata?.labels)
+            Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(node)}`)
+            if (needSend && node.metadata !== undefined && node.status !== undefined) {
+                const { name } = node.metadata;
+                const { conditions } = node.status;
+                const unschedulable = node.spec?.unschedulable ? true : false;
+                const validConditions = ["Ready", "RebootRequested", "RebootScheduled"]
+                const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
+                if (retArr.length == 0) {
+                    Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
+                } else {
+                    let msg = "not sent"
+                    Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${name}`)
+                    Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(conditions)}`)
+            
+                    if (name && conditions) {
+                        const status = conditions.find(condition => condition.type == "Ready")
+                        const statusString = status?.status == "True" ? "Ready" : "NotReady"
+                        const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
+                        const rebootTime = ( status && status.lastTransitionTime)?status.lastTransitionTime.getTime():0
+    
+                        msg = "sent"
+                        // Node condition를 node manager로 전달
+                        Logger.sendEventToNodeManager({
+                            kind: "NodeCondition",
+                            status: statusString,
+                            conditions: sendCondition,
+                            nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0],
+                            rebootTime: rebootTime
+                        })
+                    }
+                    Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${name} : ${msg}`)
                 }
             }
-            this.labelMap.set(nodeName, { lastUpdateTime: new Date(), needSend: needSendStr })
+            Log.info(`[K8SNodeInformer.sendNodeCondition] -------------------------`)
+    
+            const nodeName = node.metadata?.name
+            const needSendStr = (needSend) ? "TRUE" : "FALSE"
+            if (nodeName) {
+                const temp = this.labelMap.get(nodeName)
+                if (temp) {
+                    if (!needSend && temp.needSend != needSendStr) {
+                        Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+                    }
+                }
+                this.labelMap.set(nodeName, { lastUpdateTime: new Date(), needSend: needSendStr })
+            }
+        } catch(err) {
+            Log.error(err)
         }
     }
 
