@@ -83,10 +83,11 @@ export default class K8SEventInformer extends K8SInformer {
                 try {
                     lt = obj.lastTimestamp.getTime()
                 } catch(err) {
-
+                    const dt = new Date(obj.lastTimestamp)
+                    lt = dt.getTime()
                 }
                 Log.info(JSON.stringify(obj))
-                Log.info(`[createSendingEvent] ${lt}`)
+                Log.info(`[createSendingEvent] ${new Date(lt)}`)
                 return {
                     kind: "NodeEvent",
                     nodeName: obj.involvedObject.name,
