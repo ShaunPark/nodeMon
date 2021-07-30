@@ -103,7 +103,12 @@ export default class K8SNodeInformer extends K8SInformer {
                                     try {
                                         if (c.lastTransitionTime)
                                             ltt = c.lastTransitionTime.getTime()
-                                    } catch (err) { }
+                                    } catch (err) { 
+                                        if (c.lastTransitionTime) {
+                                            const dt = new Date(c.lastTransitionTime)
+                                            ltt = dt.getTime()
+                                        }
+                                    }
 
                                     if( ltt == 0 ) {
                                         Log.info(`[] == ${c.lastTransitionTime}`)
