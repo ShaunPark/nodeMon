@@ -85,6 +85,9 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private sendNodeCondition = (node: k8s.V1Node) => {
         const needSend = true//this.checkValid(node.metadata?.labels)
+        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(node)}`)
+        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${node.metadata}`)
+        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${node.status}`)
 
         if (needSend && node.metadata && node.status) {
             const { name } = node.metadata;
@@ -112,7 +115,7 @@ export default class K8SNodeInformer extends K8SInformer {
                         rebootTime: rebootTime
                     })
                 }
-                Log.info(`[K8SNodeInformer.sendEventToNodeManager] Node ${name} : ${msg}`)
+                Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${name} : ${msg}`)
             }
         }
 
@@ -129,22 +132,22 @@ export default class K8SNodeInformer extends K8SInformer {
         }
     }
 
-    private checkValid(labels?: { [key: string]: string; }): boolean {
-        // Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
-        const labelMap = this.labelSelectors
-        if (labelMap && labels) {
-            let hasAllLabel: boolean = true;
-            labelMap.forEach(lbl => {
-                const v = labels[lbl.key]
-                if (!v) {
-                    hasAllLabel = false;
-                } else if (lbl.value != "" && v != lbl.value) {
-                    hasAllLabel = false;
-                }
-            })
-            return hasAllLabel
-        }
+    // private checkValid(labels?: { [key: string]: string; }): boolean {
+    //     // Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
+    //     const labelMap = this.labelSelectors
+    //     if (labelMap && labels) {
+    //         let hasAllLabel: boolean = true;
+    //         labelMap.forEach(lbl => {
+    //             const v = labels[lbl.key]
+    //             if (!v) {
+    //                 hasAllLabel = false;
+    //             } else if (lbl.value != "" && v != lbl.value) {
+    //                 hasAllLabel = false;
+    //             }
+    //         })
+    //         return hasAllLabel
+    //     }
 
-        return (labelMap == undefined)
-    }
+    //     return (labelMap == undefined)
+    // }
 }
