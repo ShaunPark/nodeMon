@@ -86,7 +86,6 @@ export default class K8SNodeInformer extends K8SInformer {
     private sendNodeCondition = (node: k8s.V1Node) => {
         try {
             const needSend = true//this.checkValid(node.metadata?.labels)
-            Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(node)}`)
             if (needSend && node.metadata !== undefined && node.status !== undefined) {
                 const { name } = node.metadata;
                 const { conditions } = node.status;
@@ -97,15 +96,20 @@ export default class K8SNodeInformer extends K8SInformer {
                     Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
                 } else {
                     let msg = "not sent"
-                    Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${name}`)
-                    Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(conditions)}`)
             
                     if (name && conditions) {
                         const status = conditions.find(condition => condition.type == "Ready")
-                        const statusString = status?.status == "True" ? "Ready" : "NotReady"
-                        const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
-                        const rebootTime = ( status && status.lastTransitionTime)?status.lastTransitionTime.getTime():0
+                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${status}`)
     
+                        const statusString = status?.status == "True" ? "Ready" : "NotReady"
+                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${statusString}`)
+
+                        const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
+
+                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(sendCondition)}`)
+
+                        const rebootTime = ( status !== undefined && status.lastTransitionTime !== undefined)?status.lastTransitionTime.getTime():0
+                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${rebootTime}`)
                         msg = "sent"
                         // Node condition를 node manager로 전달
                         Logger.sendEventToNodeManager({
