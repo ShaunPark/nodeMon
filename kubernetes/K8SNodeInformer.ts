@@ -95,22 +95,15 @@ export default class K8SNodeInformer extends K8SInformer {
                 if (retArr.length == 0) {
                     Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
                 } else {
-                    let msg = "not sent"
-            
                     if (name && conditions) {
                         const status = conditions.find(condition => condition.type == "Ready")
-                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(status)}`)
-    
                         const statusString = status?.status == "True" ? "Ready" : "NotReady"
-                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${statusString}`)
-
                         const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
 
-                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${status?.lastTransitionTime}`)
-
-                        const rebootTime = ( status !== undefined && status.lastTransitionTime !== undefined)?status.lastTransitionTime.getTime():0
-                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${rebootTime}`)
-                        msg = "sent"
+                        let rebootTime = 0
+                        if (status && status.lastTransitionTime) {
+                            rebootTime = new Date(status.lastTransitionTime).getTime()
+                        }
                         // Node condition를 node manager로 전달
                         Logger.sendEventToNodeManager({
                             kind: "NodeCondition",
@@ -120,11 +113,9 @@ export default class K8SNodeInformer extends K8SInformer {
                             rebootTime: rebootTime
                         })
                     }
-                    Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${name} : ${msg}`)
                 }
             }
-            Log.info(`[K8SNodeInformer.sendNodeCondition] -------------------------`)
-    
+
             const nodeName = node.metadata?.name
             const needSendStr = (needSend) ? "TRUE" : "FALSE"
             if (nodeName) {
@@ -136,7 +127,7 @@ export default class K8SNodeInformer extends K8SInformer {
                 }
                 this.labelMap.set(nodeName, { lastUpdateTime: new Date(), needSend: needSendStr })
             }
-        } catch(err) {
+        } catch (err) {
             Log.error(err)
         }
     }
