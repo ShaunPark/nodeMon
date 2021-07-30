@@ -160,7 +160,7 @@ export default class NodeManager {
                         this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName)
                     }
                 } else {
-                    Log.info(`[NodeManager.eventHandlers] Event raised at ${raisedTime}. Ignore old event.`)
+                    Log.info(`[NodeManager.eventHandlers] Event raised at ${new Date(raisedTime)}. Ignore old event.`)
                 }
             }
         },

@@ -100,12 +100,14 @@ export default class K8SNodeInformer extends K8SInformer {
                             .map(
                                 c => {
                                     let ltt = 0
-                                    Log.info(`[] == ${c.lastTransitionTime}`)
                                     try {
                                         if (c.lastTransitionTime)
                                             ltt = c.lastTransitionTime.getTime()
                                     } catch (err) { }
 
+                                    if( ltt == 0 ) {
+                                        Log.info(`[] == ${c.lastTransitionTime}`)
+                                    }
                                     return { lastTransitionTime: ltt, reason: c.reason, status: c.status, type: c.type }
                                 })
 
