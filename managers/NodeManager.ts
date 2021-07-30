@@ -23,7 +23,6 @@ const ONEMINUTEMILLISECOND = 60000
 export default class NodeManager {
     private cmg: ConfigManager;
     private k8sUtil: K8SUtil
-    private static lastRebootTime: Date | undefined
     private mainLoop?: NodeJS.Timeout
 
     /**
@@ -94,18 +93,18 @@ export default class NodeManager {
             const rebootedTimeFromCondition = event.rebootTime;
             let hasRebootRequest = false
             let hasScheduled = false
-            let scheduledTimeDt: Date = new Date(0)
-            let rebootRequestedTimeDt: Date = new Date(0)
+            let scheduledTime = 0
+            let rebootRequestedTime = 0
 
             nodeCondition.conditions.map(condition => {
                 Log.info(condition.lastTransitionTime)
                 if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
                     hasRebootRequest = true
-                    scheduledTimeDt = new Date(condition.lastTransitionTime)
+                    scheduledTime = condition.lastTransitionTime
                 }
                 if (condition.type == NODE_CORDONED && condition.status == "True") {
                     hasScheduled = true
-                    rebootRequestedTimeDt = new Date(condition.lastTransitionTime)
+                    rebootRequestedTime = condition.lastTransitionTime
                 }
             })
 
@@ -118,8 +117,8 @@ export default class NodeManager {
                     lastRebootedTime: (node.lastRebootedTime === 0) ? rebootedTimeFromCondition : node.lastRebootedTime,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
-                    scheduledTime: scheduledTimeDt.getTime(),
-                    rebootRequestedTime: rebootRequestedTimeDt.getTime()
+                    scheduledTime: scheduledTime,
+                    rebootRequestedTime: rebootRequestedTime
                 }
                 NodeStatus.setNode(node, obj)
             } else { // 처음 수신한 노드인 경우
@@ -134,8 +133,8 @@ export default class NodeManager {
                     lastRebootedTime: rebootedTimeFromCondition,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
-                    scheduledTime: scheduledTimeDt.getTime(),
-                    rebootRequestedTime: rebootRequestedTimeDt.getTime()
+                    scheduledTime: scheduledTime,
+                    rebootRequestedTime: rebootRequestedTime
                 };
                 NodeStatus.setNode(newNode)
             }
@@ -294,8 +293,8 @@ export default class NodeManager {
             // 마지막으로 리부트 한 노드가 있으면 최소한 리부트 버퍼만큼 띄우고 작업하도록. 리부트 버퍼는 3분
             // 스케줄링과 상관 없이 실패에 의한 리부트가 있을 수 있으므로 여기서 한번 더 확인함
             // 최소한 동시에 리부트가 실행되지 않도록
-            if (NodeManager.lastRebootTime !== undefined) {
-                const nextRebootAvailable = NodeManager.lastRebootTime.getTime() + (ONEMINUTEMILLISECOND * rebootBuffer)
+            if (NodeStatus.lastRebootTime !== undefined) {
+                const nextRebootAvailable = NodeStatus.lastRebootTime.getTime() + (ONEMINUTEMILLISECOND * rebootBuffer)
 
                 if (nextRebootAvailable > now + delay) {
                     delay = nextRebootAvailable - now
@@ -311,7 +310,7 @@ export default class NodeManager {
                 Log.info(`[NodeManager.reboot] ${(isReboot) ? "Reboot" : "Termination"} ${nodeName} started.`)
                 Channel.info(nodeName, `Node ${rebootStr} process starts now.`)
                 // 리부트를 수행한 시간을 변경함
-                NodeManager.lastRebootTime = new Date()
+                NodeStatus.lastRebootTime = new Date()
                 // dry-run이 아니면 리부트/종료 수행
                 if (this.dryRun !== true) {
                     Log.info(`[NodeManager.reboot] DryRun is not true. ${rebootStr} is enabled.`)
@@ -480,9 +479,10 @@ export default class NodeManager {
                     Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has scheduled reboot but it is too old. Delete schedule.`)
                     await this.removeCordonedCondition(node.nodeName, true)
                 }
-                if (node.hasReboodRequest && node.rebootRequestedTime < yesterDay) {
-                    Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has requesed to reboot but it is too old. Delete request.`)
+                if (node.hasReboodRequest) {
+                    Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has requesed to reboot. Delete request.`)
                     await this.removeRebootCondition(node.nodeName)
+                    await this.removeCordonedCondition(node.nodeName, true)
                 }
             })
         Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")

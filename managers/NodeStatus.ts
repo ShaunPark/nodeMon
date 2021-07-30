@@ -2,6 +2,8 @@ import Channel from "../logger/Channel"
 import { NodeConditionCache } from "../types/Type"
 
 export class NodeStatus {
+    public static lastRebootTime: Date | undefined
+
     private static nodeStatusCache = new Map<string, NodeConditionCache>()
     /**
          * 노드정보를 관리하는 목록에서 노드를 검색
