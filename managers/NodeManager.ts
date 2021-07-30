@@ -89,7 +89,6 @@ export default class NodeManager {
             const nodeCondition = event as NodeInfo
             const node = NodeStatus.getNode(nodeCondition.nodeName)
             Log.info(`[NodeManager.eventHandlers] receive node condition : ${nodeName}`)
-            Log.info(JSON.stringify(event))
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
             const rebootedTimeFromCondition = event.rebootTime;
@@ -121,8 +120,8 @@ export default class NodeManager {
                     lastRebootedTime: (node.lastRebootedTime === 0) ? rebootedTimeFromCondition : node.lastRebootedTime,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
-                    scheduledTime: scheduledTimeDt.getTime(),
-                    rebootRequestedTime: rebootRequestedTimeDt.getTime()
+                    scheduledTime: (scheduledTimeDt != null )?scheduledTimeDt.getTime():0,
+                    rebootRequestedTime: (rebootRequestedTimeDt != null )?rebootRequestedTimeDt.getTime():0
                 }
                 NodeStatus.setNode(node, obj)
             } else { // 처음 수신한 노드인 경우
