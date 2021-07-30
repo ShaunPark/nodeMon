@@ -183,10 +183,9 @@ export default class NodeManager {
     private printNode = () => {
         const arr = new Array<Object>()
         NodeStatus.getAll().forEach((node, key) => {
-            const lut = new Date(node.lastUpdateTime)
             arr.push({
                 name: key, ipAddress: node.ipAddress,
-                lastUpdateTime: `${lut.toDateString()} ${lut.toTimeString()}`,
+                lastUpdateTime: new Date(node.lastUpdateTime),
                 status: node.status, lastRebootedTime: new Date(node.lastRebootedTime),
                 hasScheduled: node.hasScheduled, hasReboodRequest: node.hasReboodRequest
             })
