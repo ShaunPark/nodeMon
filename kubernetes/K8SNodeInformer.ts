@@ -97,12 +97,12 @@ export default class K8SNodeInformer extends K8SInformer {
                     const nodeInfo: NodeInfo = { nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0] }
                     const status = conditions.find(condition => condition.type == "Ready")
                     const statusString = status?.status == "True" ? "Ready" : "NotReady"
-
+                    const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
                     // Node condition를 node manager로 전달
                     Logger.sendEventToNodeManager({
                         kind: "NodeCondition",
                         status: statusString,
-                        conditions: conditions.filter(condition => validConditions.includes(condition.type)),
+                        conditions: sendCondition,
                         ...nodeInfo
                     })
                 }
