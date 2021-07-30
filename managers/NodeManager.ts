@@ -14,7 +14,7 @@ type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
 type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Rebooted" | "NodeNotReady" | "NodeReady"
 
 const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
-const startTime: Date = new Date()
+const startTime = Date.now()
 const REBOOT_REQUESTED = "RebootRequested"
 const NODE_CORDONED = "RebootScheduled"
 const ONEDAYMILLISECOND = 86400000
@@ -151,9 +151,9 @@ export default class NodeManager {
             } else {
                 // 모니터 시작전 발생한 old 이벤트는 무시
                 const raisedTime = event.lastTimestamp
-                if (startTime.getTime() < raisedTime.getTime()) {
+                if (startTime < raisedTime) {
                     // 노드 정보 변경 시간 업데이트 
-                    NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime })
+                    NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime})
                     // 이벤트가 원인이 모니터링 대상에 포함된 경우만 처리
                     if (NodeEventReasonArray.includes(event.reason)) {
                         Log.info(`[NodeManager.eventHandlers] event.reason '${event.reason}'is NodeEventReasons`)
@@ -259,7 +259,7 @@ export default class NodeManager {
         const node = NodeStatus.getNode(nodeName)
         if (node) {
             // 노드의 리부트 된 시각을 지금으로 설정
-            NodeStatus.setNode(node, { lastRebootedTime: new Date() })
+            NodeStatus.setNode(node, { lastRebootedTime: Date.now() })
         }
     }
 
@@ -320,7 +320,7 @@ export default class NodeManager {
                         const rebooter: Rebooter = new Rebooter(this.cmg)
                         rebooter.run(node.nodeName)
                         // 노드 정보에 마지막으로 리부트 한 시각 설정
-                        NodeStatus.setNode(node, { lastRebootedTime: new Date() })
+                        NodeStatus.setNode(node, { lastRebootedTime: Date.now() })
                     } catch (err) {
                         Channel.error(nodeName, `Node '${nodeName} ${rebootStr} is failed ${rebootTime}.`)
                         Log.error(`[NodeManager.reboot] ${err}`)

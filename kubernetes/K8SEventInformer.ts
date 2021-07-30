@@ -79,11 +79,17 @@ export default class K8SEventInformer extends K8SInformer {
     private createSendingEvent(obj: CoreV1Event): NodeEvent | undefined {
         if (this.checkValid(obj)) {
             if (obj.involvedObject.name && obj.reason && obj.lastTimestamp) {
+                let lt = 0
+                try {
+                    lt = obj.lastTimestamp.getTime()
+                } catch(err) {
+                    
+                }
                 return {
                     kind: "NodeEvent",
                     nodeName: obj.involvedObject.name,
                     reason: obj.reason,
-                    lastTimestamp: obj.lastTimestamp
+                    lastTimestamp: lt
                 }
             }
         }

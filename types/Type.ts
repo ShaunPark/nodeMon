@@ -14,7 +14,7 @@ export interface NodeEvent extends BaseEvent  {
     // eventTime?: Date;
     // firstTimestamp?: Date;
     // involvedObject: InvolvedObject;
-    lastTimestamp: Date;
+    lastTimestamp: number;
     // message?: string;
     reason: string;
     // type: string;
