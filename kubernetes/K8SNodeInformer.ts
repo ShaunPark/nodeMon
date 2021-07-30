@@ -106,7 +106,7 @@ export default class K8SNodeInformer extends K8SInformer {
 
                         const sendCondition = conditions.filter(condition => validConditions.includes(condition.type))
 
-                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${JSON.stringify(sendCondition)}`)
+                        Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${status?.lastTransitionTime}`)
 
                         const rebootTime = ( status !== undefined && status.lastTransitionTime !== undefined)?status.lastTransitionTime.getTime():0
                         Log.info(`[K8SNodeInformer.sendNodeCondition] Node ${rebootTime}`)
