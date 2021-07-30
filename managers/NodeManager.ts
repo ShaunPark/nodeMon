@@ -102,11 +102,11 @@ export default class NodeManager {
                 if (condition.lastTransitionTime !== undefined) {
                     if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
                         hasRebootRequest = true
-                        scheduledTimeDt = condition.lastTransitionTime
+                        scheduledTimeDt = new Date(condition.lastTransitionTime)
                     }
                     if (condition.type == NODE_CORDONED && condition.status == "True") {
                         hasScheduled = true
-                        rebootRequestedTimeDt = condition.lastTransitionTime
+                        rebootRequestedTimeDt = new Date(condition.lastTransitionTime)
                     }
                 }
             })
@@ -120,8 +120,8 @@ export default class NodeManager {
                     lastRebootedTime: (node.lastRebootedTime === 0) ? rebootedTimeFromCondition : node.lastRebootedTime,
                     hasScheduled: hasScheduled,
                     hasReboodRequest: hasRebootRequest,
-                    scheduledTime: (scheduledTimeDt != null )?scheduledTimeDt.getTime():0,
-                    rebootRequestedTime: (rebootRequestedTimeDt != null )?rebootRequestedTimeDt.getTime():0
+                    scheduledTime: scheduledTimeDt.getTime(),
+                    rebootRequestedTime: rebootRequestedTimeDt.getTime()
                 }
                 NodeStatus.setNode(node, obj)
             } else { // 처음 수신한 노드인 경우
