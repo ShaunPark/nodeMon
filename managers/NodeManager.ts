@@ -97,7 +97,7 @@ export default class NodeManager {
             let rebootRequestedTime = 0
 
             nodeCondition.conditions.map(condition => {
-                Log.info(condition.lastTransitionTime)
+                Log.info(`[NodeManager.eventHandlers] condition.lastTransitionTime = ${condition.lastTransitionTime}`)
                 if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
                     hasRebootRequest = true
                     scheduledTime = condition.lastTransitionTime
@@ -415,7 +415,7 @@ export default class NodeManager {
         if (maint !== undefined) {
             // 개발 테스트 모드일 경우. cordon 시작 시점부터 30초단위로 설정
             if (maint.testMode === true) {
-                Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
+                //Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
                 this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
                 this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (60000))
                 this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 5))

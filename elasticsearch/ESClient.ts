@@ -96,7 +96,7 @@ export abstract class ESClient<T> {
         },
         sort: sort
       };
-      Log.debug(`[ESClient.searchId] ${JSON.stringify(bodyData)}`)
+      //Log.debug(`[ESClient.searchId] ${JSON.stringify(bodyData)}`)
 
       const { body } = await this.client.search(bodyData);
 

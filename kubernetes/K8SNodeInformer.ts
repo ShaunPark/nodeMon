@@ -2,7 +2,6 @@ import * as k8s from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import Log from '../logger/Logger';
-import { NodeCondition, NodeInfo } from '../types/Type';
 import IConfig from "../types/ConfigType"
 import K8SInformer from './K8SClient';
 
@@ -101,8 +100,10 @@ export default class K8SNodeInformer extends K8SInformer {
                             .map(
                                 c => {
                                     let ltt = 0
+                                    Log.info(`[] == ${c.lastTransitionTime}`)
                                     try {
-                                        if (c.lastTransitionTime) ltt = c.lastTransitionTime.getTime()
+                                        if (c.lastTransitionTime)
+                                            ltt = c.lastTransitionTime.getTime()
                                     } catch (err) { }
 
                                     return { lastTransitionTime: ltt, reason: c.reason, status: c.status, type: c.type }
