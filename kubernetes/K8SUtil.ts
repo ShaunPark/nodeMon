@@ -22,6 +22,7 @@ export default class K8SUtil extends K8SClient {
                 status: str,
                 type: conditionType,
                 lastTransitionTime: new Date(),
+                lastHeartbeatTime: new Date(),
                 message: msg,
                 reason: "beeNodeMon"
             }
