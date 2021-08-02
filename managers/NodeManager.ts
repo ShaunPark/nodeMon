@@ -44,7 +44,7 @@ export default class NodeManager {
     /**
      * 노드매니저 종료
      */
-    public close() {
+    public close = () => {
         if (this.mainLoop !== undefined) {
             clearTimeout(this.mainLoop)
         }
@@ -266,7 +266,7 @@ export default class NodeManager {
      * 
      * @param nodeName 리부트할 노드 명
      */
-    private reboot(nodeName: string) {
+    private reboot = (nodeName: string) => {
         const config = this.cmg.config;
         const node = NodeStatus.getNode(nodeName)
 
@@ -335,7 +335,7 @@ export default class NodeManager {
      * 
      * @param nodeName 리부트 타이머를 설정할 노드 명
      */
-    private setTimerForReboot(nodeName: string) {
+    private setTimerForReboot = (nodeName: string) => {
         const drainBuffer = 10
         const timeout = drainBuffer * ONEMINUTEMILLISECOND;
         const node = NodeStatus.getNode(nodeName)
@@ -360,7 +360,7 @@ export default class NodeManager {
      * 
      * 주기를 설정하여 checkNodeStatus()를 호출하고 Node목록을 로그에 출력
      */
-    run() {
+    run = () => {
         const config = this.cmg.config;
         const interval = (config.nodeManager.interval && config.nodeManager.interval > 5000) ? config.nodeManager.interval : 10000;
 
@@ -622,7 +622,7 @@ export default class NodeManager {
      * 
      * @returns 필터링되고 정렬된 리부트 대상 노드이름 배열
      */
-    private  filterRebootNode = async (cordonedList: string[]): Promise<string[]> => {
+    private filterRebootNode = async (cordonedList: string[]): Promise<string[]> => {
         // worker가 실행중인 노드 목록 조회
         const nodesHasWorker = await this.getNodeHasWorker()
         Log.debug(`[NodeManager.filterRebootNode] Node has workder ${JSON.stringify(nodesHasWorker)}`)
@@ -648,7 +648,7 @@ export default class NodeManager {
      * 워커를 표시하는 Pod 레이블 및 필드를 기준으로 워커가 실행중인 노드 목록을 조회
      * @returns 워커가 실행중인 노드 목록
      */
-    private async getNodeHasWorker(): Promise<string[]> {
+    private getNodeHasWorker = async (): Promise<string[]> => {
         const fieldSelector = this.cmg.config.kubernetes.workerPodFieldSelector
         const labelSelector = this.cmg.config.kubernetes.workerPodLabelSelector
         return this.k8sUtil.getNodeListOfPods(fieldSelector, labelSelector)
@@ -661,7 +661,7 @@ export default class NodeManager {
      * 
      * @param list 리부트 스케줄 대상 노드 이름 배열
      */
-    private scheduleRebootNodes(list: string[]) {
+    private scheduleRebootNodes = (list: string[]) => {
         list.forEach((nodeName, index) => {
             const delay = index * (this.rebootBuffer * ONEMINUTEMILLISECOND) + 1000
             Log.debug(`[NodeManager.scheduleRebootNodes] Set timer for reboot '${nodeName} ${delay}`)
@@ -675,7 +675,7 @@ export default class NodeManager {
         })
     }
 
-    private getNextRebootTime(): Date {
+    private getNextRebootTime = (): Date => {
         const now = new Date()
         if (this.cordonStartHour > this.rebootStartHour) {
             const tommorow = new Date(now.getTime() + ONEDAYMILLISECOND)
@@ -690,7 +690,7 @@ export default class NodeManager {
      * 
      * @param nodeName cordon을 수행할 노드 명
      */
-    private async cordonNode(nodeName: string) {
+    private cordonNode = async (nodeName: string) => {
         Log.debug(`[NodeManager.cordonNode] Node ${nodeName} cordoned`)
 
         // dry-run이 아닌 경우 cordon 수행
@@ -702,7 +702,7 @@ export default class NodeManager {
         Channel.info(nodeName, `Node cordoned`)
     }
 
-    private async unCordonNode(nodeName: string) {
+    private unCordonNode = async (nodeName: string) => {
         if (!this.cmg.config.dryRun) {
             if (NodeStatus.isCordoned(nodeName)) {
                 await this.removeCordonedCondition(nodeName, true)
