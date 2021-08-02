@@ -412,7 +412,7 @@ export default class NodeManager {
     private reloadConfigValues = (maint: IMaintenance) => {
         // 개발 테스트 모드일 경우. cordon 시작 시점부터 30초단위로 설정
         if (maint.testMode === true) {
-            this.minLivenessMilSec = 5 * ONEDAYMILLISECOND
+            this.minLivenessMilSec = 5 * ONEMINUTEMILLISECOND
             //Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
             this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
             this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (60000))
