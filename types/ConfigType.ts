@@ -12,7 +12,7 @@ export default interface IConfig {
     maintenance?: IMaintenance
 }
 
-interface IMaintenance {
+export interface IMaintenance {
     maxLivenessDays: 14
     runMaintenance: boolean
     testMode: boolean

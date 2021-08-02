@@ -7,6 +7,7 @@ import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
 import * as util from "../util/Util";
 import { NodeStatus } from "./NodeStatus";
+import { IMaintenance } from "../types/ConfigType";
 const { parentPort } = require('worker_threads');
 
 
@@ -150,7 +151,7 @@ export default class NodeManager {
                 const raisedTime = event.lastTimestamp
                 if (startTime < raisedTime) {
                     // 노드 정보 변경 시간 업데이트 
-                    NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime})
+                    NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime })
                     // 이벤트가 원인이 모니터링 대상에 포함된 경우만 처리
                     if (NodeEventReasonArray.includes(event.reason)) {
                         Log.info(`[NodeManager.eventHandlers] '${event.reason}' is NodeEventReasons`)
@@ -404,62 +405,61 @@ export default class NodeManager {
     // 작업 진행상태 플래그
     private cordoned = false
     private rebootScheduled = false
-
+    private minLivenessMilSec = ONEDAYMILLISECOND
     /**
      * 설정파일에서 필요한 설정 정보를 읽어옮
      */
-    private reloadConfigValues = () => {
-        const maint = this.cmg.config.maintenance
-        if (maint !== undefined) {
-            // 개발 테스트 모드일 경우. cordon 시작 시점부터 30초단위로 설정
-            if (maint.testMode === true) {
-                //Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
-                this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
-                this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (60000))
-                this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 5))
-                this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (60000 * 6))
+    private reloadConfigValues = (maint: IMaintenance) => {
+        // 개발 테스트 모드일 경우. cordon 시작 시점부터 30초단위로 설정
+        if (maint.testMode === true) {
+            this.minLivenessMilSec = 5 * ONEDAYMILLISECOND
+            //Log.info("[NodeManager.reloadConfigValues] TEST Mode !!!!!!!!!!!!!")
+            this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
+            this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (60000))
+            this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 5))
+            this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (60000 * 6))
 
-                this.percentOfReboot = maint.ratio
-                if (this.percentOfReboot < 10 || this.percentOfReboot > 90) {
-                    this.percentOfReboot = 20
-                }
+            this.percentOfReboot = maint.ratio
+            if (this.percentOfReboot < 10 || this.percentOfReboot > 90) {
+                this.percentOfReboot = 20
+            }
 
-                this.maxLivenessMilli = maint.maxLivenessDays * ONEMINUTEMILLISECOND
+            this.maxLivenessMilli = maint.maxLivenessDays * ONEMINUTEMILLISECOND
 
-                this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
-                if (this.rebootBuffer < 1 || this.rebootBuffer > 30) {
-                    this.rebootBuffer = 15
-                }
-            } else {
-                // cordon 시간대 기본값 시작 : 20시-한국시간 종료 : 21시-한국시간
-                this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
-                this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
-                // 시작 시각이 종료시각 보다 나중이면 종료시각을 시작시각 1시간 후로 설정 
-                if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
-                    this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
-                }
-                // 리부트 시간대 기본값 시작 : 03시-한국시간 종료 : 04시-한국시간
-                this.rebootStartHour = util.timeStrToDate(maint.rebootStartHour, "03:00+09:00")
-                this.rebootEndHoure = util.timeStrToDate(maint.rebootEndHour, "04:00+09:00")
-                // 시작 시각이 종료시각 보다 나중이면 종료시각을 시작시각 1시간 후로 설정 
-                if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
-                    this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
-                }
-                // 리부트 비율은 기본 20%, 최소 10%, 최대 50%
-                this.percentOfReboot = maint.ratio
-                if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
-                    this.percentOfReboot = 20
-                }
-                // 리부트 없이 노드가 유지되는 기간은 기본 14일, 최소 7일, 최대 28일
-                this.maxLivenessMilli = maint.maxLivenessDays * ONEDAYMILLISECOND
-                if (this.maxLivenessMilli < 7 * ONEDAYMILLISECOND || this.maxLivenessMilli > 28 * ONEDAYMILLISECOND) {
-                    this.maxLivenessMilli = 14 * ONEDAYMILLISECOND
-                }
-                // 노드간 리부트 시 시간 간격은, 기본 15분, 최소 5분, 최대 30분 
-                this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
-                if (this.rebootBuffer < 5 || this.rebootBuffer > 30) {
-                    this.rebootBuffer = 15
-                }
+            this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
+            if (this.rebootBuffer < 1 || this.rebootBuffer > 30) {
+                this.rebootBuffer = 15
+            }
+        } else {
+            this.minLivenessMilSec = ONEDAYMILLISECOND
+            // cordon 시간대 기본값 시작 : 20시-한국시간 종료 : 21시-한국시간
+            this.cordonStartHour = util.timeStrToDate(maint.cordonStartHour, "20:00+09:00")
+            this.cordonEndHour = util.timeStrToDate(maint.cordonEndHour, "21:00+09:00")
+            // 시작 시각이 종료시각 보다 나중이면 종료시각을 시작시각 1시간 후로 설정 
+            if (this.cordonStartHour.getTime() > this.cordonEndHour.getTime()) {
+                this.cordonEndHour.setHours(this.cordonStartHour.getHours() + 1)
+            }
+            // 리부트 시간대 기본값 시작 : 03시-한국시간 종료 : 04시-한국시간
+            this.rebootStartHour = util.timeStrToDate(maint.rebootStartHour, "03:00+09:00")
+            this.rebootEndHoure = util.timeStrToDate(maint.rebootEndHour, "04:00+09:00")
+            // 시작 시각이 종료시각 보다 나중이면 종료시각을 시작시각 1시간 후로 설정 
+            if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
+                this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
+            }
+            // 리부트 비율은 기본 20%, 최소 10%, 최대 50%
+            this.percentOfReboot = maint.ratio
+            if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
+                this.percentOfReboot = 20
+            }
+            // 리부트 없이 노드가 유지되는 기간은 기본 14일, 최소 7일, 최대 28일
+            this.maxLivenessMilli = maint.maxLivenessDays * ONEDAYMILLISECOND
+            if (this.maxLivenessMilli < 7 * ONEDAYMILLISECOND || this.maxLivenessMilli > 28 * ONEDAYMILLISECOND) {
+                this.maxLivenessMilli = 14 * ONEDAYMILLISECOND
+            }
+            // 노드간 리부트 시 시간 간격은, 기본 15분, 최소 5분, 최대 30분 
+            this.rebootBuffer = (maint.rebootBuffer) ? this.rebootBuffer : 15
+            if (this.rebootBuffer < 5 || this.rebootBuffer > 30) {
+                this.rebootBuffer = 15
             }
         }
     }
@@ -467,7 +467,7 @@ export default class NodeManager {
      * CORDONED 및 REBOOTED condition중 남아있는 컨디션 삭제
      * CORDONED NODE에 대해서는 UNCORDON수행 
      */
-    private cleanConditions = async ():Promise<boolean> => {
+    private cleanConditions = async (): Promise<boolean> => {
         Log.info("[NodeManager.cleanConditions] Cleaning node conditions.")
         let skipThisTurn = false
         const yesterDay = Date.now() - ONEDAYMILLISECOND
@@ -498,7 +498,7 @@ export default class NodeManager {
         if (this.cordoned === false) {
             Log.info("[NodeManager.checkNodeStatus] Time to cordon check")
 
-            if( await this.cleanConditions()) {
+            if (await this.cleanConditions()) {
                 Log.info("[NodeManager.checkNodeStatus] cleaned something skip this turn.")
                 return
             }
@@ -560,7 +560,7 @@ export default class NodeManager {
             // 그렇지 않으면 설정정보를 새로 읽어옮
             // 따라서 cordon 작업시간 중이거나 reboot 작업시간 중에 설정파일을 변경하더라도 적용되지 않음
             if (!this.cordoned && !this.rebootScheduled) {
-                this.reloadConfigValues()
+                this.reloadConfigValues(maint)
             }
 
             const now = new Date()
@@ -626,15 +626,18 @@ export default class NodeManager {
         // worker가 실행중인 노드 목록 조회
         const nodesHasWorker = await this.getNodeHasWorker()
         Log.debug(`[NodeManager.filterRebootNode] Node has workder ${JSON.stringify(nodesHasWorker)}`)
-        const yesterday = Date.now() - (ONEDAYMILLISECOND)
+
+        const yesterday = Date.now() - this.minLivenessMilSec;
 
         const filteredNodes = NodeStatus.findNodes(node => {
-            let rebootOneMoreDaysAgo = true
-            if (node.lastRebootedTime !== 0) {
-                rebootOneMoreDaysAgo = node.lastRebootedTime < yesterday
-            }
-            return !nodesHasWorker.includes(node.nodeName) && !cordonedList.includes(node.nodeName) && rebootOneMoreDaysAgo
-
+            // let rebootOneMoreDaysAgo = true
+            // if (node.lastRebootedTime !== 0) {
+            //     rebootOneMoreDaysAgo = node.lastRebootedTime < yesterday
+            // }
+            const rebootOneMoreDaysAgo = (node.lastRebootedTime !== 0) ? node.lastRebootedTime < yesterday : true
+            const hasWorker = (nodesHasWorker.length > 0) ? nodesHasWorker.includes(node.nodeName) : false
+            const alreadyCordoned = (cordonedList.length > 0) ? cordonedList.includes(node.nodeName) : false
+            return !hasWorker && !alreadyCordoned && rebootOneMoreDaysAgo
         })
         Log.debug(`[NodeManager.filterRebootNode] Filtered nodes ${JSON.stringify(filteredNodes)}`)
         return Promise.resolve(filteredNodes)
@@ -763,15 +766,15 @@ export default class NodeManager {
 
 
     //// Test fundtions: 아래는 테스트를 위한 임시 함수들
-    public getIscordonTime(): (now: Date) => boolean {
-        return this.isCordonTime
-    }
+    // public getIscordonTime(): (now: Date) => boolean {
+    //     return this.isCordonTime
+    // }
 
-    public getIsRebootTime(): (now: Date) => boolean {
-        return this.isRebootTime
-    }
+    // public getIsRebootTime(): (now: Date) => boolean {
+    //     return this.isRebootTime
+    // }
 
-    public getReloadConfigValues(): () => void {
-        return this.reloadConfigValues.bind(this)
-    }
+    // public getReloadConfigValues(maint): () => void {
+    //     return this.reloadConfigValues.bind(this)
+    // }
 }
