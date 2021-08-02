@@ -622,7 +622,7 @@ export default class NodeManager {
      * 
      * @returns 필터링되고 정렬된 리부트 대상 노드이름 배열
      */
-    private async filterRebootNode(cordonedList: string[]): Promise<string[]> {
+    private  filterRebootNode = async (cordonedList: string[]): Promise<string[]> => {
         // worker가 실행중인 노드 목록 조회
         const nodesHasWorker = await this.getNodeHasWorker()
         Log.debug(`[NodeManager.filterRebootNode] Node has workder ${JSON.stringify(nodesHasWorker)}`)
@@ -637,7 +637,7 @@ export default class NodeManager {
             const rebootOneMoreDaysAgo = (node.lastRebootedTime !== 0) ? node.lastRebootedTime < yesterday : true
             const hasWorker = (nodesHasWorker.length > 0) ? nodesHasWorker.includes(node.nodeName) : false
             const alreadyCordoned = (cordonedList.length > 0) ? cordonedList.includes(node.nodeName) : false
-            Log.debug(`${hasWorker} && ${alreadyCordoned} && ${rebootOneMoreDaysAgo}`)
+            Log.debug(`${node.lastRebootedTime} && ${yesterday} && ${rebootOneMoreDaysAgo}`)
             return !hasWorker && !alreadyCordoned && rebootOneMoreDaysAgo
         })
         Log.debug(`[NodeManager.filterRebootNode] Filtered nodes ${JSON.stringify(filteredNodes)}`)
