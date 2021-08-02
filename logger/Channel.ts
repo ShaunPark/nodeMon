@@ -30,7 +30,7 @@ class Channel {
 
     private static sendMessageEventToES(log: ESLog) {
         if (Channel.esPort === undefined) {
-            Log.info(`${log.node} : ${log.message}`)
+            Log.error(`${log.node} : ${log.message}`)
         } else {
             Channel.esPort.postMessage({ data: { log: log, kind: "log" } });
         }
@@ -38,7 +38,7 @@ class Channel {
 
     public static sendNodeStatusToES(node: NodeConditionCache) {
         if (Channel.esPort === undefined) {
-            Log.info(`${node.nodeName} : ${JSON.stringify(node)}`)
+            Log.error(`${node.nodeName} : ${JSON.stringify(node)}`)
         } else {
             const nodeJson:ESNodeStatus = {
                 ipAddress: node.ipAddress,

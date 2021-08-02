@@ -75,7 +75,6 @@ export default class NodeManager {
      * Kubernetes 모니터에서 전달된 이벤트 처리
      */
     private onEvent = (event: any) => {
-        Log.info(`[NodeManager.onEvent] ${event.nodeName}`)
         this.eventHandlers[event.kind as EventTypes](event);
     }
     /**
@@ -97,7 +96,6 @@ export default class NodeManager {
             let rebootRequestedTime = 0
 
             nodeCondition.conditions.map(condition => {
-                Log.info(`[NodeManager.eventHandlers] condition.lastTransitionTime = ${condition.lastTransitionTime}`)
                 if (condition.type == REBOOT_REQUESTED && condition.status == "True") {
                     hasRebootRequest = true
                     scheduledTime = condition.lastTransitionTime
@@ -155,7 +153,7 @@ export default class NodeManager {
                     NodeStatus.setNode(node, { status: event.reason, lastUpdateTime: raisedTime})
                     // 이벤트가 원인이 모니터링 대상에 포함된 경우만 처리
                     if (NodeEventReasonArray.includes(event.reason)) {
-                        Log.info(`[NodeManager.eventHandlers] event.reason '${event.reason}'is NodeEventReasons`)
+                        Log.info(`[NodeManager.eventHandlers] '${event.reason}' is NodeEventReasons`)
                         // 수신된 이벤트에 따리 이벤트 핸들러 호출
                         this.eventHandlerOfEvent[event.reason as NodeEventReason](nodeName)
                     }
@@ -506,7 +504,7 @@ export default class NodeManager {
             }
             // 일정시간동안 리부트 되지 않은 노드를 목록으로 조회
             const arr = this.findOldNodes(now)
-            Log.info(`[NodeManager.checkNodeStatus] Reboot Schedule nodes : ${JSON.stringify(arr)}`)
+            Log.debug(`[NodeManager.checkNodeStatus] Reboot Schedule nodes : ${JSON.stringify(arr)}`)
 
             // 해당 노드들에 대해서 cordon 작업을 수행하고 리부트 우선순위 목록에 추가함
             // 최대 리부트 수 까지만 cordon을 수행
@@ -516,7 +514,7 @@ export default class NodeManager {
             // cordon 작업이 수행되었음을 표시
             this.cordoned = true
         } else {
-            Log.info("[NodeManager.checkNodeStatus] Time to cordon check but already done")
+            Log.debug("[NodeManager.checkNodeStatus] Time to cordon check but already done")
         }
     }
 
@@ -545,7 +543,7 @@ export default class NodeManager {
             // 선택된 노드들에 대해서 리부트 작업을 스케쥴링 
             this.rebootScheduled = true
         } else {
-            Log.info("[NodeManager.checkNodeStatus] Time to reboot check but already done")
+            Log.debug("[NodeManager.checkNodeStatus] Time to reboot check but already done")
         }
     }
 
@@ -575,7 +573,7 @@ export default class NodeManager {
             } else {
                 // cordon시간대가 아니지만 cordon 작업을 수핸한 경우는 cordon 작업시간대가 끝난 처음이므로 로그를 남김
                 if (this.cordoned == true) {
-                    Log.info("[NodeManager.checkNodeStatus] End ofcordon check")
+                    Log.info("[NodeManager.checkNodeStatus] End of cordon check")
                 }
                 this.cordoned = false;
             }
