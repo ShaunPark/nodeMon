@@ -566,7 +566,7 @@ export default class NodeManager {
             const now = new Date()
             // 매일 리부트할 최대 노드 수를 계산
             const numberOfReboot = Math.ceil(NodeStatus.getAll().size * (this.percentOfReboot / 100))
-            Log.info(`[NodeManager.checkNodeStatus] nubmer of reboot : ${numberOfReboot}`)
+            Log.debug(`[NodeManager.checkNodeStatus] nubmer of reboot : ${numberOfReboot}`)
             // 지금이 cordon작업을 수행할 시점인지 확인 
             if (this.isCordonTime(now)) {
                 await this.cordonNodes(now, numberOfReboot)
@@ -637,6 +637,7 @@ export default class NodeManager {
             const rebootOneMoreDaysAgo = (node.lastRebootedTime !== 0) ? node.lastRebootedTime < yesterday : true
             const hasWorker = (nodesHasWorker.length > 0) ? nodesHasWorker.includes(node.nodeName) : false
             const alreadyCordoned = (cordonedList.length > 0) ? cordonedList.includes(node.nodeName) : false
+            Log.debug(`${hasWorker} && ${alreadyCordoned} && ${rebootOneMoreDaysAgo}`)
             return !hasWorker && !alreadyCordoned && rebootOneMoreDaysAgo
         })
         Log.debug(`[NodeManager.filterRebootNode] Filtered nodes ${JSON.stringify(filteredNodes)}`)
