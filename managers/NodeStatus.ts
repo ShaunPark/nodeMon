@@ -58,11 +58,11 @@ export class NodeStatus {
     }
 
 
-    public static getChangedTime() {
-        return this.changedTime !== undefined
+    public static getChangedTime():Date|undefined {
+        return this.changedTime
     }
 
-    public static resetChangedTime() {
+    public static resetChangedTime():void {
         this.changedTime = undefined
     }
 }
