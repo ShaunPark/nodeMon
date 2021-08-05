@@ -88,7 +88,7 @@ export default class NodeManager {
             const nodeName = event.nodeName;
             const nodeCondition = event as NodeInfo
             const node = NodeStatus.getNode(nodeCondition.nodeName)
-            Log.info(`[NodeManager.eventHandlers] receive node condition : ${nodeName}`)
+            Log.info(`[NodeManager.eventHandlers] Got a node condition changed event of '${nodeName}'`)
 
             const status = nodeCondition.status + (nodeCondition.nodeUnscheduleable ? "/Unschedulable" : "")
             const rebootedTimeFromCondition = event.rebootTime;
@@ -142,7 +142,7 @@ export default class NodeManager {
         // 쿠버네트스 이벤트 수신 이벤트를 수신했을때의 처리
         NodeEvent: (event: NodeEvent) => {
             const nodeName = event.nodeName;
-            Log.info(`[NodeManager.eventHandlers] receive events : ${nodeName}`)
+            Log.info(`[NodeManager.eventHandlers] Got a new event of a node '${nodeName}'`)
             const node = NodeStatus.getNode(nodeName)
             // 이벤트 관련 노드가 관리 대상이 아닌경우 무시
             if (node == undefined) {
@@ -541,6 +541,7 @@ export default class NodeManager {
                 })
             await Promise.all(promises)
             Log.info("[NodeManager.cleanFailedJobs] Cleaned failed jobs.")
+            this.cleaned = true
         } else {
             Log.debug("[NodeManager.cleanFailedJobs] Time to clean but already done")
         }
