@@ -17,13 +17,15 @@ class SSHReboot {
             const sshUser = this.configManager.config.nodeManager.sshUser;
             const conn = new Client();
 
+            Log.info(`[SSHReboot.reboot]Start reboot '${ipAddress}'. `)
+
             if (sshFile) {
                 conn
                     .on('error', (err) => { Log.error(err) })
                     .on('end', () => { Log.info("[SSHReboot.reboot] Connection ended") })
                     .on('close', () => { Log.info("[SSHReboot.reboot] Connection closed") })
                     .on('ready', () => {
-                        Log.debug('[SSHReboot.reboot] SShClient ready');
+                        Log.info(`[SSHReboot.reboot] '${ipAddress}' connected. SShClient ready.`);
                         try {
                             conn.exec('sudo shutdown -r now', (err: any, stream: any) => {
                                 if (err !== undefined) {
