@@ -17,12 +17,12 @@ export interface ESNodeStatus {
 
 const mapping = {
     clusterName: {type:"keyword"},
-    ipAddress: { type: "ip" },
-    conditions: { type: "object" },
-    lastUpdateTime: { type: "date" },
-    status: { type: "keyword" },
-    lastRebootedTime: { type: "date" },
     nodeName: { type: "keyword" },
+    ipAddress: { type: "ip" },
+    status: { type: "keyword" },
+    lastUpdateTime: { type: "date" },
+    lastRebootedTime: { type: "date" },
+    conditions: { type: "object" },
     UUID: { type: "keyword" }
 }
 export class ESStatusClient extends ESClient<ESNodeStatus> {
