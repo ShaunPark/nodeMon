@@ -11,6 +11,7 @@ class Channel {
     public static initLogger(esPort: MessagePort, nmPort: MessagePort, clusterName: string) {
         Channel.esPort = esPort;
         Channel.nmPort = nmPort;
+        this.clusterName = clusterName
     }
 
     public static initLoggerForNodeManager(esPort: MessagePort, clusterName: string) {
