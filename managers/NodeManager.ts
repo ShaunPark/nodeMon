@@ -32,13 +32,14 @@ export default class NodeManager {
      * @param dryRun 실제 실행 여부
      */
     constructor(private configFile: string, private dryRun: boolean) {
+        // 속성 초기화
+        this.cmg = new ConfigManager(this.configFile);
+        this.k8sUtil = new K8SUtil(this.cmg.config)
+
         // 부모 스레드가 있으면 부모스레드로 부터 전달되는 이벤트 핸들러 등록 
         if (parentPort) {
             parentPort.addEventListener("message", this.initMessageHandler)
         }
-        // 속성 초기화
-        this.cmg = new ConfigManager(this.configFile);
-        this.k8sUtil = new K8SUtil(this.cmg.config)
     }
 
     /**
@@ -68,7 +69,7 @@ export default class NodeManager {
         } else {
             // Elastic Search exporter를 위한 포트를 받은 경우
             // Channel을 초기화 함 
-            Channel.initLoggerForNodeManager(ePort);
+            Channel.initLoggerForNodeManager(ePort, this.cmg.config.kubernetes.clusterName);
         }
     }
 
@@ -175,15 +176,20 @@ export default class NodeManager {
     // 노드 리스트를 테이블용 데이터로 만든 후 표로 출력
     private printNode = () => {
         const arr = new Array<Object>()
-        NodeStatus.getAll().forEach((node, key) => {
-            arr.push({
-                name: key, ipAddress: node.ipAddress,
-                lastUpdateTime: new Date(node.lastUpdateTime),
-                status: node.status, lastRebootedTime: new Date(node.lastRebootedTime),
-                hasScheduled: node.hasScheduled, hasReboodRequest: node.hasReboodRequest
+        const changedTime = NodeStatus.getChangedTime()
+        if (changedTime !== undefined) {
+            NodeStatus.getAll().forEach((node, key) => {
+                arr.push({
+                    name: key,
+                    updateTime: new Date(node.lastUpdateTime),
+                    status: node.status, rebootTime: new Date(node.lastRebootedTime),
+                    condition: `${node.hasScheduled}/${node.hasReboodRequest}`
+                })
             })
-        })
-        console.table(arr);
+            console.log(`ChangedTime: ${changedTime}`)
+            console.table(arr);
+            NodeStatus.resetChangedTime()
+        }
     }
 
     /**
@@ -316,7 +322,11 @@ export default class NodeManager {
 
                     try {
                         const rebooter: Rebooter = new Rebooter(this.cmg)
-                        rebooter.run(node.nodeName)
+                        if (config.nodeManager.useIpAddress) {
+                            rebooter.run(node.ipAddress)
+                        } else {
+                            rebooter.run(node.nodeName)
+                        }
                         // 노드 정보에 마지막으로 리부트 한 시각 설정
                         NodeStatus.setNode(node, { lastRebootedTime: Date.now() })
                     } catch (err) {
@@ -394,17 +404,27 @@ export default class NodeManager {
         return ret
     }
 
+    private isCleanTime = (now: Date): boolean => {
+        const ret = util.betweenTimes(now, this.cleanStartHour, this.cleanEndHour)
+        Log.debug(`[NodeManager.isCleanTime] isCleanTime : ${ret}`)
+        return ret
+    }
+
     // 설정 정보용 변수들
     private cordonStartHour: Date = new Date('Thu, 01 Jan 1970 20:00:00+09:00')
     private cordonEndHour: Date = new Date('Thu, 01 Jan 1970 21:00:00+09:00')
     private rebootStartHour: Date = new Date('Thu, 01 Jan 1970 03:00:00+09:00')
     private rebootEndHoure: Date = new Date('Thu, 01 Jan 1970 05:00:00+09:00')
+    private cleanStartHour: Date = new Date('Thu, 01 Jan 1970 06:00:00+09:00')
+    private cleanEndHour: Date = new Date('Thu, 01 Jan 1970 06:05:00+09:00')
+
     private percentOfReboot = 30
     private maxLivenessMilli = 10 * ONEDAYMILLISECOND
     private rebootBuffer = 15
     // 작업 진행상태 플래그
     private cordoned = false
     private rebootScheduled = false
+    private cleaned = false
     private minLivenessMilSec = ONEDAYMILLISECOND
     /**
      * 설정파일에서 필요한 설정 정보를 읽어옮
@@ -418,6 +438,8 @@ export default class NodeManager {
             this.cordonEndHour = new Date(this.cordonStartHour.getTime() + (60000))
             this.rebootStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 5))
             this.rebootEndHoure = new Date(this.cordonStartHour.getTime() + (60000 * 6))
+            this.cleanStartHour = new Date(this.cordonStartHour.getTime() + (60000 * 10))
+            this.cleanEndHour = new Date(this.cordonStartHour.getTime() + (60000 * 11))
 
             this.percentOfReboot = maint.ratio
             if (this.percentOfReboot < 10 || this.percentOfReboot > 90) {
@@ -446,6 +468,11 @@ export default class NodeManager {
             if (this.rebootStartHour.getTime() > this.rebootEndHoure.getTime()) {
                 this.rebootEndHoure.setHours(this.rebootStartHour.getHours() + 1)
             }
+
+            // reboot 시간이 끝나고 1시간 후에 실패한 작업에 대한 취소 처리 
+            this.cleanStartHour = new Date(this.rebootEndHoure.getTime() + (ONEMINUTEMILLISECOND * 60))
+            this.cleanEndHour = new Date(this.rebootEndHoure.getTime() + (ONEMINUTEMILLISECOND * 70))
+
             // 리부트 비율은 기본 20%, 최소 10%, 최대 50%
             this.percentOfReboot = maint.ratio
             if (this.percentOfReboot < 10 || this.percentOfReboot > 50) {
@@ -486,9 +513,37 @@ export default class NodeManager {
                     skipThisTurn = true
                 }
             })
-        Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
         await Promise.all(promises)
+        Log.info("[NodeManager.cleanConditions] Cleaned node conditions.")
         return Promise.resolve(skipThisTurn)
+    }
+
+    /**
+     * CORDONED 및 REBOOTED condition중 남아있는 컨디션 삭제
+     * CORDONED NODE에 대해서는 UNCORDON수행 
+     */
+    private cleanFailedJobs = async () => {
+        if (this.cleaned === false) {
+            Log.info("[NodeManager.cleanFailedJobs] Cleaning failed jobs.")
+            const promises = Array.from(NodeStatus.getAll())
+                .map(([_, node]) => node)
+                .map(async (node) => {
+                    if (node.hasReboodRequest) {
+                        Log.info(`[NodeManager.cleanFailedJobs] Node '${node.nodeName}' has requesed to reboot but failed. Delete request.`)
+                        await this.removeRebootCondition(node.nodeName)
+                    }
+
+                    if (node.hasScheduled) {
+                        Log.info(`[NodeManager.cleanFailedJobs] Node '${node.nodeName}' has scheduled reboot but failed. Delete schedule.`)
+                        await this.removeCordonedCondition(node.nodeName, true)
+                        Channel.error(node.nodeName, `Failed reboot. Cancel reboot process and reset conditions.`)
+                    }
+                })
+            await Promise.all(promises)
+            Log.info("[NodeManager.cleanFailedJobs] Cleaned failed jobs.")
+        } else {
+            Log.debug("[NodeManager.cleanFailedJobs] Time to clean but already done")
+        }
     }
 
     private cordonNodes = async (now: Date, numberOfReboot: number) => {
@@ -587,6 +642,17 @@ export default class NodeManager {
                     Log.info("[NodeManager.checkNodeStatus] End of reboot check")
                 }
                 this.rebootScheduled = false
+            }
+
+            // 지금이 reboot 작업을 수행할 시점인지 확인
+            if (this.isCleanTime(now)) {
+                await this.cleanFailedJobs()
+            } else {
+                // reboot 시간이 끝나면 reboot 대상 노드들을 목록에서 제거
+                if (this.cleaned === true) {
+                    Log.info("[NodeManager.checkNodeStatus] End of Job Cleaning.")
+                }
+                this.cleaned = false
             }
         }
     }

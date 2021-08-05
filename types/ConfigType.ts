@@ -1,11 +1,8 @@
-import { integer } from "@elastic/elasticsearch/api/types";
-
 export default interface IConfig {
     dryRun: boolean
     //interval?: number;
     rebootDelay: number;
     rebootThroughSSH?: boolean;
-    configReloadInterval?: integer;
     kubernetes: Ik8s;
     nodeManager: INodeMgr;
     elasticSearch: IElasticSearch;
@@ -34,6 +31,7 @@ export interface IElasticSearch {
     useApiKey: boolean
 }
 interface Ik8s {
+    clusterName:string
     nodeSelector?: string
     workerPodFieldSelector?: string
     workerPodLabelSelector?: string
@@ -45,4 +43,5 @@ interface INodeMgr {
     awsVPC?: string;
     sshPemFile: string;
     sshUser: string;
+    useIpAddress: boolean;
 }

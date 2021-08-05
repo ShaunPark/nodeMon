@@ -5,7 +5,8 @@ import { ESClient } from "./ESClient";
 
 
 export interface ESNodeStatus {
-    ipAddress?: string
+    clusterName?:string,
+    ipAddress?: string,
     conditions?: Map<string, NodeCondition>
     lastUpdateTime?: Date
     status?: string,
@@ -15,6 +16,7 @@ export interface ESNodeStatus {
 }
 
 const mapping = {
+    clusterName: {type:"keyword"},
     ipAddress: { type: "ip" },
     conditions: { type: "object" },
     lastUpdateTime: { type: "date" },

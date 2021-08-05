@@ -2,6 +2,7 @@ import yaml from "js-yaml";
 import fs from 'fs'
 import IConfig from "../types/ConfigType"
 import Log from '../logger/Logger'
+import deepEqual from "deep-equal";
 
 export default class ConfigManager {
     private _config: IConfig;
@@ -17,9 +18,15 @@ export default class ConfigManager {
         const now = new Date()
 
         if ((now.getTime() - this._lastReadTime.getTime()) > 60000) {
-            Log.info(`[ConfigManager.config] config loaded at ${this._lastReadTime.toLocaleString()}  now ${now.toLocaleString()}. Reload config now `)
 
-            this._config = yaml.load(fs.readFileSync(this.configFile, 'utf8')) as IConfig;
+            const newConfig = yaml.load(fs.readFileSync(this.configFile, 'utf8')) as IConfig;
+
+            if( deepEqual(this._config, newConfig) ) {
+                Log.debug("[ConfigManager.config] config file hasn't changed. skip ")
+            } else {
+                Log.info(`[ConfigManager.config] config file has changed. Reload config now `)
+                this._config = newConfig;
+            }
             this._lastReadTime = new Date();
         }
         return this._config;

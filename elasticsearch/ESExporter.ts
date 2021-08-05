@@ -9,7 +9,7 @@ const { workerData, parentPort } = require('worker_threads');
 
 
 export interface ESMessage {
-    kind: "log"|"status"
+    kind: "log" | "status"
     log?: ESLog
     status?: ESNodeStatus
 }
@@ -17,6 +17,7 @@ export interface ESLog {
     logType: "Error" | "Info" | "Warning",
     node: string,
     message: string
+    clusterName: string
 }
 class ESExporter {
     private configManager
@@ -38,7 +39,7 @@ class ESExporter {
     private log = (event: MessageEvent<ESMessage>) => {
         // logger.info(`log in es exporter : ${JSON.stringify(event)}`)
         if (event.data.kind === "log" && event.data.log) {
-            this.esLogger.putLog({ logType: event.data.log.logType, nodeName: event.data.log.node, message: event.data.log.message })
+            this.esLogger.putLog({ logType: event.data.log.logType, nodeName: event.data.log.node, message: event.data.log.message, clusterName: event.data.log.clusterName })
         } else if (event.data.kind === "status" && event.data.status) {
             this.esStatus.updateStatus(event.data.status)
         }

@@ -4,28 +4,30 @@ import { ESNodeStatus } from "../elasticsearch/ESStatusClient";
 import { BaseEvent, NodeConditionCache, NodeEvent, NodeInfo } from "../types/Type";
 import Log from "./Logger";
 class Channel {
-    private static esPort: MessagePort;
-    private static nmPort: MessagePort;
+    private static esPort: MessagePort
+    private static nmPort: MessagePort
+    private static clusterName: string
 
-    public static initLogger(esPort: MessagePort, nmPort: MessagePort) {
+    public static initLogger(esPort: MessagePort, nmPort: MessagePort, clusterName: string) {
         Channel.esPort = esPort;
         Channel.nmPort = nmPort;
     }
 
-    public static initLoggerForNodeManager(esPort: MessagePort) {
+    public static initLoggerForNodeManager(esPort: MessagePort, clusterName: string) {
         Channel.esPort = esPort;
+        this.clusterName = clusterName
     }
 
     public static info(nodeName: string, message: string) {
-        this.sendMessageEventToES({ logType: "Info", node: nodeName, message: message })
+        this.sendMessageEventToES({ logType: "Info", node: nodeName, message: message, clusterName: this.clusterName })
     }
 
     public static warn(nodeName: string, message: string) {
-        this.sendMessageEventToES({ logType: "Warning", node: nodeName, message: message })
+        this.sendMessageEventToES({ logType: "Warning", node: nodeName, message: message, clusterName: this.clusterName })
     }
 
     public static error(nodeName: string, message: string) {
-        this.sendMessageEventToES({ logType: "Error", node: nodeName, message: message })
+        this.sendMessageEventToES({ logType: "Error", node: nodeName, message: message, clusterName: this.clusterName })
     }
 
     private static sendMessageEventToES(log: ESLog) {
@@ -40,7 +42,8 @@ class Channel {
         if (Channel.esPort === undefined) {
             Log.error(`${node.nodeName} : ${JSON.stringify(node)}`)
         } else {
-            const nodeJson:ESNodeStatus = {
+            const nodeJson: ESNodeStatus = {
+                clusterName: this.clusterName,
                 ipAddress: node.ipAddress,
                 lastUpdateTime: new Date(node.lastUpdateTime),
                 status: node.status,
@@ -52,7 +55,7 @@ class Channel {
         }
     }
 
-    public static sendEventToNodeManager(event: BaseEvent|NodeInfo|NodeEvent) {
+    public static sendEventToNodeManager(event: BaseEvent | NodeInfo | NodeEvent) {
         Channel.nmPort.postMessage(event);
     }
 }

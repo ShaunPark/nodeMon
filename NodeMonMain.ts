@@ -44,8 +44,6 @@ export class NodeMonMain {
     }
 
     public run = () => {
-        const config: IConfig = this.configManager.config;
-
         Log.info(`[NodeMonMain.run] NodeMon started`)
         this.initChannels(this.configFile);
 
@@ -83,7 +81,7 @@ export class NodeMonMain {
         const mainToesChannel = new MessageChannel();
         const mainTonmChannel = new MessageChannel();
         const nmToEsChannel = new MessageChannel();
-        Channel.initLogger(mainToesChannel.port1, mainTonmChannel.port1);
+        Channel.initLogger(mainToesChannel.port1, mainTonmChannel.port1, this.configManager.config.kubernetes.clusterName);
 
         try {
             this._nodeManager.postMessage({ type: "parent", port: mainTonmChannel.port2 }, [mainTonmChannel.port2]);

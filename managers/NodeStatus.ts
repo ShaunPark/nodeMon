@@ -3,7 +3,7 @@ import { NodeConditionCache } from "../types/Type"
 
 export class NodeStatus {
     public static lastRebootTime: Date | undefined
-
+    public static changedTime?:Date = undefined
     private static nodeStatusCache = new Map<string, NodeConditionCache>()
     /**
          * 노드정보를 관리하는 목록에서 노드를 검색
@@ -36,6 +36,7 @@ export class NodeStatus {
         const newNode = { ...node, ...obj }
         Channel.sendNodeStatusToES(newNode);
         this.nodeStatusCache.set(newNode.nodeName, newNode)
+        this.changedTime = new Date();
     }
 
     public static isCordoned(nodeName: string): boolean {
@@ -54,5 +55,14 @@ export class NodeStatus {
                 return node1.lastRebootedTime - node2.lastRebootedTime
             })
             .map(node => node.nodeName)
+    }
+
+
+    public static getChangedTime() {
+        return this.changedTime !== undefined
+    }
+
+    public static resetChangedTime() {
+        this.changedTime = undefined
     }
 }
