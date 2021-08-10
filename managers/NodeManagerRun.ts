@@ -18,7 +18,7 @@ app.get("/", (req, res:any) => {
 })
 app.get("/nodes", (req, res:any) => {
     console.log(`request from ${req.hostname}`)
-    const nodes = Array.from(NodeStatus.getAll()).map(([_, node]) => node)
+    const nodes = Array.from(NodeStatus.getAll()).map(([_, node]) => node.ipAddress)
     console.log(JSON.stringify(nodes))
     res.json(nodes)
 })
