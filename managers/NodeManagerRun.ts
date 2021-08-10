@@ -17,6 +17,7 @@ app.get("/", (req, res:any) => {
     res.send("hello")
 })
 app.get("/nodes", (req, res:any) => {
+    console.log(`request from ${req.hostname}`)
     const nodes = Array.from(NodeStatus.getAll()).map(([_, node]) => node)
     res.send(nodes)
 })
