@@ -19,7 +19,7 @@ app.get("/", (req, res:any) => {
 app.get("/nodes", (req, res:any) => {
     console.log(`request from ${req.hostname}`)
     const nodes = Array.from(NodeStatus.getAll()).map(([_, node]) => node)
-    res.send(nodes)
+    res.json(nodes)
 })
 app.listen(port, () => {
     console.log(`server started at http://localhost:${port}`)
