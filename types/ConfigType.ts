@@ -10,7 +10,7 @@ export default interface IConfig {
 }
 
 export interface IMaintenance {
-    maxLivenessDays: 14
+    maxLivenessDays: number
     runMaintenance: boolean
     testMode: boolean
     rebootStartHour: string // 2 - 2AM, 

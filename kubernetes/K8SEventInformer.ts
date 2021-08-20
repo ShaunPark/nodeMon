@@ -82,7 +82,7 @@ export default class K8SEventInformer extends K8SInformer {
                 let lt = 0
                 try {
                     lt = obj.lastTimestamp.getTime()
-                } catch(err) {
+                } catch (err) {
                     const dt = new Date(obj.lastTimestamp)
                     lt = dt.getTime()
                 }
@@ -99,25 +99,24 @@ export default class K8SEventInformer extends K8SInformer {
 
     // event - source component pairs
     private concernedEvents = new Map<string, string[]>([
-        ["CordonStarting", ["draino", "kubelet"]],
-        ["CordonSucceeded", ["draino", "kubelet"]],
-        ["CordonFailed", ["draino", "kubelet"]],
-        ["UncordonStarting", ["draino", "kubelet"]],
-        ["UncordonSucceeded", ["draino", "kubelet"]],
-        ["UncordonFailed", ["draino", "kubelet"]],
+        // ["CordonStarting", ["draino", "kubelet"]],
+        // ["UncordonStarting", ["draino", "kubelet"]],
+        // ["UncordonFailed", ["draino", "kubelet"]],
+        // ["DrainStarting", ["draino", "kubelet"]],
+        //["Starting",""],
+        // "NodeNotSchedulable"
+        // "NodeAllocatableEnforced",
 
+        // ["CordonSucceeded", ["draino", "kubelet"]],
+        ["CordonFailed", ["draino", "kubelet"]],
+        ["UncordonSucceeded", ["draino", "kubelet"]],
         ["DrainScheduled", ["draino", "kubelet"]],
         ["DrainSchedulingFailed", ["draino", "kubelet"]],
-        ["DrainStarting", ["draino", "kubelet"]],
         ["DrainSucceeded", ["draino", "kubelet"]],
         ["DrainFailed", ["draino", "kubelet"]],
-
         ["NodeNotReady", ["node-controller"]],
-        //["Starting",""],
         ["Rebooted", ["kubelet"]],
-        // "NodeAllocatableEnforced",
         ["NodeReady", ["kubelet"]],
-        // "NodeNotSchedulable"
     ])
 
     private checkValid(event: CoreV1Event): boolean {

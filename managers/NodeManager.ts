@@ -12,9 +12,9 @@ const { parentPort } = require('worker_threads');
 
 
 type EventTypes = "NodeCondition" | "NodeEvent" | "DeleteNode"
-type NodeEventReason = "CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Rebooted" | "NodeNotReady" | "NodeReady"
+type NodeEventReason = "UncordonSucceeded"|"CordonFailed" | "DrainScheduled" | "DrainSchedulingFailed" | "DrainSucceeded" | "DrainFailed" | "Rebooted" | "NodeNotReady" | "NodeReady"
 
-const NodeEventReasonArray = ["CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
+const NodeEventReasonArray = ["UncordonSucceeded","CordonFailed", "DrainScheduled", "DrainSchedulingFailed", "DrainSucceeded", "DrainFailed", "Rebooted", "NodeNotReady", "NodeReady"]
 const startTime = Date.now()
 const REBOOT_REQUESTED = "RebootRequested"
 const NODE_CORDONED = "RebootScheduled"
@@ -245,14 +245,10 @@ export default class NodeManager {
             this.setNodeRebootTime(nodeName)
         },
         // 아래 이벤트들은 무시
-        CordonStarting: () => { },
-        CordonSucceeded: () => { },
-        DrainStarting: () => { },
-        UncordonStarting: () => { },
+
         UncordonSucceeded: (nodeName: string) => {
             Log.info(`[NodeManager.UncordonSucceeded] uncordoned by draino remove node condition.`)
         },
-        UncordonFailed: () => { },
     }
 
     /**
