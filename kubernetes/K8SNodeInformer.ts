@@ -1,5 +1,6 @@
-import { LoadBalancersConfig } from '@aws-sdk/client-ec2';
+import * as http from 'http';
 import * as k8s from '@kubernetes/client-node';
+import { V1NodeList } from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import Log from '../logger/Logger';
@@ -27,13 +28,23 @@ export default class K8SNodeInformer extends K8SInformer {
 
         const ls = (this.labelSelectors.length < 2) ? labelSelector : ""
 
-        const listFn = () => this.k8sApi.listNode(
-            undefined,
-            true,
-            undefined,
-            undefined,
-            ls,
-        );
+        const listFn = async (): Promise<{
+            response: http.IncomingMessage;
+            body: V1NodeList;
+        }> => {
+            const ret = await this.k8sApi.listNode(
+                undefined,
+                true,
+                undefined,
+                undefined,
+                ls,
+            )
+            const items = ret.body.items
+            ret.body.items = items.filter( item => {
+                return this.checkValid(item.metadata?.labels)
+            })
+            return Promise.resolve({response: ret.response, body:ret.body})
+        }
 
         this.informer = k8s.makeInformer(
             this.kubeConfig,
@@ -83,12 +94,10 @@ export default class K8SNodeInformer extends K8SInformer {
         this.informer.start()
     }
 
-    private labelMap = new Map<string, { lastUpdateTime: Date, needSend: string }>()
-
     private sendNodeCondition = (node: k8s.V1Node) => {
         try {
-            const needSend = this.checkValid(node.metadata?.labels)
-            if (needSend && node.metadata !== undefined && node.status !== undefined) {
+            //const needSend = this.checkValid(node.metadata?.labels)
+            if (node.metadata !== undefined && node.status !== undefined) {
                 const { name } = node.metadata;
                 const { conditions } = node.status;
                 const unschedulable = node.spec?.unschedulable ? true : false;
@@ -132,18 +141,6 @@ export default class K8SNodeInformer extends K8SInformer {
                     }
                 }
             }
-
-            // const nodeName = node.metadata?.name
-            // const needSendStr =  "TRUE" 
-            // if (nodeName) {
-            //     const temp = this.labelMap.get(nodeName)
-            //     if (temp) {
-            //         if (!needSend && temp.needSend != needSendStr) {
-            //             Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
-            //         }
-            //     }
-            //     this.labelMap.set(nodeName, { lastUpdateTime: new Date(), needSend: needSendStr })
-            // }
         } catch (err) {
             Log.error(err)
         }
@@ -162,10 +159,12 @@ export default class K8SNodeInformer extends K8SInformer {
             labelMap.forEach(lbl => {
                 const v = labels[lbl.key]
                 if (lbl.value == "" || v == lbl.value) {
+                    console.log("find !!!")
                     isValid = true;
                 }
             })
-            console.log("find !!!")
+            console.log(`return value ${isValid}`)
+
             return isValid
         }
 
