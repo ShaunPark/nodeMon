@@ -27,7 +27,7 @@ export class NodeMonMain {
     private nodeInformer: K8SNodeInformer;
     private eventInformer: K8SEventInformer
 
-    constructor(private configFile: string, private dryRun?: boolean) {
+    constructor(private configFile: string, private dryRun?: boolean, kubeConfig?:string) {
         // command line argument parsing 
         // argument 파싱 에러 발생 시 종료 
         try {
@@ -35,8 +35,8 @@ export class NodeMonMain {
             const config: IConfig = this.configManager.config;
 
             Log.info(`[NodeMonMain] load config from ${configFile}`)
-            this.nodeInformer = new K8SNodeInformer(config)
-            this.eventInformer = new K8SEventInformer(config)
+            this.nodeInformer = new K8SNodeInformer(config, kubeConfig)
+            this.eventInformer = new K8SEventInformer(config, kubeConfig)
         } catch (err) {
             Log.error(err)
             process.exit(1);
@@ -116,9 +116,10 @@ export class NodeMonMain {
 
 const args = parse<IArguments>({
     configFile: { type: String, alias: 'f' },
+    kubeConfig: { type: String, alias: 'k', optional:true },
     dryRun: { type: Boolean, optional: true }
 })
-const nodeMon = new NodeMonMain(args.configFile, args.dryRun);
+const nodeMon = new NodeMonMain(args.configFile, args.dryRun, args.kubeConfig);
 
 process.on('SIGTERM', function onSigterm() {
     Log.info('[NodeMonMain.onSigterm] Got SIGTERM. Graceful shutdown start')

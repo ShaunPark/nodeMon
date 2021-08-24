@@ -17,27 +17,29 @@ export default class K8SNodeInformer extends K8SInformer {
     private _config: IConfig;
     private informer: k8s.Informer<k8s.V1Node>
 
-    constructor(config: IConfig) {
-        super()
+    constructor(config: IConfig, kubeConfig?:string) {
+        super(kubeConfig)
         this._config = config
         const labelSelector = config.kubernetes.nodeSelector;
+
+        this.labelSelectors = this.stringsToArray(labelSelector)
+
+        const ls = (this.labelSelectors.length < 2)?labelSelector:""
 
         const listFn = () => this.k8sApi.listNode(
             undefined,
             true,
             undefined,
             undefined,
-            labelSelector,
+            ls,
         );
 
         this.informer = k8s.makeInformer(
             this.kubeConfig,
             '/api/v1/nodes',
             listFn,
-            labelSelector
+            ls
         );
-
-        this.labelSelectors = this.stringsToArray(labelSelector)
 
         this.informer.on('add', this.sendNodeCondition);
         this.informer.on('update', this.sendNodeCondition);
@@ -57,9 +59,9 @@ export default class K8SNodeInformer extends K8SInformer {
         });
     }
 
-    private stringsToArray = (str?: string): Array<LocalLabel> | undefined => {
+    private stringsToArray = (str?: string): Array<LocalLabel> => {
         if (str == undefined) {
-            return undefined
+            return  new Array<LocalLabel>()
         }
         const array = new Array<LocalLabel>()
         const strs = str.trim().split(",")
@@ -70,7 +72,7 @@ export default class K8SNodeInformer extends K8SInformer {
         return array
     }
 
-    private labelSelectors?: Array<LocalLabel>;
+    private labelSelectors: Array<LocalLabel>;
 
     stopInformer = () => {
         this.informer.stop()
@@ -84,8 +86,8 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private sendNodeCondition = (node: k8s.V1Node) => {
         try {
-            const needSend = true//this.checkValid(node.metadata?.labels)
-            if (needSend && node.metadata !== undefined && node.status !== undefined) {
+            const needSend = this.checkValid(node.metadata?.labels)
+            if ( node.metadata !== undefined && node.status !== undefined) {
                 const { name } = node.metadata;
                 const { conditions } = node.status;
                 const unschedulable = node.spec?.unschedulable ? true : false;
@@ -131,7 +133,7 @@ export default class K8SNodeInformer extends K8SInformer {
             }
 
             const nodeName = node.metadata?.name
-            const needSendStr = (needSend) ? "TRUE" : "FALSE"
+            const needSendStr =  "TRUE" 
             if (nodeName) {
                 const temp = this.labelMap.get(nodeName)
                 if (temp) {
@@ -146,22 +148,25 @@ export default class K8SNodeInformer extends K8SInformer {
         }
     }
 
-    // private checkValid(labels?: { [key: string]: string; }): boolean {
-    //     // Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
-    //     const labelMap = this.labelSelectors
-    //     if (labelMap && labels) {
-    //         let hasAllLabel: boolean = true;
-    //         labelMap.forEach(lbl => {
-    //             const v = labels[lbl.key]
-    //             if (!v) {
-    //                 hasAllLabel = false;
-    //             } else if (lbl.value != "" && v != lbl.value) {
-    //                 hasAllLabel = false;
-    //             }
-    //         })
-    //         return hasAllLabel
-    //     }
+    private checkValid(labels?: { [key: string]: string; }): boolean {
+        // Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
+        const labelMap = this.labelSelectors
+        if( labelMap.length < 2) {
+            return true
+        }
+        if (labelMap && labels) {
+            let hasAllLabel: boolean = true;
+            labelMap.forEach(lbl => {
+                const v = labels[lbl.key]
+                if (!v) {
+                    hasAllLabel = false;
+                } else if (lbl.value != "" && v != lbl.value) {
+                    hasAllLabel = false;
+                }
+            })
+            return hasAllLabel
+        }
 
-    //     return (labelMap == undefined)
-    // }
+        return (labelMap == undefined)
+    }
 }

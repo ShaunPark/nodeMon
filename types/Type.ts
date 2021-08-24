@@ -1,6 +1,7 @@
 export default interface IArguments {
     configFile: string;
-    dryRun?:boolean;
+    dryRun?: boolean;
+    kubeConfig?: string;
 }
 
 interface IEvent {
@@ -8,7 +9,7 @@ interface IEvent {
     message: string;
 }
 
-export interface NodeEvent extends BaseEvent  {
+export interface NodeEvent extends BaseEvent {
     // action?: string;
     // count?: number;
     // eventTime?: Date;
@@ -33,8 +34,8 @@ export interface NodeCondition {
 }
 
 export interface BaseEvent {
-    kind:string
-    nodeName:string
+    kind: string
+    nodeName: string
 }
 
 export interface NodeInfo extends BaseEvent {
@@ -56,6 +57,6 @@ export interface NodeConditionCache {
     readonly UUID: string
     readonly hasScheduled: boolean
     readonly hasReboodRequest: boolean
-    readonly scheduledTime:number
-    readonly rebootRequestedTime:number
+    readonly scheduledTime: number
+    readonly rebootRequestedTime: number
 }

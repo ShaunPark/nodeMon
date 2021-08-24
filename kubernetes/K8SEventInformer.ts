@@ -30,8 +30,8 @@ export default class K8SEventInformer extends K8SInformer {
     // private _k8sApi: k8s.CoreV1Api;
     // private _config?: IConfig;
     private informer: k8s.ListWatch<CoreV1Event>
-    constructor(config: IConfig) {
-        super()
+    constructor(config: IConfig, kubeConfig?:string) {
+        super(kubeConfig)
         const listFn = () => this.k8sApi.listEventForAllNamespaces(
             true,
             undefined,

@@ -182,7 +182,8 @@ export default class NodeManager {
                 arr.push({
                     name: key,
                     updateTime: new Date(node.lastUpdateTime),
-                    status: node.status, rebootTime: new Date(node.lastRebootedTime),
+                    status: node.status, 
+                    rebootTime: new Date(node.lastRebootedTime),
                     condition: `${node.hasScheduled}/${node.hasReboodRequest}`
                 })
             })
