@@ -10,10 +10,10 @@ import K8SEventInformer from "./kubernetes/K8SEventInformer";
 import K8SNodeInformer from "./kubernetes/K8SNodeInformer";
 import Log from './logger/Logger'
 
-type Config = {
-    interval: number;
-    kubernetes?: KubernetesConfig;
-}
+// type Config = {
+//     interval: number;
+//     kubernetes?: KubernetesConfig;
+// }
 
 type KubernetesConfig = {
     interval: number;
