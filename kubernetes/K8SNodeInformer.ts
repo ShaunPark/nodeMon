@@ -31,6 +31,7 @@ export default class K8SNodeInformer extends K8SInformer {
             if (node.metadata && node.metadata.name) {
                 const nodeName = node.metadata.name
                 Log.info(`[K8SNodeInformer] Node ${nodeName}deleted from cluster`)
+                this.nodeList.delete(nodeName)
                 Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
             }
         });
@@ -51,55 +52,67 @@ export default class K8SNodeInformer extends K8SInformer {
         this.informer.start()
     }
 
+    private nodeList = new Map<string, boolean>()
+
     private sendNodeCondition = (node: k8s.V1Node) => {
         try {
             const config = this.configManager.config
             const labelSelector = config.kubernetes.nodeSelector
             const builtExpr = utils.buildExpr(labelSelector, config.kubernetes.nodeSelectorExpr)
 
-            if (this.checkValid(builtExpr, node.metadata?.labels) && node.metadata !== undefined && node.status !== undefined) {
+            console.log(builtExpr)
+            console.table(node.metadata?.labels)
+
+            if (node.metadata !== undefined && node.status !== undefined && node.metadata.name) {
                 const { name } = node.metadata;
 
-                console.log(name)
-                const { conditions } = node.status;
-                const unschedulable = node.spec?.unschedulable ? true : false;
-                const validConditions = ["Ready", "RebootRequested", "RebootScheduled"]
-                const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
-                if (retArr.length == 0) {
-                    Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
-                } else {
-                    if (name && conditions) {
-                        const sendCondition = conditions
-                            .filter(condition => validConditions.includes(condition.type))
-                            .map(
-                                c => {
-                                    let ltt = 0
-                                    if (c.lastTransitionTime) {
-                                        try {
-                                            ltt = c.lastTransitionTime.getTime()
-                                        } catch (err) {
-                                            const dt = new Date(c.lastTransitionTime)
-                                            ltt = dt.getTime()
+                if (this.checkValid(builtExpr, node.metadata?.labels)) {
+                    const { conditions } = node.status;
+                    const unschedulable = node.spec?.unschedulable ? true : false;
+                    const validConditions = ["Ready", "RebootRequested", "RebootScheduled"]
+                    const retArr: string[] = jsonpath.query(node, '$.status.addresses[?(@.type=="InternalIP")].address')
+                    if (retArr.length == 0) {
+                        Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
+                    } else {
+                        if ( conditions) {
+                            const sendCondition = conditions
+                                .filter(condition => validConditions.includes(condition.type))
+                                .map(
+                                    c => {
+                                        let ltt = 0
+                                        if (c.lastTransitionTime) {
+                                            try {
+                                                ltt = c.lastTransitionTime.getTime()
+                                            } catch (err) {
+                                                const dt = new Date(c.lastTransitionTime)
+                                                ltt = dt.getTime()
+                                            }
                                         }
-                                    }
-                                    return { lastTransitionTime: ltt, reason: c.reason, status: c.status, type: c.type }
-                                })
+                                        return { lastTransitionTime: ltt, reason: c.reason, status: c.status, type: c.type }
+                                    })
 
-                        const status = sendCondition.find(condition => condition.type == "Ready" && condition.reason == "KubeletReady")
-                        const statusString = status?.status == "True" ? "Ready" : "NotReady"
+                            const status = sendCondition.find(condition => condition.type == "Ready" && condition.reason == "KubeletReady")
+                            const statusString = status?.status == "True" ? "Ready" : "NotReady"
 
-                        let rebootTime = 0
-                        if (status) {
-                            rebootTime = status.lastTransitionTime
+                            let rebootTime = 0
+                            if (status) {
+                                rebootTime = status.lastTransitionTime
+                            }
+                            // Node condition를 node manager로 전달
+                            this.nodeList.set(name, true)
+                            Logger.sendEventToNodeManager({
+                                kind: "NodeCondition",
+                                status: statusString,
+                                conditions: sendCondition,
+                                nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0],
+                                rebootTime: rebootTime
+                            })
                         }
-                        // Node condition를 node manager로 전달
-                        Logger.sendEventToNodeManager({
-                            kind: "NodeCondition",
-                            status: statusString,
-                            conditions: sendCondition,
-                            nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0],
-                            rebootTime: rebootTime
-                        })
+                    }
+                } else {
+                    if (this.nodeList.get(name)) {
+                        this.nodeList.set(name, false)
+                        Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: name })
                     }
                 }
             }
@@ -110,17 +123,18 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private checkValid(expr?: string, labels?: { [key: string]: string; }): boolean {
         const context = { metadata: { labels: labels } }
+        console.log(JSON.stringify(context))
         let retValue = false
         if (expr) {
             try {
                 const ret = jexl.evalSync(expr, context)
+                console.log(ret)
                 if (typeof ret == "boolean") {
                     retValue = ret
                 }
             } catch (err) {
                 console.log(err)
             }
-            retValue = false
         } else {
             retValue = true
         }
