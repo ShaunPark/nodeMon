@@ -124,12 +124,10 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private checkValid(expr?: string, labels?: { [key: string]: string; }): boolean {
         const context = { metadata: { labels: labels } }
-        console.log(JSON.stringify(context))
         let retValue = false
         if (expr) {
             try {
                 const ret = jexl.evalSync(expr, context)
-                console.log(ret)
                 if (typeof ret == "boolean") {
                     retValue = ret
                 }
@@ -139,7 +137,6 @@ export default class K8SNodeInformer extends K8SInformer {
         } else {
             retValue = true
         }
-        console.log(retValue)
         return retValue
     }
 }
