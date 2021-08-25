@@ -35,8 +35,8 @@ export class NodeMonMain {
             const config: IConfig = this.configManager.config;
 
             Log.info(`[NodeMonMain] load config from ${configFile}`)
-            this.nodeInformer = new K8SNodeInformer(config, kubeConfig)
-            this.eventInformer = new K8SEventInformer(config, kubeConfig)
+            this.nodeInformer = new K8SNodeInformer(this.configManager, kubeConfig)
+            this.eventInformer = new K8SEventInformer(this.configManager, kubeConfig)
         } catch (err) {
             Log.error(err)
             process.exit(1);

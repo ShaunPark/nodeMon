@@ -4,67 +4,26 @@ import { V1NodeList } from '@kubernetes/client-node';
 import jsonpath from 'jsonpath';
 import Logger from "../logger/Channel";
 import Log from '../logger/Logger';
-import IConfig from "../types/ConfigType"
 import K8SInformer from './K8SClient';
 import jexl from 'jexl'
 import * as utils from "../util/Util"
-
-interface LocalLabel {
-    key: string,
-    value: string
-}
+import ConfigManager from '../config/ConfigManager';
 
 export default class K8SNodeInformer extends K8SInformer {
     private informer: k8s.Informer<k8s.V1Node>
 
-    constructor(config: IConfig, kubeConfig?: string) {
+    constructor(private configManager: ConfigManager, kubeConfig?: string) {
         super(kubeConfig)
-        const labelSelector = config.kubernetes.nodeSelector
-        const builtExpr = utils.buildExpr(labelSelector, config.kubernetes.nodeSelectorExpr)
-
-        let listFn: () => Promise<{
+        const listFn = (): Promise<{
             response: http.IncomingMessage;
             body: V1NodeList;
-        }>
+        }> => this.k8sApi.listNode(undefined, true)
 
-        if (builtExpr) {
-            this.informer = k8s.makeInformer(
-                this.kubeConfig,
-                '/api/v1/nodes',
-                async (): Promise<{
-                    response: http.IncomingMessage;
-                    body: V1NodeList;
-                }> => {
-                    const ret = await this.k8sApi.listNode(
-                        undefined,
-                        true,
-                        undefined,
-                        undefined,
-                        undefined)
-                    const items = ret.body.items
-                    ret.body.items = items.filter(item => {
-                        return this.checkValid(builtExpr, item.metadata?.labels)
-                    })
-                    return Promise.resolve({ response: ret.response, body: ret.body })
-                },
-                undefined
-            );
-        } else {
-            this.informer = k8s.makeInformer(
-                this.kubeConfig,
-                '/api/v1/nodes',
-                (): Promise<{
-                    response: http.IncomingMessage;
-                    body: V1NodeList;
-                }> => this.k8sApi.listNode(
-                    undefined,
-                    true,
-                    undefined,
-                    undefined,
-                    labelSelector),
-                labelSelector
-            );
-        }
+        this.informer = k8s.makeInformer(
+            this.kubeConfig,
+            '/api/v1/nodes',
+            listFn
+        );
 
         this.informer.on('add', this.sendNodeCondition);
         this.informer.on('update', this.sendNodeCondition);
@@ -94,8 +53,14 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private sendNodeCondition = (node: k8s.V1Node) => {
         try {
-            if (node.metadata !== undefined && node.status !== undefined) {
+            const config = this.configManager.config
+            const labelSelector = config.kubernetes.nodeSelector
+            const builtExpr = utils.buildExpr(labelSelector, config.kubernetes.nodeSelectorExpr)
+
+            if (this.checkValid(builtExpr, node.metadata?.labels) && node.metadata !== undefined && node.status !== undefined) {
                 const { name } = node.metadata;
+
+                console.log(name)
                 const { conditions } = node.status;
                 const unschedulable = node.spec?.unschedulable ? true : false;
                 const validConditions = ["Ready", "RebootRequested", "RebootScheduled"]
@@ -145,18 +110,21 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private checkValid(expr?: string, labels?: { [key: string]: string; }): boolean {
         const context = { metadata: { labels: labels } }
+        let retValue = false
         if (expr) {
             try {
                 const ret = jexl.evalSync(expr, context)
                 if (typeof ret == "boolean") {
-                    return ret
+                    retValue = ret
                 }
             } catch (err) {
                 console.log(err)
             }
-            return false
+            retValue = false
         } else {
-            return true
+            retValue = true
         }
+        console.log(retValue)
+        return retValue
     }
 }

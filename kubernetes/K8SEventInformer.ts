@@ -1,11 +1,11 @@
 import * as k8s from '@kubernetes/client-node';
 import { CoreV1Event, DefaultRequest, RequestInterface, RequestResult } from '@kubernetes/client-node';
-import IConfig from "../types/ConfigType"
 import Logger from "../logger/Channel";
 import request = require('request');
 import Log from '../logger/Logger'
 import K8SInformer from './K8SClient';
 import { NodeEvent } from '../types/Type';
+import ConfigManager from '../config/ConfigManager';
 
 // Kubernetes client library 0.15.0 까지는 Informer생성 시 fieldSelector사용 불가
 // fieldSelector을 위해 Request를 새롭게 구현하고 webRequest 직전에 fieldSelector를 queryparam에 추가하도록 함
@@ -27,10 +27,8 @@ class RequestWithFieldSelector extends DefaultRequest {
 }
 
 export default class K8SEventInformer extends K8SInformer {
-    // private _k8sApi: k8s.CoreV1Api;
-    // private _config?: IConfig;
     private informer: k8s.ListWatch<CoreV1Event>
-    constructor(config: IConfig, kubeConfig?:string) {
+    constructor(private configManager: ConfigManager, kubeConfig?:string) {
         super(kubeConfig)
         const listFn = () => this.k8sApi.listEventForAllNamespaces(
             true,

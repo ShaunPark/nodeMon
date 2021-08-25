@@ -3,8 +3,6 @@ import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
 import K8SClient from "./K8SClient";
-import jexl from 'jexl'
-import * as utils from "../util/Util"
 
 export default class K8SUtil extends K8SClient {
     protected config: IConfig;
@@ -125,28 +123,28 @@ export default class K8SUtil extends K8SClient {
         return Promise.resolve(nodeList)
     }
 
-    private async getCordonedNodes(type: string): Promise<(string | undefined)[]> {
-        const labelSelector = this.config.kubernetes.nodeSelector
-        const builtExpr = utils.buildExpr(labelSelector, this.config.kubernetes.nodeSelectorExpr)
+    // private async getCordonedNodes(type: string): Promise<(string | undefined)[]> {
+    //     const labelSelector = this.config.kubernetes.nodeSelector
+    //     const builtExpr = utils.buildExpr(labelSelector, this.config.kubernetes.nodeSelectorExpr)
 
-        const checkFunc = (item: V1Node): boolean => {
-            const ret = jsonpath.query(item, `$.status.conditions[?(@.type == '${type}')]`)
-            return ret.length == 1 && ret[0].status == "True"
-        }
+    //     const checkFunc = (item: V1Node): boolean => {
+    //         const ret = jsonpath.query(item, `$.status.conditions[?(@.type == '${type}')]`)
+    //         return ret.length == 1 && ret[0].status == "True"
+    //     }
 
-        if (builtExpr) {
-            const checkValid = (item: V1Node): boolean => {
-                const ret = jexl.evalSync(builtExpr, { metadata: { labels: item.metadata?.labels } })
-                return (typeof ret == "boolean") ? ret : false
-            }
+    //     if (builtExpr) {
+    //         const checkValid = (item: V1Node): boolean => {
+    //             const ret = jexl.evalSync(builtExpr, { metadata: { labels: item.metadata?.labels } })
+    //             return (typeof ret == "boolean") ? ret : false
+    //         }
 
-            const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, undefined)
-            const items = body.items.filter(checkValid).filter(checkFunc).map(item => item.metadata?.name)
-            return Promise.resolve(items)
-        } else {
-            const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
-            const items = body.items.filter(checkFunc).map(item => item.metadata?.name)
-            return Promise.resolve(items)
-        }
-    }
+    //         const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, undefined)
+    //         const items = body.items.filter(checkValid).filter(checkFunc).map(item => item.metadata?.name)
+    //         return Promise.resolve(items)
+    //     } else {
+    //         const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
+    //         const items = body.items.filter(checkFunc).map(item => item.metadata?.name)
+    //         return Promise.resolve(items)
+    //     }
+    // }
 }
