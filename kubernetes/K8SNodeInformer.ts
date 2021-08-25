@@ -60,6 +60,7 @@ export default class K8SNodeInformer extends K8SInformer {
             const labelSelector = config.kubernetes.nodeSelector
             const builtExpr = utils.buildExpr(labelSelector, config.kubernetes.nodeSelectorExpr)
 
+	    console.log(config.kubernetes.nodeSelectorExpr)
             console.log(builtExpr)
             console.table(node.metadata?.labels)
 
