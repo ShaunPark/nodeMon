@@ -1,8 +1,10 @@
-import { V1Node, V1NodeCondition, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
+import { V1Node, V1NodeCondition, V1NodeList, V1NodeSpec, V1NodeStatus } from "@kubernetes/client-node";
 import jsonpath from "jsonpath";
 import Log from '../logger/Logger'
 import IConfig from "../types/ConfigType";
 import K8SClient from "./K8SClient";
+import jexl from 'jexl'
+import * as utils from "../util/Util"
 
 export default class K8SUtil extends K8SClient {
     protected config: IConfig;
@@ -123,17 +125,28 @@ export default class K8SUtil extends K8SClient {
         return Promise.resolve(nodeList)
     }
 
-    public async getCordonedNodes(type: string): Promise<string[]> {
-        const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
-        const arr: string[] = []
-        body.items.forEach(item => {
+    private async getCordonedNodes(type: string): Promise<(string | undefined)[]> {
+        const labelSelector = this.config.kubernetes.nodeSelector
+        const builtExpr = utils.buildExpr(labelSelector, this.config.kubernetes.nodeSelectorExpr)
+
+        const checkFunc = (item: V1Node): boolean => {
             const ret = jsonpath.query(item, `$.status.conditions[?(@.type == '${type}')]`)
-            if (ret.length == 1 && ret[0].status == "True") {
-                if (item.metadata && item.metadata.name) {
-                    arr.push(item.metadata.name)
-                }
+            return ret.length == 1 && ret[0].status == "True"
+        }
+
+        if (builtExpr) {
+            const checkValid = (item: V1Node): boolean => {
+                const ret = jexl.evalSync(builtExpr, { metadata: { labels: item.metadata?.labels } })
+                return (typeof ret == "boolean") ? ret : false
             }
-        })
-        return Promise.resolve(arr)
+
+            const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, undefined)
+            const items = body.items.filter(checkValid).filter(checkFunc).map(item => item.metadata?.name)
+            return Promise.resolve(items)
+        } else {
+            const { body } = await this.k8sApi.listNode(undefined, undefined, undefined, undefined, this.config.kubernetes.nodeSelector)
+            const items = body.items.filter(checkFunc).map(item => item.metadata?.name)
+            return Promise.resolve(items)
+        }
     }
 }

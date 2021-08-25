@@ -57,3 +57,25 @@ export function timeStrToDate(timeStr: string, def: string): Date {
         return parseTimeStr(def)
     }
 }
+
+export function buildExpr(labelSelector?: string, labelSelectorExpr?: string): string | undefined {
+    const labels = stringsToArray(labelSelector)
+
+    if (labelSelector == undefined || labels.length == 1) {
+        return undefined
+    }
+    return (labels.length == 0) ? labelSelectorExpr : labels.map(lbl => `metadata.labels['${lbl.key}'] == '${lbl.value}'`).join(" || ")
+}
+
+const  stringsToArray = (str?: string): Array<{key:string, value:string}> => {
+    if (str == undefined) {
+        return new Array<{key:string, value:string}>()
+    }
+    const array = new Array<{key:string, value:string}>()
+    const strs = str.trim().split(",")
+    strs.forEach(s => {
+        const values = s.trim().split("=")
+        array.push({ key: values[0], value: values.slice(1).join("=") })
+    })
+    return array
+}

@@ -6,52 +6,65 @@ import Logger from "../logger/Channel";
 import Log from '../logger/Logger';
 import IConfig from "../types/ConfigType"
 import K8SInformer from './K8SClient';
+import jexl from 'jexl'
+import * as utils from "../util/Util"
 
 interface LocalLabel {
     key: string,
     value: string
 }
 
-type Label = {
-    [key: string]: string
-}
 export default class K8SNodeInformer extends K8SInformer {
-    private _config: IConfig;
     private informer: k8s.Informer<k8s.V1Node>
 
     constructor(config: IConfig, kubeConfig?: string) {
         super(kubeConfig)
-        this._config = config
-        const labelSelector = config.kubernetes.nodeSelector;
+        const labelSelector = config.kubernetes.nodeSelector
+        const builtExpr = utils.buildExpr(labelSelector, config.kubernetes.nodeSelectorExpr)
 
-        this.labelSelectors = this.stringsToArray(labelSelector)
-
-        const ls = (this.labelSelectors.length < 2) ? labelSelector : ""
-
-        const listFn = async (): Promise<{
+        let listFn: () => Promise<{
             response: http.IncomingMessage;
             body: V1NodeList;
-        }> => {
-            const ret = await this.k8sApi.listNode(
-                undefined,
-                true,
-                undefined,
-                undefined,
-                ls,
-            )
-            const items = ret.body.items
-            ret.body.items = items.filter( item => {
-                return this.checkValid(item.metadata?.labels)
-            })
-            return Promise.resolve({response: ret.response, body:ret.body})
-        }
+        }>
 
-        this.informer = k8s.makeInformer(
-            this.kubeConfig,
-            '/api/v1/nodes',
-            listFn,
-            ls
-        );
+        if (builtExpr) {
+            this.informer = k8s.makeInformer(
+                this.kubeConfig,
+                '/api/v1/nodes',
+                async (): Promise<{
+                    response: http.IncomingMessage;
+                    body: V1NodeList;
+                }> => {
+                    const ret = await this.k8sApi.listNode(
+                        undefined,
+                        true,
+                        undefined,
+                        undefined,
+                        undefined)
+                    const items = ret.body.items
+                    ret.body.items = items.filter(item => {
+                        return this.checkValid(builtExpr, item.metadata?.labels)
+                    })
+                    return Promise.resolve({ response: ret.response, body: ret.body })
+                },
+                undefined
+            );
+        } else {
+            this.informer = k8s.makeInformer(
+                this.kubeConfig,
+                '/api/v1/nodes',
+                (): Promise<{
+                    response: http.IncomingMessage;
+                    body: V1NodeList;
+                }> => this.k8sApi.listNode(
+                    undefined,
+                    true,
+                    undefined,
+                    undefined,
+                    labelSelector),
+                labelSelector
+            );
+        }
 
         this.informer.on('add', this.sendNodeCondition);
         this.informer.on('update', this.sendNodeCondition);
@@ -71,21 +84,6 @@ export default class K8SNodeInformer extends K8SInformer {
         });
     }
 
-    private stringsToArray = (str?: string): Array<LocalLabel> => {
-        if (str == undefined) {
-            return new Array<LocalLabel>()
-        }
-        const array = new Array<LocalLabel>()
-        const strs = str.trim().split(",")
-        strs.forEach(s => {
-            const values = s.trim().split("=")
-            array.push({ key: values[0], value: values.slice(1).join("=") })
-        })
-        return array
-    }
-
-    private labelSelectors: Array<LocalLabel>;
-
     stopInformer = () => {
         this.informer.stop()
     }
@@ -96,7 +94,6 @@ export default class K8SNodeInformer extends K8SInformer {
 
     private sendNodeCondition = (node: k8s.V1Node) => {
         try {
-            //const needSend = this.checkValid(node.metadata?.labels)
             if (node.metadata !== undefined && node.status !== undefined) {
                 const { name } = node.metadata;
                 const { conditions } = node.status;
@@ -146,28 +143,20 @@ export default class K8SNodeInformer extends K8SInformer {
         }
     }
 
-    private checkValid(labels?: { [key: string]: string; }): boolean {
-        // Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
-        const labelMap = this.labelSelectors
-        if (labelMap.length < 2) {
+    private checkValid(expr?: string, labels?: { [key: string]: string; }): boolean {
+        const context = { metadata: { labels: labels } }
+        if (expr) {
+            try {
+                const ret = jexl.evalSync(expr, context)
+                if (typeof ret == "boolean") {
+                    return ret
+                }
+            } catch (err) {
+                console.log(err)
+            }
+            return false
+        } else {
             return true
         }
-        console.table(labelMap)
-        console.table(labels)
-        if (labelMap !== undefined && labels !== undefined) {
-            let isValid: boolean = false;
-            labelMap.forEach(lbl => {
-                const v = labels[lbl.key]
-                if (lbl.value == "" || v == lbl.value) {
-                    console.log("find !!!")
-                    isValid = true;
-                }
-            })
-            console.log(`return value ${isValid}`)
-
-            return isValid
-        }
-
-        return (labelMap == undefined)
     }
 }

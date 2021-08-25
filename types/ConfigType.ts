@@ -33,6 +33,7 @@ export interface IElasticSearch {
 interface Ik8s {
     clusterName:string
     nodeSelector?: string
+    nodeSelectorExpr?: string
     workerPodFieldSelector?: string
     workerPodLabelSelector?: string
 }

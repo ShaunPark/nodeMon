@@ -35,16 +35,10 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
             Log.error("[ESStatusClient] ElasticSearch connection information is not set in config file.")
         }
     }
-
-    // public putStatus(status: ESNodeStatus) {
-    //     super.put(status)
-    // }
-
     public async updateStatus(status: ESNodeStatus) {
         const searchStatus = { UUID: status.UUID }
         try {
             const arr = await super.searchId(searchStatus, "timestamp")
-            // console.log(JSON.stringify(arr))
             if (arr.length == 0) {
                 super.put(status)
             } else {
@@ -59,8 +53,4 @@ export class ESStatusClient extends ESClient<ESNodeStatus> {
 
         }
     }
-
-    // public async searchStatus(status: ESNodeStatus): Promise<Array<ESNodeStatus>> {
-    //     return super.search(status)
-    // }
 }

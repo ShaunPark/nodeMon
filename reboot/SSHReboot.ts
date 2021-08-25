@@ -50,7 +50,7 @@ class SSHReboot {
                 Log.info(`[SSHReboot.reboot]cert file for ssh path is not defined in config file.`)
             }
         } catch (err) {
-            console.error(`[SSHReboot.reboot]Fail to reboot ${ipAddress}.`, err)
+            Log.error(`[SSHReboot.reboot]Fail to reboot ${ipAddress}.`, err)
             throw err
         }
     }
