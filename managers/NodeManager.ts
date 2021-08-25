@@ -191,10 +191,10 @@ export default class NodeManager {
 
     // 노드 정보 출력 이벤트를 수신했을때의 처리
     // 노드 리스트를 테이블용 데이터로 만든 후 표로 출력
-    private printNode = (force:boolean = false) => {
+    private printNode = (force:boolean) => {
         const arr = new Array<Object>()
-        const changedTime = NodeStatus.getChangedTime()
-        if (force || changedTime !== undefined) {
+        const changedTime = (force)?new Date():NodeStatus.getChangedTime()
+        if (changedTime !== undefined) {
             NodeStatus.getAll().forEach((node, key) => {
                 arr.push({
                     name: key,
@@ -390,7 +390,7 @@ export default class NodeManager {
 
         this.mainLoop = setInterval(() => {
             this.checkNodeStatus()
-            this.printNode()
+            this.printNode(false)
         }, interval)
     }
 
