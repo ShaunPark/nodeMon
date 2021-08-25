@@ -137,6 +137,7 @@ export default class NodeManager {
                     rebootRequestedTime: rebootRequestedTime
                 };
                 NodeStatus.setNode(newNode)
+                this.printNode(true)
             }
         },
         // 쿠버네트스 이벤트 수신 이벤트를 수신했을때의 처리
@@ -169,15 +170,16 @@ export default class NodeManager {
             Log.info(`[NodeManager.eventHandlers] Node '${event.nodeName} removed from moritoring list. delete it.`)
             Channel.info(event.nodeName, `Node removed from moritoring list.`)
             NodeStatus.deleteNode(event.nodeName)
+            this.printNode(true)
         }
     }
 
     // 노드 정보 출력 이벤트를 수신했을때의 처리
     // 노드 리스트를 테이블용 데이터로 만든 후 표로 출력
-    private printNode = () => {
+    private printNode = (force:boolean = false) => {
         const arr = new Array<Object>()
         const changedTime = NodeStatus.getChangedTime()
-        if (changedTime !== undefined) {
+        if (force || changedTime !== undefined) {
             NodeStatus.getAll().forEach((node, key) => {
                 arr.push({
                     name: key,

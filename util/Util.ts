@@ -60,13 +60,7 @@ export function timeStrToDate(timeStr: string, def: string): Date {
 
 export function buildExpr(labelSelector?: string, labelSelectorExpr?: string): string | undefined {
     const labels = stringsToArray(labelSelector)
-
-    console.log(`labelSelector ${labelSelector}`)
-    console.log(`labelSelectorExpr ${labelSelectorExpr}`)
-    console.log(`labels.length ${labels.length}`)
-
     const builtExpr = labels.map(lbl => `metadata.labels['${lbl.key}'] == '${lbl.value}'`).join(" || ")
-    console.log(`builtExpr ${builtExpr}`)
     return (labels.length == 0) ? labelSelectorExpr : builtExpr 
 }
 
