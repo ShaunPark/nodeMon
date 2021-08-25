@@ -22,7 +22,9 @@
 ```
     rebootThroughSSH: true
     kubernetes:
+        clusterName: "local"
         nodeSelector: "worker=enabled"
+        nodeSelectorExpr: "metadata.labels.worker == 'enabled' || metadata.labels.build == 'enabled'"
         workerPodLabelSelector: "component=worker"
     nodeManager:
         sshPemFile: "/etc/ssl/certs/my.pem"
@@ -48,10 +50,13 @@
 
 - rebootThroughSSH: 서버에 대한 reboot 혹은 종료를 수행하는 방법. 매니지드 클러스터를 사용하여 인스턴스를 종료해야 하는 경우에는  false, 개별 서버를 사용하여 서버를 reboot해야 하는 경우에는 true로 설정
 - kubernetes: 쿠버네티스 모니터링 관련 설정
-    - nodeSelector: 모니터링 대상 노드를 선택하기 위한 LabelSelector를 정의. 없으면 모든 노드 에 대해 모니터링 
+    - clusterName: 모니터링 대상 클러스터 명. ElasticSearch에 남기는 로그를 Kibana에서 통합해서 클러스터 단위로 보기위해 추가.
+    - nodeSelector (Optional): 노드정보 중에서 원하는 노드만 선택하기 위한 selector. 복수의 레이블을 적용하고자 하면 ','로 구분하여 설정. 예시) "worker=enabled,build=enabled"
+    - nodeSelectorExpr (Optional): 노드를 선택하기 위한 expression. "worker=enabled,build=enabled"를 이 방식으로 표현하면 "metadata.labels.worker == 'enabled' || metadata.labels.build == 'enabled'" 로 표기함. nodeSelector 가 우선순위가 높으므로, nodeSelector가 설정되어 있으면 nodeSelectorExpr는 무시됨. 레이블간의 AND(&&), OR(||) 연산이 가능함.
     - workerPodLabelSelector: 실행 중인 Pod중에 "worker" pod를 선택하기 위한 LabelSelector를 정의.
     노드를 주기적으로 리부트하는 경우에 해당 노드에 "worker" pod가 실행중이면 우선순위가 뒤로 밀림 
 - nodeManager: 
+    - interval: node 매니저의 작업 주기. 기본 10초. 밀리초 단위로 설정.
     - sshPemFile: SSH 연결을 위한 pem 키 파일의 위치 설정. deploy.yaml에 설정된 값과 동일하게 유지해야 함. "/etc/ssl/certs/my.pem"
     - sshUser: SSH연결 수행 시 사용하는 OS 계정을 정의
     - awsRegion: AWS상의 EKS 모니터링 시 해당 클러스터가 실행중인 region 명
