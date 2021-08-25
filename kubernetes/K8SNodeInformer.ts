@@ -32,7 +32,7 @@ export default class K8SNodeInformer extends K8SInformer {
                 const nodeName = node.metadata.name
                 Log.info(`[K8SNodeInformer] Node ${nodeName}deleted from cluster`)
                 this.nodeList.delete(nodeName)
-                Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName })
+                Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: nodeName, resetCondition: false })
             }
         });
         this.informer.on('error', (err: k8s.V1Node) => {
@@ -71,7 +71,7 @@ export default class K8SNodeInformer extends K8SInformer {
                     if (retArr.length == 0) {
                         Log.error(`[K8SNodeInformer.sendNodeCondition] Cannot get internal ip-address of node ${name}. skip ${name}`)
                     } else {
-                        if ( conditions) {
+                        if (conditions) {
                             const sendCondition = conditions
                                 .filter(condition => validConditions.includes(condition.type))
                                 .map(
@@ -109,7 +109,7 @@ export default class K8SNodeInformer extends K8SInformer {
                 } else {
                     if (this.nodeList.get(name)) {
                         this.nodeList.set(name, false)
-                        Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: name })
+                        Logger.sendEventToNodeManager({ kind: "DeleteNode", nodeName: name, resetCondition: true })
                     }
                 }
             }

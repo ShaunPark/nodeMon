@@ -1,13 +1,14 @@
 import Channel from "../logger/Channel";
 import ConfigManager from "../config/ConfigManager";
 import { MessagePort } from "worker_threads"
-import { BaseEvent, NodeConditionCache, NodeEvent, NodeInfo } from "../types/Type";
+import { DeleteNode, NodeConditionCache, NodeEvent, NodeInfo } from "../types/Type";
 import Log from '../logger/Logger'
 import Rebooter from "../reboot/Rebooter";
 import K8SUtil from "../kubernetes/K8SUtil"
 import * as util from "../util/Util";
 import { NodeStatus } from "./NodeStatus";
 import { IMaintenance } from "../types/ConfigType";
+import { nodes } from "jsonpath";
 const { parentPort } = require('worker_threads');
 
 
@@ -166,10 +167,24 @@ export default class NodeManager {
             }
         },
         // 노드가 삭제된 이벤트를 수신했을때의 처리
-        DeleteNode: (event: BaseEvent) => {
+        DeleteNode: async (event: DeleteNode) => {
             Log.info(`[NodeManager.eventHandlers] Node '${event.nodeName} removed from moritoring list. delete it.`)
-            Channel.info(event.nodeName, `Node removed from moritoring list.`)
+            const node = NodeStatus.getNode(event.nodeName)
+            let msg = ""
+            if( node && event.resetCondition ) {
+                if (node.hasReboodRequest) {
+                    Log.info(`[NodeManager.eventHandlers] Node '${node.nodeName}' removed from moritoring list. Delete request.`)
+                    await this.removeRebootCondition(node.nodeName)
+                }
+
+                if (node.hasScheduled) {
+                    Log.info(`[NodeManager.eventHandlers] Node '${node.nodeName}' removed from moritoring list. Delete schedule.`)
+                    await this.removeCordonedCondition(node.nodeName, true)
+                    msg =`And cancel reboot schedule.`
+                }
+            }
             NodeStatus.deleteNode(event.nodeName)
+            Channel.info(event.nodeName, `Node removed from moritoring list. ${msg}`)
             this.printNode(true)
         }
     }

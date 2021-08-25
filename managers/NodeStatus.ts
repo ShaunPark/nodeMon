@@ -18,6 +18,10 @@ export class NodeStatus {
      * @param nodeName 노드 명
      */
     public static deleteNode(nodeName: string) {
+        const node = this.nodeStatusCache.get(nodeName)
+        if( node && node.timer !== undefined) {
+            clearTimeout(node.timer)
+        }
         this.nodeStatusCache.delete(nodeName)
     }
     /**

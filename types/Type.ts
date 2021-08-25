@@ -33,9 +33,13 @@ export interface NodeCondition {
     type: string;
 }
 
-export interface BaseEvent {
+interface BaseEvent {
     kind: string
     nodeName: string
+}
+
+export interface DeleteNode extends BaseEvent {
+    resetCondition: boolean
 }
 
 export interface NodeInfo extends BaseEvent {
