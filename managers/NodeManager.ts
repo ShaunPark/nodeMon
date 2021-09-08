@@ -174,7 +174,7 @@ export default class NodeManager {
             if( node && event.resetCondition ) {
                 if (node.hasReboodRequest) {
                     Log.info(`[NodeManager.eventHandlers] Node '${node.nodeName}' removed from moritoring list. Delete request.`)
-                    await this.removeRebootCondition(node.nodeName)
+                    await this.removeRebootCondition(node.nodeName, false)
                 }
 
                 if (node.hasScheduled) {
@@ -246,7 +246,7 @@ export default class NodeManager {
             const node = NodeStatus.getNode(nodeName)
             if (node && node.hasReboodRequest) {
                 setTimeout(async () => {
-                    await this.removeRebootCondition(nodeName)
+                    await this.removeRebootCondition(nodeName, true)
                     this.unCordonNode(nodeName)
                 }, 30 * 1000)
             }
@@ -522,7 +522,7 @@ export default class NodeManager {
                 }
                 if (node.hasReboodRequest) {
                     Log.info(`[NodeManager.cleanConditions] Node '${node.nodeName}' has requesed to reboot. Delete request.`)
-                    await this.removeRebootCondition(node.nodeName)
+                    await this.removeRebootCondition(node.nodeName, false)
                     await this.removeCordonedCondition(node.nodeName, true)
                     skipThisTurn = true
                 }
@@ -544,7 +544,7 @@ export default class NodeManager {
                 .map(async (node) => {
                     if (node.hasReboodRequest) {
                         Log.info(`[NodeManager.cleanFailedJobs] Node '${node.nodeName}' has requesed to reboot but failed. Delete request.`)
-                        await this.removeRebootCondition(node.nodeName)
+                        await this.removeRebootCondition(node.nodeName, true)
                     }
 
                     if (node.hasScheduled) {
@@ -798,13 +798,16 @@ export default class NodeManager {
      * 
      * @param nodeName reboot를 위한 condition을 제거할 노드 명 
      */
-    private removeRebootCondition = async (nodeName: string) => {
+    private removeRebootCondition = async (nodeName: string, doUnCordon: boolean) => {
         Log.debug(`[NodeManager.removeRebootCondition] Node ${nodeName} RebootRequested`)
 
         // dry-run이 아닌 경우에만 수행 
         if (!this.cmg.config.dryRun) {
             // 먼저 RebootRequested 컨디션을 False로 변경 
-            await this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED)
+            if(await this.k8sUtil.removeNodeCondition(nodeName, REBOOT_REQUESTED) && doUnCordon){
+                Log.debug(`[NodeManager.removeCordonedCondition] unCordon Node : ${nodeName}`)
+                this.k8sUtil.uncordonNode(nodeName)
+            }
             Channel.info(nodeName, `Node reboot process finished.`)
         }
     }
