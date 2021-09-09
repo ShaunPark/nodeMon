@@ -102,7 +102,8 @@ export default class K8SNodeInformer extends K8SInformer {
                                 status: statusString,
                                 conditions: sendCondition,
                                 nodeName: name, nodeUnscheduleable: unschedulable, nodeIp: retArr[0],
-                                rebootTime: rebootTime
+                                rebootTime: rebootTime,
+                                bootId: node.status.nodeInfo?.bootID
                             })
                         }
                     }

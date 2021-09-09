@@ -48,6 +48,7 @@ export interface NodeInfo extends BaseEvent {
     status: string,
     conditions: Array<NodeCondition>
     rebootTime: number
+    bootId?: string
 }
 
 export interface NodeConditionCache {
@@ -63,4 +64,6 @@ export interface NodeConditionCache {
     readonly hasReboodRequest: boolean
     readonly scheduledTime: number
     readonly rebootRequestedTime: number
+    readonly bootId?:string
+    readonly rebooted:boolean
 }

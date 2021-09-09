@@ -48,7 +48,7 @@ export default class K8SUtil extends K8SClient {
                 Log.error(JSON.stringify(ret))
             }
         } catch (err) {
-            Log.error(err.response.body.message)
+            Log.error(err)
         }
         return Promise.reject()
     }
