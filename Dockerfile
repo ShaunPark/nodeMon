@@ -6,6 +6,7 @@ COPY . .
 #RUN mv /nodeMon/node.js /nodeMon/node_modules/aws-sdk/lib/http/node.js
 # RUN cp /nodeMon/coreV1Api.js /nodeMon/node_modules/@kubernetes/client-node/dist/gen/api/coreV1Api.js
 RUN apk add --no-cache tzdata
+RUN npm install && npm install -g typescript && npm install -g ts-node
 ENV TZ=Asia/Seoul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 EXPOSE 8880
