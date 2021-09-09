@@ -113,8 +113,8 @@ export default class K8SEventInformer extends K8SInformer {
         ["DrainSucceeded", ["draino", "kubelet"]],
         ["DrainFailed", ["draino", "kubelet"]],
         ["NodeNotReady", ["node-controller"]],
-        ["Rebooted", ["kubelet"]],
-        ["NodeReady", ["kubelet"]],
+        //["Rebooted", ["kubelet"]],
+        //["NodeReady", ["kubelet"]],
     ])
 
     private checkValid(event: CoreV1Event): boolean {
