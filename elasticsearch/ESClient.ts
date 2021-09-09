@@ -5,15 +5,15 @@ import { IElasticSearch } from '../types/ConfigType';
 export abstract class ESClient<T> {
   private client: Client;
 
-  constructor(private INDEX_NAME: string, hostString: string, private mapping:Object, el: IElasticSearch ) {
+  constructor(private INDEX_NAME: string, hostString: string, private mapping: Object, el: IElasticSearch) {
     if (el.useApiKey && el.apiKey !== undefined) {
       this.client = new Client({
         node: hostString, auth: {
           apiKey: el.apiKey
         }
       })
-    } else if (!el.useApiKey && el.id !== undefined ) {
-      const password = (process.env.ES_PASSWORD)?process.env.ES_PASSWORD:""
+    } else if (!el.useApiKey && el.id !== undefined) {
+      const password = (process.env.ES_PASSWORD) ? process.env.ES_PASSWORD : ""
       this.client = new Client({
         node: hostString, auth: {
           username: el.id,
@@ -80,7 +80,9 @@ export abstract class ESClient<T> {
 
       return Promise.resolve(retArr)
     } catch (error) {
-      Log.error(`[ESClient.search] ${error.message}`);
+      if (error instanceof Error) {
+        Log.error(`[ESClient.search] ${error.message}`);
+      }
       return Promise.reject()
     }
   }
@@ -107,7 +109,9 @@ export abstract class ESClient<T> {
 
       return Promise.resolve(retArr)
     } catch (error) {
-      Log.error(`[ESClient.searchId] ${error.message}`);
+      if (error instanceof Error) {
+        Log.error(`[ESClient.searchId] ${error.message}`);
+      }
       return Promise.reject()
     }
   }
@@ -124,7 +128,9 @@ export abstract class ESClient<T> {
       }
       await this.client.index(bodyData);
     } catch (error) {
-      Log.error(`ESClient update=${error.message}`);
+      if (error instanceof Error) {
+        Log.error(`ESClient update=${error.message}`);
+      }
     }
   }
 
@@ -133,7 +139,9 @@ export abstract class ESClient<T> {
       const bodyData: RequestParams.Delete = { index: this.INDEX_NAME, id: id }
       await this.client.delete(bodyData)
     } catch (error) {
-      Log.error(`[ESClient.delete] ${error.message}`);
+      if (error instanceof Error) {
+        Log.error(`[ESClient.delete] ${error.message}`);
+      }
     }
   }
 }

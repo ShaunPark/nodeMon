@@ -68,7 +68,9 @@ class AWSShutdown {
         Channel.info(ipAddress, "AWS instance is terminated.");
       } catch (err) {
         Channel.error(ipAddress, "Failed to terminate AWS instance.");
-        Log.error("[AWSReboot.run] Error", err.stack);
+        if (err instanceof Error) {
+          Log.error("[AWSReboot.run] Error", err.stack);
+        }
       }
     } else {
       Log.error('[AWSReboot.run] VPC is not configured in configfile. Reboot skipped.')
@@ -83,8 +85,10 @@ class AWSShutdown {
 
       const data = this.sendAWSCommand(new TerminateInstancesCommand(param))
       Log.info(`[AWSReboot.terminateNode] Terminate request for ${instanceIds} done ${data}`)
-    } catch (err) {      
-      throw new Error(`[AWSReboot.terminateNode] Terminate Instance Failed - ${err.message}`);
+    } catch (err) {
+      if (err instanceof Error) {
+        throw new Error(`[AWSReboot.terminateNode] Terminate Instance Failed - ${err.message}`);
+      }
     }
   }
 
@@ -92,7 +96,9 @@ class AWSShutdown {
     try {
       return await this.ec2.send(command)
     } catch (err) {
-      throw new Error(`[AWSReboot.sendAWSCommand] Call Instance Commanad Failed - ${err.message}`);
+      if (err instanceof Error) {
+        throw new Error(`[AWSReboot.sendAWSCommand] Call Instance Commanad Failed - ${err.message}`);
+      }
     }
   }
 }
