@@ -111,6 +111,7 @@ export default class NodeManager {
 
             if (node !== undefined) { // 처음 수신한 노드 정보가 아닌경우 
                 if (event.bootId != undefined && event.bootId != "" && node.bootId != event.bootId && !node.rebooted) {
+                    Log.info(`Node rebooted checked by bootId : ${node.bootId} -> ${event.bootId}`)
                     // rebooted but Rebooted event not arrived.
                     this.eventHandlerOfEvent["Rebooted"](nodeName)
                 }
