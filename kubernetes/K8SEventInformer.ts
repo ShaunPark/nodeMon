@@ -76,6 +76,8 @@ export default class K8SEventInformer extends K8SInformer {
 
     private createSendingEvent(obj: CoreV1Event): NodeEvent | undefined {
         if (this.checkValid(obj)) {
+            Log.debug(`[K8SEventInformer.createSendingEvent] Event on Node: ${obj.involvedObject.name}-${obj.reason}-${obj.source?.component}`)
+
             if (obj.involvedObject.name && obj.reason && obj.lastTimestamp) {
                 let lt = 0
                 try {
@@ -91,6 +93,8 @@ export default class K8SEventInformer extends K8SInformer {
                     lastTimestamp: lt
                 }
             }
+        } else {
+            Log.debug(`[K8SEventInformer.createSendingEvent] Event on Node: ${obj.involvedObject.name}-${obj.reason}-${obj.source?.component}. But ignore this event.`)
         }
         return undefined
     }
@@ -118,8 +122,6 @@ export default class K8SEventInformer extends K8SInformer {
     ])
 
     private checkValid(event: CoreV1Event): boolean {
-        Log.debug(`[K8SEventInformer.checkValid] Event on Node: ${event.involvedObject.name}-${event.reason}-${event.source?.component}`)
-
         if (event.reason) {
             const ce = this.concernedEvents.get(event.reason)
             if (ce !== undefined && event.source && event.source.component) {
